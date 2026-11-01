@@ -1,0 +1,17 @@
+# Logs and temporary files
+*.log
+test_output.html
+
+# Operating System files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+
+# Node / Package managers (if added)
+node_modules/
+dist/
+.cache/
