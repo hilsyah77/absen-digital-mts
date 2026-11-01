@@ -4806,6 +4806,56 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAdminKbmSettingsTable(currentKbmDayGroup);
 
     // Card 5: Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah
+    function formatHolidayDateDisplay(startStr, endStr) {
+      if (!startStr) return { main: "-", sub: "", durationText: "" };
+      const sDate = new Date(startStr + "T00:00:00");
+      const eDate = endStr ? new Date(endStr + "T00:00:00") : sDate;
+
+      const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+      const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
+      const sDay = isNaN(sDate.getTime()) ? "" : days[sDate.getDay()];
+      const eDay = isNaN(eDate.getTime()) ? "" : days[eDate.getDay()];
+
+      // Hitung selisih hari
+      const diffTime = Math.abs(eDate - sDate);
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      const durationText = diffDays > 1 ? `${diffDays} Hari` : "1 Hari";
+
+      if (!endStr || startStr === endStr) {
+        const d = String(sDate.getDate()).padStart(2, "0");
+        const m = months[sDate.getMonth()] || "";
+        const y = sDate.getFullYear();
+        return {
+          main: `${d} ${m} ${y}`,
+          sub: sDay,
+          durationText
+        };
+      } else {
+        const sd = String(sDate.getDate()).padStart(2, "0");
+        const sm = months[sDate.getMonth()] || "";
+        const sy = sDate.getFullYear();
+        const ed = String(eDate.getDate()).padStart(2, "0");
+        const em = months[eDate.getMonth()] || "";
+        const ey = eDate.getFullYear();
+
+        let mainText = "";
+        if (sy === ey && sm === em) {
+          mainText = `${sd} – ${ed} ${sm} ${sy}`;
+        } else if (sy === ey) {
+          mainText = `${sd} ${sm} – ${ed} ${em} ${sy}`;
+        } else {
+          mainText = `${sd} ${sm} ${sy} – ${ed} ${em} ${ey}`;
+        }
+
+        return {
+          main: mainText,
+          sub: `${sDay} s/d ${eDay}`,
+          durationText
+        };
+      }
+    }
+
     function renderAdminHolidaysTable() {
       const tbody = document.getElementById("tbodyHolidays");
       const countEl = document.getElementById("countHolidaysTotal");
@@ -4814,10 +4864,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const holidays = StorageService.getHolidays();
       const searchVal = (document.getElementById("searchHolidayInput")?.value || "").toLowerCase().trim();
       const filterCat = document.getElementById("filterHolidayCategory")?.value || "all";
+      const filterMonth = document.getElementById("filterHolidayMonth")?.value || "all";
 
       let filtered = [...holidays];
       if (filterCat !== "all") {
         filtered = filtered.filter(h => h.category === filterCat);
+      }
+      if (filterMonth !== "all") {
+        filtered = filtered.filter(h => {
+          const sM = (h.startDate || "").substring(5, 7);
+          const eM = (h.endDate || h.startDate || "").substring(5, 7);
+          return sM === filterMonth || eM === filterMonth;
+        });
       }
       if (searchVal) {
         filtered = filtered.filter(h => 
@@ -4834,8 +4892,10 @@ document.addEventListener("DOMContentLoaded", () => {
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-              Tidak ada data hari libur yang cocok dengan pencarian / filter kategori.
+            <td colspan="7" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🏖️</div>
+              <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-secondary);">Tidak ada data hari libur yang cocok</div>
+              <div style="font-size: 0.8rem; margin-top: 0.25rem;">Coba sesuaikan kata kunci pencarian atau filter kategori & bulan di atas.</div>
             </td>
           </tr>
         `;
@@ -4845,43 +4905,54 @@ document.addEventListener("DOMContentLoaded", () => {
       // Sort by startDate ascending
       filtered.sort((a, b) => (a.startDate || "").localeCompare(b.startDate || ""));
 
-      filtered.forEach((h) => {
+      filtered.forEach((h, idx) => {
         const tr = document.createElement("tr");
 
-        let dateDisplay = h.startDate;
-        if (h.endDate && h.endDate !== h.startDate) {
-          dateDisplay = `${h.startDate} s/d ${h.endDate}`;
-        }
+        const dateInfo = formatHolidayDateDisplay(h.startDate, h.endDate);
 
         const catBadge = h.category === "madrasah"
           ? `<span class="holiday-badge-madrasah">🕌 Kaldik Jateng</span>`
           : `<span class="holiday-badge-nasional">🇮🇩 Libur Nasional</span>`;
 
         tr.innerHTML = `
-          <td>
-            <div style="font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">
-              📅 ${dateDisplay}
+          <td style="text-align: center;">
+            <div style="font-weight: 700; color: var(--text-muted); font-size: 0.8rem; font-family: 'JetBrains Mono';">
+              ${idx + 1}
             </div>
           </td>
           <td>
-            <strong style="color: var(--text-primary); font-size: 0.85rem;">${h.name}</strong>
+            <div class="holiday-date-cell">
+              <div class="holiday-date-main">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>${dateInfo.main}</span>
+              </div>
+              <div class="holiday-date-sub">
+                <span>${dateInfo.sub}</span>
+                <span class="holiday-duration-chip">${dateInfo.durationText}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="font-weight: 700; color: var(--text-primary); font-size: 0.86rem; line-height: 1.35;">
+              ${h.name}
+            </div>
           </td>
           <td>${catBadge}</td>
-          <td style="font-size: 0.8rem; color: var(--text-secondary); max-width: 320px;">
+          <td style="font-size: 0.8rem; color: var(--text-secondary); max-width: 320px; line-height: 1.4;">
             ${h.description || '-'}
           </td>
           <td style="text-align: center;">
-            <span style="font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: var(--radius-sm); background: rgba(239, 68, 68, 0.12); color: #dc2626;">
-              Libur KBM
+            <span class="holiday-status-badge">
+              🏖️ Libur KBM
             </span>
           </td>
           <td style="text-align: center;">
-            <div style="display: flex; gap: 0.35rem; justify-content: center;">
-              <button type="button" class="btn-secondary" onclick="openEditHolidayModal('${h.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" title="Edit Hari Libur">
-                ✏️
+            <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
+              <button type="button" class="btn-table-action btn-table-action-edit" onclick="openEditHolidayModal('${h.id}')" title="Edit Hari Libur">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               </button>
-              <button type="button" class="btn-secondary" onclick="deleteHolidayItem('${h.id}')" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: #dc2626;" title="Hapus Hari Libur">
-                🗑️
+              <button type="button" class="btn-table-action btn-table-action-delete" onclick="deleteHolidayItem('${h.id}')" title="Hapus Hari Libur">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               </button>
             </div>
           </td>
@@ -4911,6 +4982,17 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // Auto-sync End Date with Start Date in holiday form
+    const startInpHoliday = document.getElementById("holidayStartDate");
+    const endInpHoliday = document.getElementById("holidayEndDate");
+    if (startInpHoliday && endInpHoliday) {
+      startInpHoliday.addEventListener("change", () => {
+        if (!endInpHoliday.value || endInpHoliday.value < startInpHoliday.value) {
+          endInpHoliday.value = startInpHoliday.value;
+        }
+      });
+    }
+
     // Reset ke default Kaldik Jateng
     const btnResetKaldik = document.getElementById("btnResetKaldikJateng");
     if (btnResetKaldik) {
@@ -4931,6 +5013,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const filterHolidayCat = document.getElementById("filterHolidayCategory");
     if (filterHolidayCat) {
       filterHolidayCat.addEventListener("change", renderAdminHolidaysTable);
+    }
+    const filterHolidayMonth = document.getElementById("filterHolidayMonth");
+    if (filterHolidayMonth) {
+      filterHolidayMonth.addEventListener("change", renderAdminHolidaysTable);
     }
 
     // Submit Form Tambah / Edit Hari Libur
@@ -5026,6 +5112,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     renderAdminHolidaysTable();
+    window.renderAdminHolidaysTable = renderAdminHolidaysTable;
 
     // Card 6: Form Pengaturan Kredensial Administrator
     const formCreds = document.getElementById("formAdminCredentialsSettings");

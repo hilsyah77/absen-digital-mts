@@ -1270,6 +1270,7 @@ body {
   overflow-x: auto;
 }
 
+.table,
 .custom-table {
   width: 100%;
   border-collapse: collapse;
@@ -1277,28 +1278,33 @@ body {
   font-size: 0.875rem;
 }
 
+.table th,
 .custom-table th {
   background: var(--bg-elevated);
-  padding: 0.95rem 1.25rem;
+  padding: 0.85rem 1rem;
   font-weight: 700;
   color: var(--text-secondary);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
 }
 
+.table td,
 .custom-table td {
-  padding: 1.1rem 1.25rem;
+  padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-primary);
   vertical-align: middle;
 }
 
+.table tr:last-child td,
 .custom-table tr:last-child td {
   border-bottom: none;
 }
 
+.table tr:hover td,
 .custom-table tr:hover td {
   background: var(--bg-subtle);
 }
@@ -2656,6 +2662,72 @@ body {
   padding: 0.2rem 0.65rem;
   font-size: 0.73rem;
   font-weight: 700;
+}
+
+/* Specific Holiday Table Styles */
+#tableHolidays {
+  font-size: 0.84rem;
+}
+
+#tableHolidays th {
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.04em;
+  font-size: 0.76rem;
+  background: var(--bg-elevated);
+}
+
+#tableHolidays tbody tr:hover td {
+  background: rgba(2, 132, 199, 0.035);
+}
+
+.holiday-date-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.holiday-date-main {
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.holiday-date-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.holiday-duration-chip {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.25);
+  font-family: 'Outfit', sans-serif;
+}
+
+.holiday-status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
 }
 
 .room-body {

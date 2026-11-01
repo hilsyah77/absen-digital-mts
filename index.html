@@ -2075,11 +2075,11 @@
             </div>
 
             <!-- Card 5: Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah -->
-            <div class="card" id="cardAdminKaldikHolidays">
+            <div class="card" id="cardAdminKaldikHolidays" style="grid-column: 1 / -1; margin-top: 0.5rem;">
               <div class="card-header-flex" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
                 <div style="display: flex; align-items: center; gap: 0.65rem;">
-                  <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(2, 132, 199, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(2, 132, 199, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2">
                       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                       <line x1="16" y1="2" x2="16" y2="6"></line>
                       <line x1="8" y1="2" x2="8" y2="6"></line>
@@ -2088,19 +2088,22 @@
                     </svg>
                   </div>
                   <div>
-                    <h4 style="font-family: 'Outfit'; font-size: 1.05rem; font-weight: 700;">Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah</h4>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);">Atur hari libur nasional dan libur khusus madrasah sesuai Kaldik Kanwil Kemenag Jateng. Radar kelas & presensi otomatis libur.</span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                      <h4 style="font-family: 'Outfit'; font-size: 1.1rem; font-weight: 700; margin: 0;">Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah</h4>
+                      <span class="badge-tag-pill" style="background: rgba(2, 132, 199, 0.12); color: #0284c7; font-weight: 700; font-size: 0.7rem; padding: 0.2rem 0.55rem;">🏛️ Kaldik Kanwil Kemenag Jateng</span>
+                    </div>
+                    <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Atur hari libur nasional dan libur khusus madrasah sesuai Kaldik Kanwil Kemenag Jateng. Radar kelas & presensi otomatis libur.</span>
                   </div>
                 </div>
 
                 <div style="display: flex; gap: 0.5rem; align-items: center; margin-left: auto; flex-wrap: wrap;">
-                  <button type="button" class="btn-secondary" id="btnResetKaldikJateng" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; border-color: var(--emerald-500); color: var(--emerald-700);" title="Kembalikan seluruh daftar libur ke pedoman Kaldik Madrasah Jawa Tengah resmi">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-                    <span>🔄 Muat Kaldik Jateng</span>
+                  <button type="button" class="btn-secondary" id="btnResetKaldikJateng" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; border-color: var(--emerald-500); color: var(--emerald-700); font-weight: 600;" title="Kembalikan seluruh daftar libur ke pedoman resmi Kaldik Madrasah Jawa Tengah">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                    <span>Muat Ulang Kaldik Jateng</span>
                   </button>
-                  <button type="button" class="btn-emerald" id="btnAddHolidayModalBtn" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    <span>+ Tambah Hari Libur</span>
+                  <button type="button" class="btn-emerald" id="btnAddHolidayModalBtn" style="font-size: 0.8rem; padding: 0.48rem 1rem; display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 700;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Tambah Hari Libur</span>
                   </button>
                 </div>
               </div>
@@ -2108,7 +2111,7 @@
               <!-- Filter Toolbar Holidays -->
               <div style="display: flex; gap: 0.65rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.85rem; background: var(--bg-hover); padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
                 <div style="flex: 1; min-width: 220px; position: relative;">
-                  <input type="text" id="searchHolidayInput" class="form-control" placeholder="Cari nama hari libur atau keterangan..." style="font-size: 0.8rem; padding-left: 2rem;">
+                  <input type="text" id="searchHolidayInput" class="form-control" placeholder="Cari nama hari libur, tanggal (YYYY-MM-DD), atau keterangan..." style="font-size: 0.8rem; padding-left: 2rem;">
                   <span style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); font-size: 0.85rem; color: var(--text-muted);">🔍</span>
                 </div>
                 <div style="min-width: 180px;">
@@ -2118,22 +2121,42 @@
                     <option value="nasional">🇮🇩 Hari Libur Nasional</option>
                   </select>
                 </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
-                  Total: <span id="countHolidaysTotal" style="color: var(--emerald-600); font-weight: 700;">0</span> Hari Libur
+                <div style="min-width: 140px;">
+                  <select id="filterHolidayMonth" class="form-control" style="font-size: 0.8rem;">
+                    <option value="all">Semua Bulan</option>
+                    <option value="01">Januari</option>
+                    <option value="02">Februari</option>
+                    <option value="03">Maret</option>
+                    <option value="04">April</option>
+                    <option value="05">Mei</option>
+                    <option value="06">Juni</option>
+                    <option value="07">Juli</option>
+                    <option value="08">Agustus</option>
+                    <option value="09">September</option>
+                    <option value="10">Oktober</option>
+                    <option value="11">November</option>
+                    <option value="12">Desember</option>
+                  </select>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; display: flex; align-items: center; gap: 0.35rem; padding-left: 0.25rem;">
+                  <span>Total:</span>
+                  <span id="countHolidaysTotal" style="color: var(--emerald-600); font-weight: 800; font-family: 'JetBrains Mono'; font-size: 0.9rem;">0</span>
+                  <span>Hari Libur</span>
                 </div>
               </div>
 
               <!-- Holidays Table -->
-              <div class="table-responsive" style="border: 1px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; background: var(--bg-surface);">
-                <table class="table" id="tableHolidays" style="margin-bottom: 0;">
+              <div class="table-responsive" style="border: 1px solid var(--border-light); border-radius: var(--radius-md); overflow: hidden; background: var(--bg-surface); box-shadow: var(--shadow-sm);">
+                <table class="table custom-table" id="tableHolidays" style="margin-bottom: 0;">
                   <thead>
                     <tr>
-                      <th style="width: 170px;">Tanggal Libur</th>
-                      <th style="min-width: 220px;">Nama Hari Libur / Peringatan</th>
-                      <th style="width: 180px;">Kategori</th>
-                      <th>Keterangan Kaldik Jawa Tengah</th>
-                      <th style="width: 130px; text-align: center;">Status KBM</th>
-                      <th style="width: 100px; text-align: center;">Aksi</th>
+                      <th style="width: 48px; text-align: center;">No</th>
+                      <th style="width: 195px;">Tanggal & Hari Libur</th>
+                      <th style="min-width: 230px;">Nama Hari Libur / Agenda Kaldik</th>
+                      <th style="width: 175px;">Kategori</th>
+                      <th>Keterangan Kaldik Kanwil Kemenag Jawa Tengah</th>
+                      <th style="width: 135px; text-align: center;">Status KBM</th>
+                      <th style="width: 90px; text-align: center;">Aksi</th>
                     </tr>
                   </thead>
                   <tbody id="tbodyHolidays">
@@ -2143,17 +2166,18 @@
               </div>
 
               <div style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; font-size: 0.73rem; color: var(--text-muted);">
-                <div>
-                  ℹ️ <em>Pedoman resmi Keputusan Kepala Kantor Wilayah Kementerian Agama Provinsi Jawa Tengah tentang Kalender Pendidikan Madrasah.</em>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <span>ℹ️</span>
+                  <em>Pedoman resmi Keputusan Kepala Kantor Wilayah Kementerian Agama Provinsi Jawa Tengah tentang Kalender Pendidikan Madrasah.</em>
                 </div>
-                <div>
-                  Radar kelas & sistem presensi otomatis mengenali tanggal libur di atas.
+                <div style="color: var(--emerald-700); font-weight: 600;">
+                  ⚡ Radar monitoring kelas & sistem presensi otomatis mengenali tanggal libur di atas.
                 </div>
               </div>
             </div>
 
             <!-- Card 6: Kredensial & Keamanan Akun Administrator -->
-            <div class="card">
+            <div class="card" style="grid-column: 1 / -1; margin-top: 0.5rem;">
               <div class="card-header-flex" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 0.75rem;">
                 <div style="display: flex; align-items: center; gap: 0.65rem;">
                   <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(0, 106, 78, 0.15); color: #006A4E; display: flex; align-items: center; justify-content: center;">
