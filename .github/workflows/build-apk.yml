@@ -1,0 +1,95 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: 🔨 Build HADIR.GURU Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🐘 Set up Gradle 8.5
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.5
+
+      - name: 📦 Sync Web Assets to Android Project
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          cp -r index.html android/app/src/main/assets/www/
+          cp -r scripts android/app/src/main/assets/www/
+          cp -r styles android/app/src/main/assets/www/
+          cp -r assets android/app/src/main/assets/www/
+          cp -r data android/app/src/main/assets/www/
+          echo "Web assets synced successfully to android assets."
+
+      - name: 🚀 Build APK with Gradle
+        run: |
+          cd android
+          gradle assembleDebug --no-daemon --stacktrace
+
+      - name: 📋 Prepare Output APK
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk hadir-guru-mts.apk
+          ls -lh hadir-guru-mts.apk
+
+      - name: 📤 Upload APK to GitHub Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HADIR-GURU-MTs-APK
+          path: hadir-guru-mts.apk
+          retention-days: 90
+
+      - name: 🏷️ Publish APK to GitHub Releases
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "HADIR.GURU MTs — APK Android Terbaru"
+          body: |
+            ## 📱 Aplikasi Android HADIR.GURU MTs
+            File APK siap pasang untuk smartphone Android guru dan administrator madrasah.
+
+            ### ✨ Detail Rilis:
+            - **Nama Aplikasi**: HADIR.GURU
+            - **Paket**: `com.hadirguru.mts`
+            - **Tipe**: Debug APK (Siap Pasang Langsung Tanpa Perlu Setup Keystore)
+            - **Kompatibilitas**: Android 6.0 Marshmallow hingga Android 14+
+            - **Fitur Utama**:
+              - Validasi Kehadiran & Geofencing GPS
+              - Kamera & Unggah Dokumen Surat Izin/Sakit
+              - Penyimpanan Lokal Mandiri (Offline Ready)
+              - UI Responsif Mobile & Dark/Light Mode
+
+            ---
+
+            ### 📥 Panduan Instalasi di HP Android:
+            1. Unduh file **`hadir-guru-mts.apk`** di bawah ini langsung melalui browser HP.
+            2. Buka file yang selesai diunduh.
+            3. Jika muncul notifikasi keamanan *"Izinkan penginstalan aplikasi dari sumber tidak dikenal"*, pilih **Izinkan / Setuju**.
+            4. Klik **Pasang (Install)** lalu buka aplikasi.
+            5. Izinkan akses **Lokasi** dan **Kamera** saat pertama kali presensi atau upload surat.
+
+            *Build otomatis oleh GitHub Actions (Commit: ${{ github.sha }}).*
+          files: hadir-guru-mts.apk
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,3 +15,15 @@ Desktop.ini
 node_modules/
 dist/
 .cache/
+
+# Android build outputs & Gradle cache
+.gradle/
+build/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/www/
+*.apk
+*.aab
+

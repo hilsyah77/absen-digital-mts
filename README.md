@@ -41,10 +41,25 @@ absen-digital-mts/
 │   └── data.js         # Pengelolaan data kehadiran, storage, dan fungsi helper
 ├── styles/
 │   └── main.css        # Desain visual, tema, komponen, dan animasi
+├── android/            # Proyek native wrapper Android (WebView, Geolocation, FileChooser)
+├── .github/workflows/  # CI/CD otomatis untuk build APK Android di cloud GitHub
 ├── index.html          # Halaman portal utama (Login, Guru, dan Admin)
 ├── prd.md              # Product Requirements Document komprehensif
+├── PANDUAN_BUILD_APK.md # Panduan komprehensif build dan instalasi APK Android
 └── README.md           # Dokumentasi repositori proyek
 ```
+
+---
+
+## 📱 Build APK Android Lewat GitHub Actions
+
+Aplikasi ini sudah dilengkapi alur kerja otomatis (CI/CD) GitHub Actions untuk mengkompilasi file APK Android (`hadir-guru-mts.apk`) secara instan di cloud tanpa perlu instalasi Android Studio lokal:
+
+1. **Otomatis**: Setiap kali Anda melakukan `git push` ke branch `main`, GitHub akan otomatis mengkompilasi APK.
+2. **Manual (1 Klik)**: Masuk ke tab **Actions** di GitHub ➔ Pilih **"Build Android APK"** ➔ Klik **"Run workflow"**.
+3. **Download**: Unduh file APK siap pasang langsung dari menu **Releases** atau bagian **Artifacts** di GitHub Actions.
+
+📖 *Panduan lengkap cara download dan instalasi di smartphone dapat dilihat di [PANDUAN_BUILD_APK.md](PANDUAN_BUILD_APK.md).*
 
 ---
 
@@ -70,3 +85,4 @@ absen-digital-mts/
 ## 📄 Lisensi & Hak Cipta
 
 Dikembangkan untuk mendukung digitalisasi madrasah di Indonesia. © 2026 HADIR.GURU.
+
