@@ -7349,8 +7349,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("btnQuickPicketCheckIn");
     if (!btn) return;
 
-    // Bersihkan style inline agar mengikuti CSS kelas presisi
-    btn.removeAttribute("style");
+    // Pastikan styling ukuran & layout presisi seragam dengan tombol utama
+    btn.style.width = "100%";
+    btn.style.boxSizing = "border-box";
+    btn.style.minHeight = "46px";
+    btn.style.padding = "0.75rem 1.25rem";
+    btn.style.borderRadius = "var(--radius-md, 12px)";
+    btn.style.fontFamily = "'Outfit', sans-serif";
+    btn.style.fontSize = "0.88rem";
+    btn.style.fontWeight = "700";
+    btn.style.lineHeight = "1.25";
+    btn.style.display = "inline-flex";
+    btn.style.alignItems = "center";
+    btn.style.justifyContent = "center";
+    btn.style.gap = "0.55rem";
+    btn.style.textAlign = "center";
 
     const todayDay = getTodayPicketDay();
     const activeTeacherId = StorageService.getActiveTeacherId();

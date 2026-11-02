@@ -3767,16 +3767,18 @@ body.mode-admin .welcoming-picket-banner {
 }
 
 /* Tombol Aksi Banner Piket */
+#btnOpenAddPicketModal,
 .btn-input-guru-piket {
   width: 100% !important;
   box-sizing: border-box !important;
-  min-height: 44px !important;
-  padding: 0.7rem 1.15rem !important;
+  min-height: 46px !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: var(--radius-md) !important;
   font-family: 'Outfit', sans-serif !important;
   font-size: 0.88rem !important;
   font-weight: 800 !important;
   letter-spacing: 0.01em !important;
+  line-height: 1.25 !important;
   background: #00563b !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
@@ -3789,6 +3791,7 @@ body.mode-admin .welcoming-picket-banner {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+#btnOpenAddPicketModal:hover,
 .btn-input-guru-piket:hover {
   background: #006A4E !important;
   transform: translateY(-2px) !important;
@@ -3796,20 +3799,24 @@ body.mode-admin .welcoming-picket-banner {
   border-color: rgba(255, 255, 255, 0.45) !important;
 }
 
+#btnOpenAddPicketModal:active,
 .btn-input-guru-piket:active {
   transform: translateY(0) !important;
 }
 
+#btnQuickPicketCheckIn,
 .btn-banner-action-piket {
   width: 100% !important;
   box-sizing: border-box !important;
-  min-height: 44px !important;
-  padding: 0.7rem 1.15rem !important;
+  min-height: 46px !important;
+  padding: 0.75rem 1.25rem !important;
   border-radius: var(--radius-md) !important;
   font-family: 'Outfit', sans-serif !important;
-  font-size: 0.86rem !important;
+  font-size: 0.88rem !important;
   font-weight: 700 !important;
-  display: flex !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.25 !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.55rem !important;
@@ -3818,24 +3825,32 @@ body.mode-admin .welcoming-picket-banner {
   overflow: hidden !important;
 }
 
+#btnQuickPicketCheckIn .picket-btn-label,
 .btn-banner-action-piket .picket-btn-label {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   max-width: 100% !important;
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
 }
 
-/* Status: Bukan Jadwal Hari Ini */
+/* Status: Bukan Jadwal Hari Ini / Belum Ada Jadwal */
+#btnQuickPicketCheckIn.btn-picket-status-idle,
 .btn-picket-status-idle {
-  background: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
-  border: 1px dashed rgba(255, 255, 255, 0.45) !important;
-  box-shadow: none !important;
+  border: 1.5px dashed rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   font-weight: 600 !important;
   cursor: default !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
 }
 
 /* Status: Jadwal Hari Ini (Ready Check-In) */
+#btnQuickPicketCheckIn.btn-picket-status-ready,
 .btn-picket-status-ready {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
   color: #ffffff !important;
@@ -3844,6 +3859,7 @@ body.mode-admin .welcoming-picket-banner {
   cursor: pointer !important;
 }
 
+#btnQuickPicketCheckIn.btn-picket-status-ready:hover,
 .btn-picket-status-ready:hover {
   background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
   transform: translateY(-2px) !important;
@@ -3851,6 +3867,7 @@ body.mode-admin .welcoming-picket-banner {
 }
 
 /* Status: Sudah Check-In */
+#btnQuickPicketCheckIn.btn-picket-status-checkedin,
 .btn-picket-status-checkedin {
   background: #ffffff !important;
   color: #1F3D12 !important;
@@ -3874,11 +3891,12 @@ body.mode-admin .welcoming-picket-banner {
   box-shadow: 0 2px 6px rgba(120, 170, 86, 0.4);
 }
 
+#picketAdminBadge,
 .admin-picket-status-pill {
   width: 100% !important;
   box-sizing: border-box !important;
-  min-height: 40px !important;
-  padding: 0.55rem 1rem !important;
+  min-height: 46px !important;
+  padding: 0.75rem 1.25rem !important;
   display: none !important;
   align-items: center !important;
   justify-content: center !important;
@@ -3888,7 +3906,7 @@ body.mode-admin .welcoming-picket-banner {
   background: rgba(0, 106, 78, 0.35) !important;
   border: 1px solid rgba(0, 106, 78, 0.65) !important;
   color: #ffffff !important;
-  font-size: 0.8rem !important;
+  font-size: 0.84rem !important;
   font-weight: 700 !important;
   border-radius: var(--radius-md) !important;
 }
