@@ -8778,17 +8778,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function updateMainTeacherPreview(teacherId) {
-      const t = teachers.find(item => item.id === teacherId) || teachers[0];
+      const card = document.getElementById("teacherSelectedPreviewCard");
+      if (!teacherId) {
+        if (card) card.style.display = "none";
+        return;
+      }
+      const t = teachers.find(item => item.id === teacherId);
       const previewName = document.getElementById("teacherPreviewName");
       const previewDetail = document.getElementById("teacherPreviewDetail");
       const previewAvatar = document.getElementById("teacherPreviewAvatar");
       if (t) {
+        if (card) card.style.display = "flex";
         if (previewName) previewName.textContent = t.name;
         if (previewDetail) previewDetail.textContent = `${t.subject || 'Guru Mapel'} • NIP ${t.nip || '-'} • ${t.classAssigned || 'MTs'}`;
         if (previewAvatar) {
           const initials = t.name.split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase();
           previewAvatar.textContent = initials || "GR";
         }
+      } else {
+        if (card) card.style.display = "none";
       }
     }
 
@@ -8889,6 +8897,11 @@ document.addEventListener("DOMContentLoaded", () => {
       inputTeacherSearch.addEventListener("input", () => {
         openCombobox();
         const val = inputTeacherSearch.value.trim().toLowerCase();
+        if (!val) {
+          if (hiddenTeacherId) hiddenTeacherId.value = "";
+          updateMainTeacherPreview(null);
+          return;
+        }
         const exact = teachers.find(t => 
           (t.name || "").toLowerCase() === val || 
           (t.nip || "").replace(/\s+/g, "") === val.replace(/\s+/g, "") ||
@@ -8897,6 +8910,9 @@ document.addEventListener("DOMContentLoaded", () => {
         if (exact) {
           if (hiddenTeacherId) hiddenTeacherId.value = exact.id;
           updateMainTeacherPreview(exact.id);
+        } else {
+          if (hiddenTeacherId) hiddenTeacherId.value = "";
+          updateMainTeacherPreview(null);
         }
       });
 
@@ -8928,14 +8944,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    // Set initial teacher selection
-    const initialActiveId = StorageService.getActiveTeacherId();
-    const initialTeacher = teachers.find(t => t.id === initialActiveId) || teachers[0];
-    if (initialTeacher) {
-      if (hiddenTeacherId) hiddenTeacherId.value = initialTeacher.id;
-      if (inputTeacherSearch) inputTeacherSearch.value = initialTeacher.name;
-      updateMainTeacherPreview(initialTeacher.id);
-    }
+    // Set initial teacher selection: Form login bersih / tidak langsung terpilih Abdur Rouf
+    if (hiddenTeacherId) hiddenTeacherId.value = "";
+    if (inputTeacherSearch) inputTeacherSearch.value = "";
+    updateMainTeacherPreview(null);
 
     // Eye Password Toggles
     const btnToggleTeacherPass = document.getElementById("btnToggleMainTeacherPass");
@@ -8985,6 +8997,12 @@ document.addEventListener("DOMContentLoaded", () => {
           } else if (!targetIdentifier) {
             targetIdentifier = inputVal;
           }
+        }
+
+        if (!targetIdentifier) {
+          showLoginAlert("Silakan pilih atau cari akun guru pendidik Anda terlebih dahulu.");
+          if (inputTeacherSearch) inputTeacherSearch.focus();
+          return;
         }
 
         const pin = document.getElementById("inputMainTeacherPassword")?.value || "";
@@ -10096,6 +10114,17 @@ document.addEventListener("DOMContentLoaded", () => {
     const tabAdmin = document.getElementById("tabBtnMainAdminAuth");
     const alertBox = document.getElementById("loginMainAlert");
     if (alertBox) alertBox.style.display = "none";
+
+    const inputTeacherSearch = document.getElementById("inputMainTeacherIdentifier");
+    const hiddenTeacherId = document.getElementById("selectMainTeacherAccount");
+    const card = document.getElementById("teacherSelectedPreviewCard");
+    const passTeacher = document.getElementById("inputMainTeacherPassword");
+    const passAdmin = document.getElementById("inputMainAdminPassword");
+    if (inputTeacherSearch) inputTeacherSearch.value = "";
+    if (hiddenTeacherId) hiddenTeacherId.value = "";
+    if (card) card.style.display = "none";
+    if (passTeacher) passTeacher.value = "";
+    if (passAdmin) passAdmin.value = "";
 
     if (defaultMode === "admin") {
       if (tabAdmin) tabAdmin.click();
