@@ -4512,9 +4512,20 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Scripts -->
+  <!-- Firebase SDK (Compat v10 for Vanilla JS & Offline Persistence) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+
+  <!-- Firebase Config & Service -->
+  <script src="scripts/firebase-config.js"></script>
+  <script src="scripts/firebase-service.js"></script>
+
+  <!-- Core App Scripts -->
   <script src="scripts/data.js"></script>
   <script src="scripts/app.js"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>
+

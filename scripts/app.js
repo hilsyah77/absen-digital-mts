@@ -8999,6 +8999,17 @@ document.addEventListener("DOMContentLoaded", () => {
           StorageService.syncActiveTeachingSchedules();
           SoundService.playSuccess();
 
+          // Autentikasi Firebase Cloud Database Tertutup jika aktif
+          if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+            FirebaseService.loginWithNip(teacher.nip || teacher.id, pin, "teacher")
+              .then(res => {
+                if (res.success) {
+                  console.log("[Firebase] Akun guru terautentikasi (Sesi Tertutup):", teacher.name);
+                }
+              })
+              .catch(err => console.warn("[Firebase] Auth warning:", err));
+          }
+
           // Explicitly clear mode-login and activate teacher mode
           document.body.classList.remove("mode-login");
           window.switchAppRole("teacher", true);
@@ -9023,11 +9034,24 @@ document.addEventListener("DOMContentLoaded", () => {
           hideLoginAlert();
           StorageService.setAdminLoggedIn(true, remember);
           SoundService.playSuccess();
+
+          // Autentikasi Admin ke Firebase Cloud Database
+          if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+            FirebaseService.loginWithNip("admin", password, "admin")
+              .then(res => {
+                if (res.success) {
+                  console.log("[Firebase] Administrator terautentikasi (Sesi Tertutup Penuh)");
+                }
+              })
+              .catch(err => console.warn("[Firebase] Admin auth warning:", err));
+          }
+
           window.switchAppRole("admin", true);
           showToast("Login Administrator Berhasil", "Selamat datang di Command Center Administrator MTs.", "success");
         } else {
           showLoginAlert("Username atau password administrator salah. Silakan periksa kembali.");
         }
+
       });
     }
 

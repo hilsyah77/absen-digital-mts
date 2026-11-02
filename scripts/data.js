@@ -2607,6 +2607,17 @@ const StorageService = {
   },
   saveTodayAttendance(data) {
     localStorage.setItem("hadir_guru_today", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+      const activeTeacher = this.getActiveTeacher();
+      if (activeTeacher) {
+        FirebaseService.recordAttendance({
+          ...data,
+          teacherId: activeTeacher.id,
+          teacherName: activeTeacher.name,
+          nip: activeTeacher.nip
+        }).catch(err => console.warn("[Firebase] Background sync error:", err));
+      }
+    }
   },
   getHistory() {
     const stored = localStorage.getItem("hadir_guru_history");
@@ -2627,6 +2638,16 @@ const StorageService = {
   },
   saveLeaveRequests(data) {
     localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+      const activeTeacher = this.getActiveTeacher();
+      const lastRequest = Array.isArray(data) && data.length > 0 ? data[data.length - 1] : null;
+      if (lastRequest && lastRequest.id && !lastRequest._synced) {
+        FirebaseService.submitLeaveRequest({
+          ...lastRequest,
+          teacherId: activeTeacher ? activeTeacher.id : (lastRequest.teacherId || "TCH-01")
+        }).catch(err => console.warn("[Firebase] Leave sync error:", err));
+      }
+    }
   },
   getTeachingLogs() {
     const stored = localStorage.getItem("hadir_guru_teaching_logs");
