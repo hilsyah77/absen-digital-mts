@@ -7328,101 +7328,73 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnOpenAdd) {
       btnOpenAdd.style.display = "inline-flex";
+      const spanText = document.getElementById("btnOpenAddPicketText") || btnOpenAdd.querySelector("span:last-child");
+      if (spanText) {
+        spanText.textContent = isAdmin ? "Input Guru Piket" : "Ambil Jadwal Piket";
+      }
+      btnOpenAdd.title = isAdmin ? "Tugaskan guru ke jadwal piket gerbang" : "Daftarkan diri Anda ke hari piket yang masih kosong";
     }
 
     if (adminBadge) {
-      adminBadge.style.display = isAdmin ? "flex" : "none";
+      adminBadge.style.setProperty("display", isAdmin ? "flex" : "none", "important");
     }
 
     if (isAdmin) {
-      if (btnQuickCheckIn) btnQuickCheckIn.style.display = "none";
+      if (btnQuickCheckIn) btnQuickCheckIn.style.setProperty("display", "none", "important");
       return;
     } else {
-      if (btnQuickCheckIn) btnQuickCheckIn.style.display = "inline-flex";
+      if (btnQuickCheckIn) btnQuickCheckIn.style.setProperty("display", "inline-flex", "important");
     }
 
     const btn = document.getElementById("btnQuickPicketCheckIn");
     if (!btn) return;
 
+    // Bersihkan style inline agar mengikuti CSS kelas presisi
+    btn.removeAttribute("style");
+
     const todayDay = getTodayPicketDay();
     const activeTeacherId = StorageService.getActiveTeacherId();
-    const teachersMaster = StorageService.getTeachersMaster();
+    const teachersMaster = StorageService.getTeachersMaster ? StorageService.getTeachersMaster() : [];
     const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher();
-    const teacherName = activeTeacher ? activeTeacher.name  : "Guru";
+    const teacherName = activeTeacher ? activeTeacher.name : "Guru";
 
     const todaySquad = StorageService.getTodayWelcomingPicket(todayDay);
-    const memberToday = todaySquad ? todaySquad.members.find(m => m.teacherId === activeTeacherId)  : null;
+    const memberToday = todaySquad ? todaySquad.members.find(m => m.teacherId === activeTeacherId) : null;
 
     if (memberToday) {
       const isCheckedIn = memberToday.standbyStatus === "standby";
       if (isCheckedIn) {
         btn.disabled = false;
-        btn.style.background = "#ffffff";
-        btn.style.color = "#1F3D12";
-        btn.style.border = "1.5px solid #C9E6B7";
-        btn.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.15)";
-        btn.style.padding = "0.85rem 1.35rem";
-        btn.style.borderRadius = "var(--radius-md)";
-        btn.style.fontWeight = "700";
-        btn.style.fontSize = "0.92rem";
-        btn.style.cursor = "default";
-        btn.style.whiteSpace = "nowrap";
-        btn.style.display = "inline-flex";
-        btn.style.alignItems = "center";
-        btn.style.justifyContent = "center";
-        btn.style.gap = "0.6rem";
+        btn.className = "btn-banner-action-picket btn-picket-status-checkedin";
+        btn.onclick = null;
         btn.innerHTML = `
-          <span style="background: #93C572; color: #ffffff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 900; flex-shrink: 0; box-shadow: 0 2px 6px rgba(120, 170, 86, 0.4);">✓</span>
-          <span>Anda Sudah Check-In <strong>(${memberToday.checkInTime || memberToday.standbyTime})</strong></span>
+          <span class="picket-badge-icon check-done">✓</span>
+          <span class="picket-btn-label">Tercatat Hadir (${memberToday.checkInTime || memberToday.standbyTime})</span>
         `;
         btn.title = `Anda sudah tercatat masuk gerbang piket pukul ${memberToday.checkInTime || memberToday.standbyTime}`;
       } else {
         btn.disabled = false;
-        btn.style.background = "linear-gradient(135deg, #93C572 0%, #78AA56 100%)";
-        btn.style.color = "#ffffff";
-        btn.style.border = "1px solid rgba(255, 255, 255, 0.35)";
-        btn.style.boxShadow = "0 4px 18px rgba(120, 170, 86, 0.45)";
-        btn.style.padding = "0.85rem 1.35rem";
-        btn.style.borderRadius = "var(--radius-md)";
-        btn.style.fontWeight = "700";
-        btn.style.fontSize = "0.92rem";
-        btn.style.cursor = "pointer";
-        btn.style.whiteSpace = "nowrap";
-        btn.style.display = "inline-flex";
-        btn.style.alignItems = "center";
-        btn.style.justifyContent = "center";
-        btn.style.gap = "0.55rem";
+        btn.className = "btn-banner-action-picket btn-picket-status-ready";
+        btn.onclick = () => window.openPicketCheckInModal(todaySquad.day, activeTeacherId);
         btn.innerHTML = `
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
             <polyline points="22 4 12 14.01 9 11.01"></polyline>
           </svg>
-          <span>📍 Check-In Piket Saya (${todayDay})</span>
+          <span class="picket-btn-label">Check-In Piket Saya (${todayDay})</span>
         `;
         btn.title = `Klik untuk konfirmasi jam masuk piket Anda di ${memberToday.location}`;
       }
     } else {
       const dutyDay = getTeacherPicketDutyDay(activeTeacherId);
       btn.disabled = false;
-      btn.style.background = "rgba(255, 255, 255, 0.16)";
-      btn.style.color = "#ffffff";
-      btn.style.border = "1px dashed rgba(255, 255, 255, 0.45)";
-      btn.style.boxShadow = "none";
-      btn.style.padding = "0.85rem 1.35rem";
-      btn.style.borderRadius = "var(--radius-md)";
-      btn.style.fontWeight = "600";
-      btn.style.fontSize = "0.86rem";
-      btn.style.cursor = "default";
-      btn.style.whiteSpace = "nowrap";
-      btn.style.display = "inline-flex";
-      btn.style.alignItems = "center";
-      btn.style.justifyContent = "center";
-      btn.style.gap = "0.5rem";
+      btn.className = "btn-banner-action-picket btn-picket-status-idle";
+      btn.onclick = null;
       btn.innerHTML = `
-        <span>🔒</span>
-        <span>Bukan Jadwal Piket Hari Ini (${dutyDay ? 'Jadwal : ' + dutyDay : 'Tidak Terjadwal'})</span>
+        <span style="font-size: 0.95rem; line-height: 1; flex-shrink: 0;">🔒</span>
+        <span class="picket-btn-label">${dutyDay ? 'Bukan Jadwal Hari Ini (' + dutyDay + ')' : 'Belum Ada Jadwal Piket'}</span>
       `;
-      btn.title = `Akun ${teacherName} tidak terjadwal piket hari ini (${todayDay}). Jadwal Anda: ${dutyDay || 'Tidak Terjadwal'}.`;
+      btn.title = `Akun ${teacherName} tidak terjadwal piket hari ini (${todayDay}). ${dutyDay ? 'Jadwal Anda: ' + dutyDay : 'Anda belum terdaftar di jadwal piket.'}`;
     }
   }
 
@@ -7513,7 +7485,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 Belum Ada Guru Piket untuk Hari ${squad.day}
               </h3>
               <p style="margin: 0; font-size: 0.88rem; color: var(--text-muted); max-width: 480px;">
-                Jadwal regu piket <strong>${squad.squadName}</strong> masih kosong. Silakan klik tombol di bawah untuk menugaskan guru piket penyambutan siswa 5S di titik gerbang.
+                Jadwal regu piket <strong>${squad.squadName}</strong> masih kosong. Silakan klik tombol di bawah untuk ${isAdmin ? 'menugaskan guru' : 'mendaftarkan diri Anda'} piket penyambutan siswa 5S di titik gerbang.
               </p>
             </div>
             <button type="button" class="btn-input-guru-piket" onclick="window.openAddPicketMemberForDay('${squad.day}')" style="background: #006A4E; color: #ffffff; border: none; padding: 0.85rem 1.6rem; font-size: 0.92rem; font-weight: 700; border-radius: var(--radius-md); cursor: pointer; display: inline-flex; align-items: center; gap: 0.55rem; box-shadow: 0 4px 18px rgba(0, 106, 78, 0.45);">
@@ -7523,7 +7495,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <line x1="19" y1="8" x2="19" y2="14"></line>
                 <line x1="22" y1="11" x2="16" y2="11"></line>
               </svg>
-              <span>➕ Input Guru Piket Hari ${squad.day}</span>
+              <span>➕ ${isAdmin ? 'Input Guru Piket Hari ' + squad.day : 'Ambil Jadwal Piket Hari ' + squad.day}</span>
             </button>
           </div>
         `;
@@ -7684,9 +7656,11 @@ document.addEventListener("DOMContentLoaded", () => {
               <button type="button" class="btn-member-action btn-swap" onclick="openSwapPicketModal('${squad.day}', '${member.teacherId}')" title="Tukar atau gantikan petugas piket ini">
                 <span>🔄 Inval</span>
               </button>
-              <button type="button" class="btn-member-action" onclick="removePicketTeacherAction('${squad.day}', '${member.teacherId}')" title="Hapus guru dari jadwal piket hari ${squad.day}" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.07);">
-                <span>🗑️ Hapus</span>
-              </button>
+              ${(isAdmin || isMyAccount) ? `
+                <button type="button" class="btn-member-action" onclick="removePicketTeacherAction('${squad.day}', '${member.teacherId}')" title="${isMyAccount ? 'Batalkan jadwal piket Anda di hari ' + squad.day : 'Hapus guru dari jadwal piket hari ' + squad.day}" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.07);">
+                  <span>🗑️ ${isMyAccount ? 'Batal' : 'Hapus'}</span>
+                </button>
+              ` : ''}
             </div>
             <a href="${waLink}" target="_blank" class="btn-member-action btn-wa" title="Hubungi Petugas via WhatsApp">
               <span>💬 WA</span>
@@ -7700,15 +7674,49 @@ document.addEventListener("DOMContentLoaded", () => {
       // Dashed Add Picket Teacher Card
       const addCard = document.createElement("div");
       addCard.className = "picket-member-card picket-add-card-dashed";
-      addCard.style.cssText = "border: 2px dashed rgba(0, 106, 78, 0.4); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; background: rgba(0, 106, 78, 0.04); cursor: pointer; min-height: 180px; transition: all 0.2s ease;";
-      addCard.onmouseenter = () => { addCard.style.background = "rgba(0, 106, 78, 0.08)"; addCard.style.borderColor = "#006A4E"; };
-      addCard.onmouseleave = () => { addCard.style.background = "rgba(0, 106, 78, 0.04)"; addCard.style.borderColor = "rgba(0, 106, 78, 0.4)"; };
-      addCard.onclick = () => window.openAddPicketMemberForDay(squad.day);
-      addCard.innerHTML = `
-        <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 106, 78, 0.12); color: #006A4E; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 0.5rem;">➕</div>
-        <div style="font-weight: 700; color: #006A4E; font-size: 0.95rem;">Tambah Guru Piket</div>
-        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Tugaskan guru ke regu hari ${squad.day}</div>
-      `;
+
+      const isTeacherInSquad = squad.members.some(m => m.teacherId === activeTeacherId);
+      const isSquadFull = squad.members.length >= 4;
+
+      if (!isAdmin) {
+        if (isTeacherInSquad) {
+          addCard.style.cssText = "border: 2px dashed rgba(16, 185, 129, 0.45); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; background: rgba(16, 185, 129, 0.04); cursor: default; min-height: 180px;";
+          addCard.onclick = () => { showToast("Sudah Terdaftar", `Anda sudah terdaftar dalam jadwal piket hari ${squad.day}.`, "info"); };
+          addCard.innerHTML = `
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: #006A4E; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 0.5rem;">✓</div>
+            <div style="font-weight: 700; color: #006A4E; font-size: 0.95rem;">Anda Sudah Terdaftar</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Regu hari ${squad.day} sudah mencakup penugasan Anda</div>
+          `;
+        } else if (isSquadFull) {
+          addCard.style.cssText = "border: 2px dashed rgba(100, 116, 139, 0.3); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; background: rgba(100, 116, 139, 0.03); cursor: not-allowed; min-height: 180px;";
+          addCard.onclick = () => { showToast("Regu Penuh", `Regu hari ${squad.day} sudah penuh (4 petugas). Silakan pilih hari lain yang masih kosong.`, "warning"); };
+          addCard.innerHTML = `
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(100, 116, 139, 0.12); color: #64748b; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 0.5rem;">🔒</div>
+            <div style="font-weight: 700; color: var(--text-muted); font-size: 0.95rem;">Regu Hari Ini Penuh</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Kuota 4 petugas gerbang telah terisi</div>
+          `;
+        } else {
+          addCard.style.cssText = "border: 2px dashed rgba(0, 106, 78, 0.45); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; background: rgba(0, 106, 78, 0.04); cursor: pointer; min-height: 180px; transition: all 0.2s ease;";
+          addCard.onmouseenter = () => { addCard.style.background = "rgba(0, 106, 78, 0.08)"; addCard.style.borderColor = "#006A4E"; };
+          addCard.onmouseleave = () => { addCard.style.background = "rgba(0, 106, 78, 0.04)"; addCard.style.borderColor = "rgba(0, 106, 78, 0.45)"; };
+          addCard.onclick = () => window.openAddPicketMemberForDay(squad.day);
+          addCard.innerHTML = `
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 106, 78, 0.12); color: #006A4E; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 0.5rem;">➕</div>
+            <div style="font-weight: 700; color: #006A4E; font-size: 0.95rem;">Daftarkan Diri Saya</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Ambil tugas piket hari ${squad.day} (${squad.members.length}/4 Petugas)</div>
+          `;
+        }
+      } else {
+        addCard.style.cssText = "border: 2px dashed rgba(0, 106, 78, 0.4); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem 1rem; text-align: center; background: rgba(0, 106, 78, 0.04); cursor: pointer; min-height: 180px; transition: all 0.2s ease;";
+        addCard.onmouseenter = () => { addCard.style.background = "rgba(0, 106, 78, 0.08)"; addCard.style.borderColor = "#006A4E"; };
+        addCard.onmouseleave = () => { addCard.style.background = "rgba(0, 106, 78, 0.04)"; addCard.style.borderColor = "rgba(0, 106, 78, 0.4)"; };
+        addCard.onclick = () => window.openAddPicketMemberForDay(squad.day);
+        addCard.innerHTML = `
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: rgba(0, 106, 78, 0.12); color: #006A4E; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 0.5rem;">➕</div>
+          <div style="font-weight: 700; color: #006A4E; font-size: 0.95rem;">Tambah Guru Piket</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">Tugaskan guru ke regu hari ${squad.day}</div>
+        `;
+      }
       grid.appendChild(addCard);
     }
   }
@@ -8286,7 +8294,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }, 1000);
 
-    // 10. Open Add Picket Teacher Modal (Mode Guru & Mode Admin)
+    // 10. Open Add Picket Teacher Modal (Mode Guru: Diri Sendiri & Hari Kosong | Mode Admin: Bebas)
     window.openAddPicketMemberForDay = function(day) {
       const modal = document.getElementById("modalAddPicketTeacher");
       const form = document.getElementById("formAddPicketTeacher");
@@ -8296,28 +8304,251 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       form.reset();
-      const targetDay = day || currentSelectedPicketDay || (typeof getTodayPicketDay === "function" ? getTodayPicketDay() : "Senin");
-      currentSelectedPicketDay = targetDay;
 
-      const selectDay = document.getElementById("selectAddPicketDay");
-      if (selectDay) {
-        selectDay.value = targetDay;
+      const isAdmin = currentActiveRole === "admin";
+      const activeTeacherId = StorageService.getActiveTeacherId();
+      const teachersMaster = StorageService.getTeachersMaster ? StorageService.getTeachersMaster() : [];
+      const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher() || { id: activeTeacherId, name: "Guru", subject: "Guru Mapel" };
+      const roster = StorageService.getWelcomingPicketRoster ? StorageService.getWelcomingPicketRoster() : [];
+      const todayDay = typeof getTodayPicketDay === "function" ? getTodayPicketDay() : "Jumat";
+
+      // 1. Tampilan Header & Info Box berdasarkan Hak Akses
+      const titleTextEl = document.getElementById("modalAddPicketTitleText");
+      const infoAlertEl = document.getElementById("modalAddPicketInfoAlert");
+      const infoTextEl = document.getElementById("modalAddPicketInfoText");
+      const submitBtnTextEl = document.getElementById("btnSubmitAddPicketText");
+      const labelTeacherEl = document.getElementById("labelAddPicketTeacher");
+      const helperTeacherEl = document.getElementById("helperAddPicketTeacher");
+      const helperDayEl = document.getElementById("helperAddPicketDay");
+
+      if (titleTextEl) {
+        titleTextEl.textContent = isAdmin
+          ? "Input Penugasan Guru Piket Gerbang (Admin)"
+          : "Ambil Jadwal Piket Sambut Siswa (Mandiri)";
       }
 
+      if (infoTextEl) {
+        if (isAdmin) {
+          infoTextEl.innerHTML = `<strong>Form Penugasan Admin:</strong> Anda dapat menugaskan guru ke regu penyambutan siswa 5S gerbang madrasah.`;
+          if (infoAlertEl) {
+            infoAlertEl.style.borderColor = "rgba(0, 106, 78, 0.28)";
+            infoAlertEl.style.background = "rgba(0, 106, 78, 0.08)";
+            infoAlertEl.style.color = "#006A4E";
+          }
+        } else {
+          infoTextEl.innerHTML = `<strong>Pendaftaran Piket Mandiri:</strong> Anda mendaftarkan diri Anda (<strong>${activeTeacher.name}</strong>) ke jadwal hari yang masih kosong / tersedia kuota. Pilihan guru dikunci otomatis ke akun Anda.`;
+          if (infoAlertEl) {
+            infoAlertEl.style.borderColor = "rgba(59, 130, 246, 0.35)";
+            infoAlertEl.style.background = "rgba(59, 130, 246, 0.08)";
+            infoAlertEl.style.color = "#1d4ed8";
+          }
+        }
+      }
+
+      if (submitBtnTextEl) {
+        submitBtnTextEl.textContent = isAdmin
+          ? "💾 Simpan & Tugaskan Guru Piket"
+          : "💾 Daftarkan Diri Saya ke Jadwal Piket";
+      }
+
+      if (labelTeacherEl) {
+        labelTeacherEl.textContent = isAdmin ? "Pilih Guru Pendidik" : "Akun Guru Anda (Terkunci)";
+      }
+
+      // 2. Setup Dropdown Guru (selectAddPicketTeacher)
       const selectTeacher = document.getElementById("selectAddPicketTeacher");
       if (selectTeacher) {
-        selectTeacher.innerHTML = '<option value="" disabled selected>-- Pilih Guru Pendidik --</option>';
-        const teachers = StorageService.getTeachersMaster ? StorageService.getTeachersMaster() : [];
-        teachers.forEach(t => {
+        selectTeacher.innerHTML = "";
+        if (!isAdmin) {
+          // MODE GURU: HANYA MENAMPILKAN DIRI SENDIRI DAN DIKUNCI
           const opt = document.createElement("option");
-          opt.value = t.id;
-          opt.textContent = `${t.name} • ${t.subject || 'Guru Mapel'} (${t.nip || t.id})`;
+          opt.value = activeTeacherId;
+          opt.textContent = `👤 ${activeTeacher.name} • ${activeTeacher.subject || 'Guru Mapel'} (${activeTeacher.nip || activeTeacher.id}) — [Akun Anda]`;
+          opt.selected = true;
           selectTeacher.appendChild(opt);
-        });
+          selectTeacher.disabled = true;
+          selectTeacher.style.backgroundColor = "rgba(100, 116, 139, 0.08)";
+          selectTeacher.style.cursor = "not-allowed";
+          selectTeacher.style.fontWeight = "600";
+          selectTeacher.style.color = "#006A4E";
+
+          if (helperTeacherEl) {
+            helperTeacherEl.innerHTML = `<span style="font-size:0.75rem; color:#006A4E; font-weight:600; display:inline-flex; align-items:center; gap:0.3rem;">🔒 Terkunci otomatis untuk akun Anda (${activeTeacher.name}).</span>`;
+          }
+        } else {
+          // MODE ADMIN: MENAMPILKAN SELURUH GURU
+          selectTeacher.disabled = false;
+          selectTeacher.style.backgroundColor = "";
+          selectTeacher.style.cursor = "";
+          selectTeacher.style.fontWeight = "normal";
+          selectTeacher.style.color = "";
+          if (helperTeacherEl) helperTeacherEl.innerHTML = "";
+
+          const defaultOpt = document.createElement("option");
+          defaultOpt.value = "";
+          defaultOpt.disabled = true;
+          defaultOpt.selected = true;
+          defaultOpt.textContent = "-- Pilih Guru Pendidik --";
+          selectTeacher.appendChild(defaultOpt);
+
+          teachersMaster.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t.id;
+            opt.textContent = `${t.name} • ${t.subject || 'Guru Mapel'} (${t.nip || t.id})`;
+            selectTeacher.appendChild(opt);
+          });
+        }
       }
 
-      const instantCheck = document.getElementById("checkAddPicketInstantPresence");
-      if (instantCheck) instantCheck.checked = false;
+      // 3. Setup Dropdown Hari (selectAddPicketDay) - HANYA HARI YANG MASIH KOSONG / TERSEDIA KUOTA UNTUK GURU
+      const selectDay = document.getElementById("selectAddPicketDay");
+      const standardDays = [
+        { day: "Senin", name: "Regu Al-Fatihah" },
+        { day: "Selasa", name: "Regu An-Nur" },
+        { day: "Rabu", name: "Regu Al-Hikmah" },
+        { day: "Kamis", name: "Regu Al-Ikhlas" },
+        { day: "Jumat", name: "Regu As-Salam" },
+        { day: "Sabtu", name: "Regu Al-Barakah" },
+        { day: "Minggu", name: "Regu Khusus Ahad" }
+      ];
+
+      let candidateDay = day || currentSelectedPicketDay || todayDay;
+      let firstAvailableDay = null;
+
+      if (selectDay) {
+        selectDay.innerHTML = "";
+        standardDays.forEach(item => {
+          const squad = roster.find(r => r.day === item.day) || { day: item.day, squadName: item.name, members: [] };
+          const members = squad.members || [];
+          const count = members.length;
+          const isUserAlreadyInSquad = members.some(m => m.teacherId === activeTeacherId);
+          const isFull = count >= 4;
+          const isKosong = count === 0;
+
+          const opt = document.createElement("option");
+          opt.value = item.day;
+
+          let statusTag = "";
+          let disabled = false;
+
+          if (!isAdmin) {
+            if (isUserAlreadyInSquad) {
+              disabled = true;
+              statusTag = " [🔒 Anda Sudah Terjadwal]";
+            } else if (isFull) {
+              disabled = true;
+              statusTag = ` [🔒 Penuh - ${count} Petugas]`;
+            } else if (isKosong) {
+              statusTag = " [⭐ Kosong - Butuh Petugas]";
+              if (!firstAvailableDay) firstAvailableDay = item.day;
+            } else {
+              statusTag = ` [✓ Tersedia Slot - ${count}/4 Terisi]`;
+              if (!firstAvailableDay) firstAvailableDay = item.day;
+            }
+          } else {
+            statusTag = count > 0 ? ` (${count} Petugas)` : " (0 Petugas)";
+            if (!firstAvailableDay) firstAvailableDay = item.day;
+          }
+
+          opt.disabled = disabled;
+          opt.textContent = `${item.day} — ${squad.squadName || item.name}${item.day === todayDay ? ' (Hari Ini)' : ''}${statusTag}`;
+          selectDay.appendChild(opt);
+        });
+
+        // Pilih hari target jika valid dan tidak disabled, jika disabled pilih hari pertama yang tersedia
+        const candidateOpt = Array.from(selectDay.options).find(o => o.value === candidateDay);
+        if (candidateOpt && !candidateOpt.disabled) {
+          selectDay.value = candidateDay;
+        } else if (firstAvailableDay) {
+          selectDay.value = firstAvailableDay;
+          currentSelectedPicketDay = firstAvailableDay;
+        } else {
+          // Semua hari tidak tersedia bagi guru ini
+          if (!isAdmin) {
+            showToast("Jadwal Penuh", "Seluruh jadwal piket telah terisi atau Anda sudah terdaftar di hari yang tersedia.", "info");
+          }
+        }
+
+        if (helperDayEl) {
+          helperDayEl.textContent = !isAdmin
+            ? "Pilih hari yang bertanda [⭐ Kosong] atau [✓ Tersedia Slot]."
+            : "Admin dapat menugaskan guru pada hari mana saja.";
+        }
+      }
+
+      // 4. Update Titik Lokasi Gerbang cerdas sesuai keterisian di hari terpilih
+      function updateLocationOptions(chosenDay) {
+        const selectLoc = document.getElementById("selectAddPicketLocation");
+        if (!selectLoc) return;
+
+        const currentSquad = roster.find(r => r.day === chosenDay);
+        const occupiedLocs = currentSquad ? (currentSquad.members || []).map(m => m.location) : [];
+
+        const locations = [
+          "Gerbang Utama (Gedung A)",
+          "Gerbang Timur (Gedung B)",
+          "Lobi Utama & Tangga Tengah",
+          "Gerbang Barat / Area Parkir"
+        ];
+
+        const prevVal = selectLoc.value;
+        selectLoc.innerHTML = "";
+        let firstFreeLoc = null;
+
+        locations.forEach(loc => {
+          const countAtLoc = occupiedLocs.filter(l => l && l.includes(loc.slice(0, 12))).length;
+          const opt = document.createElement("option");
+          opt.value = loc;
+          if (countAtLoc > 0) {
+            opt.textContent = `${loc} (${countAtLoc} Terisi)`;
+          } else {
+            opt.textContent = `${loc} (⭐ Kosong / Prioritas)`;
+            if (!firstFreeLoc) firstFreeLoc = loc;
+          }
+          selectLoc.appendChild(opt);
+        });
+
+        if (firstFreeLoc) {
+          selectLoc.value = firstFreeLoc;
+        } else if (prevVal) {
+          selectLoc.value = prevVal;
+        }
+      }
+
+      // 5. Update Opsi Presensi Langsung (Hanya aktif untuk hari ini)
+      function updateInstantCheckInAvailability(chosenDay) {
+        const container = document.getElementById("containerAddPicketInstantPresence");
+        const instantCheck = document.getElementById("checkAddPicketInstantPresence");
+        const subtext = document.getElementById("subtextAddPicketInstantPresence");
+        if (!container || !instantCheck) return;
+
+        const isToday = chosenDay === todayDay;
+        instantCheck.checked = false;
+
+        if (isToday) {
+          instantCheck.disabled = false;
+          container.style.opacity = "1";
+          container.style.filter = "none";
+          if (subtext) subtext.textContent = "Centang opsi ini jika Anda sudah standby di titik gerbang saat mendaftar pagi ini.";
+        } else {
+          instantCheck.disabled = true;
+          container.style.opacity = "0.55";
+          container.style.filter = "grayscale(50%)";
+          if (subtext) subtext.textContent = `Opsi presensi langsung dinonaktifkan karena jadwal yang dipilih (${chosenDay}) bukan hari ini (${todayDay}).`;
+        }
+      }
+
+      const activeChosenDay = selectDay ? selectDay.value : candidateDay;
+      updateLocationOptions(activeChosenDay);
+      updateInstantCheckInAvailability(activeChosenDay);
+
+      if (selectDay) {
+        selectDay.onchange = function() {
+          currentSelectedPicketDay = selectDay.value;
+          updateLocationOptions(selectDay.value);
+          updateInstantCheckInAvailability(selectDay.value);
+        };
+      }
 
       window.openModal("modalAddPicketTeacher");
     };
@@ -8329,13 +8560,20 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // 11. Form Add Picket Teacher Submit (Mode Admin)
+    // 11. Form Add Picket Teacher Submit (Mode Guru & Mode Admin)
     const formAddPicket = document.getElementById("formAddPicketTeacher");
     if (formAddPicket) {
       formAddPicket.addEventListener("submit", (e) => {
         e.preventDefault();
+        const isAdmin = currentActiveRole === "admin";
         const day = document.getElementById("selectAddPicketDay")?.value || currentSelectedPicketDay;
-        const teacherId = document.getElementById("selectAddPicketTeacher")?.value;
+        const activeTeacherId = StorageService.getActiveTeacherId();
+
+        // PENTING: Untuk akun Guru, identitas dipaksa selalu menggunakan ID akun yang sedang login
+        const teacherId = isAdmin
+          ? (document.getElementById("selectAddPicketTeacher")?.value)
+          : activeTeacherId;
+
         const location = document.getElementById("selectAddPicketLocation")?.value || "Gerbang Utama (Gedung A)";
         const role = document.getElementById("selectAddPicketRole")?.value || "Petugas 5S Salam Siswa";
         const timeRange = document.getElementById("inputAddPicketTimeRange")?.value || "06:15 – 07:00 WIB";
@@ -8343,8 +8581,25 @@ document.addEventListener("DOMContentLoaded", () => {
         const notes = document.getElementById("inputAddPicketNotes")?.value || "";
 
         if (!teacherId) {
-          showToast("Peringatan", "Silakan pilih guru pendidik yang akan ditugaskan.", "warning");
+          showToast("Peringatan", "Identitas guru tidak terdeteksi. Silakan coba kembali.", "warning");
           return;
+        }
+
+        // Validasi ganda sisi client untuk Guru: hari yang dipilih harus masih memiliki slot & guru belum ada di sana
+        if (!isAdmin) {
+          const roster = StorageService.getWelcomingPicketRoster();
+          const targetSquad = roster.find(r => r.day === day);
+          if (targetSquad) {
+            const alreadyIn = (targetSquad.members || []).some(m => m.teacherId === activeTeacherId);
+            if (alreadyIn) {
+              showToast("Peringatan", `Anda sudah terdaftar dalam jadwal piket hari ${day}.`, "warning");
+              return;
+            }
+            if ((targetSquad.members || []).length >= 4) {
+              showToast("Peringatan", `Jadwal piket hari ${day} sudah penuh (maksimal 4 petugas). Silakan pilih hari lain yang masih kosong.`, "warning");
+              return;
+            }
+          }
         }
 
         const result = StorageService.addPicketTeacher(day, {
@@ -8353,7 +8608,10 @@ document.addEventListener("DOMContentLoaded", () => {
           role,
           timeRange,
           isInstantCheckIn,
-          notes
+          notes,
+          addedByAdmin: isAdmin,
+          addedBySelf: !isAdmin,
+          isAdmin: isAdmin
         });
 
         if (result && result.success) {
@@ -8366,33 +8624,59 @@ document.addEventListener("DOMContentLoaded", () => {
           renderAdminActivityFeed();
           updatePicketBannerQuickCheckIn();
 
-          const statusMsg = isInstantCheckIn ? "dan langsung tercatat standby hadir di gerbang."  : "berhasil dijadwalkan.";
-          showToast(
-            "Guru Piket Ditambahkan",
-            `Guru ${result.member.teacherName} resmi ditugaskan untuk piket hari ${day} (${result.member.location}) ${statusMsg}`,
-            "success"
-          );
+          if (!isAdmin) {
+            const instantMsg = isInstantCheckIn ? " dan presensi standby di gerbang langsung dicatat." : ".";
+            showToast(
+              "Jadwal Piket Berhasil Diambil",
+              `Anda resmi terdaftar dalam jadwal piket hari ${day} (${result.member.location})${instantMsg}`,
+              "success"
+            );
+          } else {
+            const statusMsg = isInstantCheckIn ? "dan langsung tercatat standby hadir di gerbang." : "berhasil dijadwalkan.";
+            showToast(
+              "Guru Piket Ditambahkan",
+              `Guru ${result.member.teacherName} resmi ditugaskan untuk piket hari ${day} (${result.member.location}) ${statusMsg}`,
+              "success"
+            );
+          }
         } else {
-          showToast("Gagal Menambahkan", result ? result.error  : "Terjadi kesalahan saat menyimpan jadwal piket.", "error");
+          showToast("Gagal Menambahkan", result ? result.error : "Terjadi kesalahan saat menyimpan jadwal piket.", "error");
         }
       });
     }
 
-    // 12. Remove Picket Teacher Action (Mode Admin)
+    // 12. Remove Picket Teacher Action (Mode Admin & Pembatalan Mandiri Guru)
     window.removePicketTeacherAction = function(day, teacherId) {
       const roster = StorageService.getWelcomingPicketRoster();
       const dayPicket = roster.find(r => r.day === day);
-      const member = dayPicket ? dayPicket.members.find(m => m.id === teacherId || m.teacherId === teacherId)  : null;
-      const teacherName = member ? member.teacherName  : "Guru Piket";
+      const member = dayPicket ? dayPicket.members.find(m => m.id === teacherId || m.teacherId === teacherId) : null;
+      const teacherName = member ? member.teacherName : "Guru Piket";
 
-      if (!confirm(`Apakah Anda yakin ingin menghapus ${teacherName} dari roster piket gerbang hari ${day}?`)) {
+      const isAdmin = currentActiveRole === "admin";
+      const activeTeacherId = StorageService.getActiveTeacherId();
+
+      // Pembatasan Keamanan: Guru hanya bisa membatalkan jadwal milik dirinya sendiri
+      if (!isAdmin && member && member.teacherId !== activeTeacherId) {
+        showToast("Akses Terbatas", "Anda hanya dapat membatalkan jadwal piket milik Anda sendiri.", "warning");
+        return;
+      }
+
+      const confirmMsg = (!isAdmin && member && member.teacherId === activeTeacherId)
+        ? `Apakah Anda yakin ingin membatalkan jadwal piket Anda pada hari ${day}?`
+        : `Apakah Anda yakin ingin menghapus ${teacherName} dari roster piket gerbang hari ${day}?`;
+
+      if (!confirm(confirmMsg)) {
         return;
       }
 
       const success = StorageService.deletePicketTeacher(day, teacherId);
       if (success) {
         SoundService.playAlert();
-        showToast("Petugas Dihapus", `Penugasan piket untuk ${teacherName} pada hari ${day} telah dihapus.`, "info");
+        showToast(
+          !isAdmin ? "Jadwal Dibatalkan" : "Petugas Dihapus",
+          !isAdmin ? `Penugasan piket Anda pada hari ${day} telah dibatalkan.` : `Penugasan piket untuk ${teacherName} pada hari ${day} telah dihapus.`,
+          "info"
+        );
         renderPicketRoster(day);
         renderDashboardPicketReminder();
         renderAdminActivityFeed();

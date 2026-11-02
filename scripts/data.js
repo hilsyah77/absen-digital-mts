@@ -2238,6 +2238,11 @@ const StorageService = {
       return { success: false, error: `Guru ${teacherName} sudah terdaftar dalam jadwal piket hari ${day}.` };
     }
 
+    // Cek kuota kapasitas hari (maksimal 4 petugas sambut per hari untuk pendaftaran guru)
+    if (!data.isAdmin && dayPicket.members.length >= 4) {
+      return { success: false, error: `Jadwal piket hari ${day} sudah penuh (maksimal 4 petugas). Silakan pilih hari lain yang masih kosong.` };
+    }
+
     const uniqueId = `PKT-${day.slice(0, 3).toUpperCase()}-${Date.now().toString().slice(-4)}`;
     const isInstant = Boolean(data.isInstantCheckIn);
     const now = new Date();
@@ -2260,7 +2265,8 @@ const StorageService = {
       punctuality: isInstant ? "Tepat Waktu" : "-",
       isLate: false,
       notes: data.notes || "",
-      addedByAdmin: true
+      addedByAdmin: data.addedByAdmin !== undefined ? Boolean(data.addedByAdmin) : true,
+      addedBySelf: Boolean(data.addedBySelf)
     };
 
     dayPicket.members.push(newMember);
@@ -2273,7 +2279,8 @@ const StorageService = {
     this.saveWelcomingPicketRoster(roster);
 
     const logStatus = isInstant ? `dan langsung presensi masuk (${timeStr})` : `(Status: Terjadwal)`;
-    this.addAdminActivityFeed(`[Input Piket] Guru ${teacherName} ditugaskan di ${newMember.location} untuk hari ${day} ${logStatus}.`, "correction");
+    const actionLabel = data.addedBySelf ? "mendaftarkan diri mandiri di" : "ditugaskan di";
+    this.addAdminActivityFeed(`[Piket Sambut] Guru ${teacherName} ${actionLabel} ${newMember.location} untuk hari ${day} ${logStatus}.`, "correction");
 
     return { success: true, member: newMember, squad: dayPicket };
   },

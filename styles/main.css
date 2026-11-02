@@ -3718,7 +3718,7 @@ body {
 .welcoming-picket-banner {
   background: linear-gradient(135deg, #2e4a1c 0%, #466e2c 55%, #63923f 100%);
   border-radius: var(--radius-xl);
-  padding: 2.25rem 2.5rem;
+  padding: 1.85rem 2.25rem;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -3729,6 +3729,11 @@ body {
   margin-bottom: 1.5rem;
   box-shadow: 0 10px 25px -5px rgba(120, 170, 86, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.welcoming-picket-banner .welcome-content {
+  flex: 1 1 0%;
+  min-width: 0;
 }
 
 body.mode-admin .welcoming-picket-banner {
@@ -3749,56 +3754,162 @@ body.mode-admin .welcoming-picket-banner {
 }
 
 /* Mode Guru & Admin Banner Actions for Piket Tab */
-#picketBannerActionsTeacher,
-#picketBannerActionsAdmin {
-  width: auto;
-  min-width: 250px;
+#picketBannerActionsUnified,
+.picket-banner-actions-unified {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
   align-items: stretch;
+  width: 310px;
+  max-width: 100%;
+  flex-shrink: 0;
+  z-index: 2;
 }
 
-#btnQuickPicketCheckIn {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-}
-
-#btnQuickPicketCheckIn:hover {
-  transform: translateY(-2px);
-}
-
+/* Tombol Aksi Banner Piket */
 .btn-input-guru-piket {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 44px !important;
+  padding: 0.7rem 1.15rem !important;
+  border-radius: var(--radius-md) !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 0.88rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.01em !important;
+  background: #00563b !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(0, 45, 30, 0.45) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 0.6rem !important;
-  font-family: 'Outfit', sans-serif !important;
-  font-size: 0.95rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.02em !important;
-  background: #006A4E !important;
-  color: #ffffff !important;
-  border: none !important;
-  box-shadow: 0 4px 18px rgba(0, 106, 78, 0.45) !important;
+  gap: 0.55rem !important;
+  cursor: pointer !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .btn-input-guru-piket:hover {
-  background: #007a5a !important;
-  transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 8px 24px rgba(0, 106, 78, 0.65) !important;
-  filter: brightness(1.08) !important;
+  background: #006A4E !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
 }
 
 .btn-input-guru-piket:active {
-  transform: translateY(0) scale(0.99) !important;
+  transform: translateY(0) !important;
+}
+
+.btn-banner-action-piket {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 44px !important;
+  padding: 0.7rem 1.15rem !important;
+  border-radius: var(--radius-md) !important;
+  font-family: 'Outfit', sans-serif !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.55rem !important;
+  text-align: center !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden !important;
+}
+
+.btn-banner-action-piket .picket-btn-label {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+}
+
+/* Status: Bukan Jadwal Hari Ini */
+.btn-picket-status-idle {
+  background: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+  border: 1px dashed rgba(255, 255, 255, 0.45) !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  cursor: default !important;
+}
+
+/* Status: Jadwal Hari Ini (Ready Check-In) */
+.btn-picket-status-ready {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.35) !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45) !important;
+  cursor: pointer !important;
+}
+
+.btn-picket-status-ready:hover {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 22px rgba(16, 185, 129, 0.6) !important;
+}
+
+/* Status: Sudah Check-In */
+.btn-picket-status-checkedin {
+  background: #ffffff !important;
+  color: #1F3D12 !important;
+  border: 1.5px solid #C9E6B7 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  cursor: default !important;
+}
+
+.picket-badge-icon.check-done {
+  background: #93C572;
+  color: #ffffff;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(120, 170, 86, 0.4);
 }
 
 .admin-picket-status-pill {
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  letter-spacing: 0.02em;
-  background: rgba(0, 106, 78, 0.32) !important;
-  border: 1px solid rgba(0, 106, 78, 0.55) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  min-height: 40px !important;
+  padding: 0.55rem 1rem !important;
+  display: none !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  letter-spacing: 0.02em !important;
+  background: rgba(0, 106, 78, 0.35) !important;
+  border: 1px solid rgba(0, 106, 78, 0.65) !important;
   color: #ffffff !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  border-radius: var(--radius-md) !important;
+}
+
+body.mode-admin .admin-picket-status-pill,
+body.mode-admin #picketAdminBadge {
+  display: flex !important;
+}
+
+@media (max-width: 992px) {
+  .welcoming-picket-banner {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 1.5rem !important;
+    gap: 1.25rem !important;
+  }
+  #picketBannerActionsUnified,
+  .picket-banner-actions-unified {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 /* 3. Day Selector Pills (Senin s/d Sabtu) */

@@ -128,11 +128,12 @@ Kebutuhan utama:
 | Verifikasi izin | — | Ya |
 | Data guru | — | Ya |
 | Pengaturan jadwal | — | Ya |
+| Piket Sambut Siswa 5S | Mandiri (Akun Sendiri & Hari Kosong) | Penuh (Semua Guru & Hari) |
 | Koreksi absensi | — | Ya |
 | Laporan | Pribadi | Seluruh guru |
 | Pengaturan sekolah | — | Ya |
 
-Seluruh pemeriksaan hak akses wajib dilakukan di backend.
+Seluruh pemeriksaan hak akses wajib dilakukan di backend dan divalidasi pada client.
 
 ## 7. Struktur Informasi dan Navigasi
 
@@ -356,6 +357,21 @@ Default awal:
 - Zona waktu: Asia/Jakarta.
 - Jam masuk: 07.00 WIB.
 - Jam pulang: 14.00 WIB.
+
+### FR-11b: Jadwal Piket Penyambutan Siswa (5S Gerbang Madrasah)
+
+Persyaratan:
+- Jam pelaksanaan: 06.15 – 07.00 WIB di titik gerbang madrasah (Gerbang Utama A, Gerbang Timur B, Lobi Utama).
+- Hak akses Guru:
+  - Guru dapat mendaftarkan jadwal piket secara mandiri (*self-assignment*).
+  - Pilihan nama guru otomatis terkunci pada akun guru yang sedang login (tidak dapat memilih guru lain).
+  - Guru hanya dapat memilih hari yang masih kosong (*0 petugas*) atau masih memiliki kuota kosong (*maksimal 4 petugas per regu*).
+  - Hari di mana guru yang bersangkutan sudah terdaftar otomatis dinonaktifkan/dikunci (*tidak bisa mendaftar ganda*).
+  - Guru hanya dapat membatalkan penugasan piket miliknya sendiri (tidak dapat menghapus guru lain).
+- Hak akses Admin:
+  - Memiliki hak penuh untuk menugaskan atau menghapus guru mana saja pada hari dan titik gerbang mana saja.
+- Presensi Piket:
+  - Presensi standby gerbang dapat dicatat langsung oleh guru terjadwal atau admin saat bertugas di gerbang.
 
 ### FR-12: Monitoring Kehadiran
 

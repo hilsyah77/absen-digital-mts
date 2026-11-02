@@ -2711,27 +2711,24 @@
               </div>
             </div>
 
-            <!-- Picket Banner Actions: Aktif untuk Guru dan Admin -->
-            <div class="teachers-db-banner-actions" id="picketBannerActionsUnified" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-              <button type="button" class="btn-banner-add btn-input-guru-piket" id="btnOpenAddPicketModal" onclick="window.openAddPicketMemberForDay ? window.openAddPicketMemberForDay() : null" style="background: #006A4E; color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 4px 18px rgba(0, 106, 78, 0.45); font-weight: 700; font-size: 0.92rem; padding: 0.85rem 1.35rem; display: flex; align-items: center; justify-content: center; gap: 0.55rem; cursor: pointer; border-radius: var(--radius-md);">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+            <!-- Picket Banner Actions: Presisi & Elegan untuk Guru & Admin -->
+            <div class="picket-banner-actions-unified" id="picketBannerActionsUnified">
+              <button type="button" class="btn-input-guru-piket" id="btnOpenAddPicketModal" onclick="window.openAddPicketMemberForDay ? window.openAddPicketMemberForDay() : null">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
                   <line x1="19" y1="8" x2="19" y2="14"></line>
                   <line x1="22" y1="11" x2="16" y2="11"></line>
                 </svg>
-                <span>➕ Input Guru Piket</span>
+                <span id="btnOpenAddPicketText">Ambil Jadwal Piket</span>
               </button>
 
-              <button type="button" class="btn-banner-add" id="btnQuickPicketCheckIn" style="background: linear-gradient(135deg, #93C572 0%, #78AA56 100%); border: 1px solid rgba(255, 255, 255, 0.35); box-shadow: 0 4px 18px rgba(120, 170, 86, 0.45); font-weight: 700; color: #ffffff; padding: 0.85rem 1.35rem; font-size: 0.92rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 0.55rem; cursor: pointer; white-space: nowrap;">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                <span>📍 Check-In Piket Saya</span>
+              <button type="button" class="btn-banner-action-piket btn-picket-status-idle" id="btnQuickPicketCheckIn">
+                <span style="font-size: 0.95rem; line-height: 1; flex-shrink: 0;">🔒</span>
+                <span class="picket-btn-label" id="btnQuickPicketCheckInText">Bukan Jadwal Hari Ini</span>
               </button>
 
-              <div class="admin-picket-status-pill" id="picketAdminBadge" style="display: none; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.76rem; color: #ffffff; background: rgba(0, 106, 78, 0.35); padding: 0.45rem 0.85rem; border-radius: var(--radius-full); border: 1px solid rgba(0, 106, 78, 0.6); font-weight: 600; text-align: center;">
+              <div class="admin-picket-status-pill" id="picketAdminBadge" style="display: none !important;">
                 <span>🛡️ Mode Admin: Roster Gerbang</span>
               </div>
             </div>
@@ -3795,22 +3792,22 @@
     </div>
   </div>
 
-  <!-- Modal 14: Input Penugasan Guru Piket Gerbang (Mode Admin) -->
+  <!-- Modal 14: Input Penugasan Guru Piket Gerbang (Mode Admin & Mandiri Guru) -->
   <div class="modal-overlay" id="modalAddPicketTeacher">
     <div class="modal-dialog">
       <div class="modal-header" style="background: linear-gradient(135deg, #004d38 0%, #006A4E 100%); color: #ffffff;">
         <h3 class="modal-title" style="color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
           <span>➕</span>
-          <span>Input Penugasan Guru Piket Gerbang</span>
+          <span id="modalAddPicketTitleText">Input Penugasan Guru Piket Gerbang</span>
         </h3>
         <button class="modal-close-btn" data-close-modal style="color: #ffffff;">&times;</button>
       </div>
 
       <form id="formAddPicketTeacher">
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 1.15rem;">
-          <div style="background: rgba(0, 106, 78, 0.08); border: 1px solid rgba(0, 106, 78, 0.28); border-radius: 8px; padding: 0.75rem 0.9rem; font-size: 0.8rem; color: #006A4E; display: flex; align-items: flex-start; gap: 0.55rem;">
+          <div id="modalAddPicketInfoAlert" style="background: rgba(0, 106, 78, 0.08); border: 1px solid rgba(0, 106, 78, 0.28); border-radius: 8px; padding: 0.75rem 0.9rem; font-size: 0.8rem; color: #006A4E; display: flex; align-items: flex-start; gap: 0.55rem; transition: all 0.2s ease;">
             <span style="font-size: 1.1rem; line-height: 1;">ℹ️</span>
-            <div>
+            <div id="modalAddPicketInfoText">
               <strong>Form Input Guru Piket:</strong> Tambahkan guru pendidik ke jadwal regu penyambutan siswa 5S gerbang madrasah. Anda juga dapat langsung menandai presensi kehadiran petugas saat ini secara real-time.
             </div>
           </div>
@@ -3827,14 +3824,16 @@
               <option value="Sabtu">Sabtu — Regu Al-Barakah</option>
               <option value="Minggu">Minggu — Regu Khusus Ahad</option>
             </select>
+            <div id="helperAddPicketDay" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem;"></div>
           </div>
 
           <!-- Pilih Guru -->
           <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="selectAddPicketTeacher">Pilih Guru Pendidik</label>
+            <label class="form-label" for="selectAddPicketTeacher" id="labelAddPicketTeacher">Pilih Guru Pendidik</label>
             <select id="selectAddPicketTeacher" class="form-control" required>
               <!-- Populated via JS with teachers -->
             </select>
+            <div id="helperAddPicketTeacher" style="margin-top: 0.3rem;"></div>
           </div>
 
           <!-- Titik Gerbang & Peran -->
@@ -3866,7 +3865,7 @@
           </div>
 
           <!-- Opsi Presensi Langsung (Real-Time Hadir) -->
-          <div style="background: linear-gradient(135deg, rgba(0, 106, 78, 0.08) 0%, rgba(0, 106, 78, 0.03) 100%); border: 1.5px solid rgba(0, 106, 78, 0.4); border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+          <div id="containerAddPicketInstantPresence" style="background: linear-gradient(135deg, rgba(0, 106, 78, 0.08) 0%, rgba(0, 106, 78, 0.03) 100%); border: 1.5px solid rgba(0, 106, 78, 0.4); border-radius: var(--radius-md); padding: 0.85rem 1rem; transition: all 0.2s ease;">
             <label style="display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; margin-bottom: 0;">
               <input type="checkbox" id="checkAddPicketInstantPresence" style="width: 19px; height: 19px; margin-top: 0.15rem; accent-color: #006A4E; cursor: pointer;">
               <div>
@@ -3874,7 +3873,7 @@
                   <span>⚡</span>
                   <span>Tandai Langsung Hadir / Presensi Standby Sekarang</span>
                 </strong>
-                <p style="margin: 0.2rem 0 0 0; font-size: 0.76rem; color: #005a42; line-height: 1.35;">
+                <p id="subtextAddPicketInstantPresence" style="margin: 0.2rem 0 0 0; font-size: 0.76rem; color: #005a42; line-height: 1.35;">
                   Centang opsi ini jika guru piket sudah berada di titik gerbang saat diinput. Sistem akan otomatis merekam jam presensi masuk real-time saat ini.
                 </p>
               </div>
@@ -3894,7 +3893,7 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            <span>💾 Simpan & Tugaskan Guru Piket</span>
+            <span id="btnSubmitAddPicketText">💾 Simpan & Tugaskan Guru Piket</span>
           </button>
         </div>
       </form>
