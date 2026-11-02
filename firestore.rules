@@ -78,13 +78,8 @@ service cloud.firestore {
     // 4. JURNAL MENGAJAR KBM & LOG KELAS (TEACHING LOGS)
     // -------------------------------------------------------------------------
     match /teaching_logs/{logId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && (
-        request.resource.data.teacherId == getUserData().teacherId || isAdmin()
-      );
-      allow update, delete: if isAuthenticated() && (
-        isOwner(resource.data.teacherId) || isAdmin()
-      );
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------------------
