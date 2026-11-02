@@ -273,6 +273,56 @@ const FirebaseService = {
   },
 
   /**
+   * Admin: Hapus Batch Riwayat Presensi dari Firestore (Kapasitas Tertutup)
+   */
+  async purgeAttendanceHistory(options = { mode: "all" }) {
+    if (!this.isReady()) return { success: false, fallback: true, count: 0 };
+
+    try {
+      let query = this.db.collection("attendance");
+
+      if (options.mode === "month" && options.month) {
+        const start = `${options.month}-01`;
+        const end = `${options.month}-31T23:59:59`;
+        query = query.where("date", ">=", start).where("date", "<=", end);
+      } else if (options.mode === "beforeMonth" && options.month) {
+        const cutoff = `${options.month}-01`;
+        query = query.where("date", "<", cutoff);
+      }
+
+      const snapshot = await query.get();
+      if (snapshot.empty) {
+        return { success: true, count: 0 };
+      }
+
+      let batch = this.db.batch();
+      let opCount = 0;
+      let totalDeleted = 0;
+
+      for (const doc of snapshot.docs) {
+        batch.delete(doc.ref);
+        opCount++;
+        totalDeleted++;
+        if (opCount >= 450) {
+          await batch.commit();
+          batch = this.db.batch();
+          opCount = 0;
+        }
+      }
+
+      if (opCount > 0) {
+        await batch.commit();
+      }
+
+      console.log(`[FirebaseService] Berhasil menghapus ${totalDeleted} dokumen presensi di Firestore.`);
+      return { success: true, count: totalDeleted };
+    } catch (error) {
+      console.error("[FirebaseService] Gagal menghapus batch presensi di Firestore:", error);
+      return { success: false, error, count: 0 };
+    }
+  },
+
+  /**
    * Tampilkan Badge Status Koneksi Cloud di Header
    */
   updateConnectionBadge(isLoggedIn) {

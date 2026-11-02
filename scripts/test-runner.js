@@ -398,6 +398,10 @@
 
       this.assert("15.5 Fungsi Edit Hari Libur (openEditHolidayModal)", typeof window.openEditHolidayModal === "function");
       this.assert("15.6 Fungsi Hapus Hari Libur (deleteHolidayItem)", typeof window.deleteHolidayItem === "function");
+      this.assert("15.7 Card Pemeliharaan & Reset Riwayat Presensi Bulanan", !!document.getElementById("cardAdminPurgeAttendance"));
+      this.assert("15.8 Tombol Unduh Cadangan Presensi (Backup CSV)", !!document.getElementById("btnDownloadAttendanceBackup"));
+      this.assert("15.9 Tombol Hapus Riwayat Presensi", !!document.getElementById("btnOpenPurgeModal"));
+      this.assert("15.10 Modal Konfirmasi Hapus Riwayat Presensi", !!document.getElementById("modalConfirmPurgeAttendance"));
 
       // Kembalikan ke tab utama
       if (typeof window.switchToTab === "function") window.switchToTab("tab-admin-monitoring");

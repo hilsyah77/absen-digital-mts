@@ -2307,6 +2307,94 @@ const StorageService = {
     return true;
   },
 
+  getAttendanceCount() {
+    const list = this.getHistory();
+    return Array.isArray(list) ? list.length : 0;
+  },
+
+  purgeAttendanceHistory(options = { mode: "all" }) {
+    const all = this.getHistory();
+    if (!Array.isArray(all) || all.length === 0) {
+      return { countDeleted: 0, remainingCount: 0 };
+    }
+
+    const initialCount = all.length;
+    let retained = [];
+
+    if (options.mode === "all") {
+      retained = [];
+      localStorage.removeItem("hadir_guru_today");
+    } else if (options.mode === "month" && options.month) {
+      retained = all.filter(item => {
+        const itemDate = (item.date || "").substring(0, 7);
+        return itemDate !== options.month;
+      });
+      const curMonth = new Date().toISOString().substring(0, 7);
+      if (options.month === curMonth) {
+        localStorage.removeItem("hadir_guru_today");
+      }
+    } else if (options.mode === "beforeMonth" && options.month) {
+      const cutoff = `${options.month}-01`;
+      retained = all.filter(item => {
+        const itemDate = (item.date || "").substring(0, 10);
+        return itemDate >= cutoff;
+      });
+    } else {
+      retained = all;
+    }
+
+    this.saveHistory(retained);
+    const countDeleted = initialCount - retained.length;
+    return { countDeleted, remainingCount: retained.length };
+  },
+
+  exportAttendanceBackupCsv(filterMonth = null) {
+    const all = this.getHistory();
+    if (!Array.isArray(all) || all.length === 0) {
+      return { success: false, message: "Tidak ada data riwayat presensi untuk diunduh." };
+    }
+
+    let exportData = all;
+    let fileName = `backup_absensi_semua_${new Date().toISOString().substring(0, 10)}.csv`;
+
+    if (filterMonth) {
+      exportData = all.filter(item => (item.date || "").substring(0, 7) === filterMonth);
+      fileName = `backup_absensi_bulan_${filterMonth}.csv`;
+    }
+
+    if (exportData.length === 0) {
+      return { success: false, message: `Tidak ada data presensi pada bulan ${filterMonth}.` };
+    }
+
+    const headers = ["ID", "NIP", "Nama Guru", "Tanggal", "Hari", "Jam Masuk", "Status Masuk", "Jam Pulang", "Status Pulang", "Lokasi", "Keterangan"];
+    const rows = exportData.map(item => [
+      `"${item.id || ''}"`,
+      `"${item.nip || ''}"`,
+      `"${(item.teacherName || item.name || '').replace(/"/g, '""')}"`,
+      `"${item.date || ''}"`,
+      `"${item.day || ''}"`,
+      `"${item.checkInTime || item.time || '-'}"`,
+      `"${item.status || 'Hadir'}"`,
+      `"${item.checkOutTime || '-'}"`,
+      `"${item.checkOutStatus || '-'}"`,
+      `"${(item.location || 'Kampus MTs').replace(/"/g, '""')}"`,
+      `"${(item.notes || '-').replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    return { success: true, count: exportData.length, fileName };
+  },
+
   clearAttendanceHistory() {
     localStorage.removeItem("hadir_guru_history");
     localStorage.removeItem("hadir_guru_today");
