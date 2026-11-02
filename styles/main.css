@@ -1624,18 +1624,26 @@ body {
 
 .mobile-nav-item {
   display: flex;
+  flex: 1;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  padding: 0.35rem 0.65rem;
+  padding: 0.35rem 0.15rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: color var(--transition-fast);
+  text-align: center;
+}
+
+.mobile-nav-item span {
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .mobile-nav-item.active {
@@ -1645,6 +1653,7 @@ body {
 .mobile-nav-item svg {
   width: 20px;
   height: 20px;
+  flex-shrink: 0;
 }
 
 /* Responsive Breakpoints */
