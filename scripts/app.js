@@ -9172,7 +9172,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Autentikasi Firebase Cloud Database Tertutup jika aktif
           if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-            FirebaseService.loginWithNip(teacher.nip || teacher.id, pin, "teacher")
+            FirebaseService.loginWithNip(teacher.nip || teacher.id, pin, "teacher", teacher)
               .then(res => {
                 if (res.success) {
                   console.log("[Firebase] Akun guru terautentikasi (Sesi Tertutup):", teacher.name);
@@ -9208,7 +9208,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Autentikasi Admin ke Firebase Cloud Database
           if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-            FirebaseService.loginWithNip("admin", password, "admin")
+            FirebaseService.loginWithNip("admin", password, "admin", { id: "admin", name: "Administrator" })
               .then(res => {
                 if (res.success) {
                   console.log("[Firebase] Administrator terautentikasi (Sesi Tertutup Penuh)");

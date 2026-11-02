@@ -18,22 +18,16 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : {};
     }
 
     function isAdmin() {
       return isAuthenticated() && (
-        getUserData().role == 'admin' ||
+        getUserData().get('role', '') == 'admin' ||
         request.auth.token.admin == true
       );
-    }
-
-    function isTeacher() {
-      return isAuthenticated() && getUserData().role == 'teacher';
-    }
-
-    function isOwner(teacherId) {
-      return isAuthenticated() && getUserData().teacherId == teacherId;
     }
 
     // -------------------------------------------------------------------------
@@ -47,48 +41,37 @@ service cloud.firestore {
     // 1. DATA PENGGUNA & PROFIL (USERS)
     // -------------------------------------------------------------------------
     match /users/{uid} {
-      // Guru hanya bisa membaca dokumen akun miliknya sendiri; Admin bisa baca semua
+      // Guru dan Admin dapat membaca akun miliknya; Admin membaca semua
       allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
-      // Pembuatan dan modifikasi akun hanya boleh dilakukan oleh Admin Madrasah
-      allow create, update, delete: if isAdmin();
+      // Pembuatan dan modifikasi profil oleh pengguna itu sendiri atau Admin
+      allow create, update: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------------------
     // 2. DATA PRESENSI HARIAN (ATTENDANCE)
     // -------------------------------------------------------------------------
     match /attendance/{attendanceId} {
-      // Guru hanya bisa membaca presensi miliknya sendiri; Admin membaca monitoring seluruh madrasah
-      allow read: if isAuthenticated() && (
-        isOwner(resource.data.teacherId) || isAdmin()
-      );
+      // Guru dan Admin yang login dapat membaca monitoring presensi
+      allow read: if isAuthenticated();
 
-      // Guru hanya bisa mencatat absensi atas nama NIP/ID dirinya sendiri
-      allow create: if isAuthenticated() && (
-        (isTeacher() && request.resource.data.teacherId == getUserData().teacherId) ||
-        isAdmin()
-      );
+      // Guru dan Admin yang terautentikasi dapat mencatat dan memperbarui presensi (Check-in & Check-out)
+      allow create, update: if isAuthenticated();
 
-      // Integritas Data: Guru tidak boleh mengubah/memalsukan data absen yang sudah tercatat
-      allow update, delete: if isAdmin();
+      // Integritas Data: Penghapusan data presensi / purge hanya boleh oleh Admin
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------------------
     // 3. PENGAJUAN IZIN & SAKIT (LEAVES)
     // -------------------------------------------------------------------------
     match /leaves/{leaveId} {
-      // Guru membaca pengajuan izinnya sendiri; Admin membaca semua untuk diverifikasi
-      allow read: if isAuthenticated() && (
-        isOwner(resource.data.teacherId) || isAdmin()
-      );
+      // Semua pengguna terautentikasi dapat membaca izin; Guru mengajukan izin
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
 
-      // Guru mengajukan izin untuk dirinya sendiri
-      allow create: if isAuthenticated() && (
-        request.resource.data.teacherId == getUserData().teacherId || isAdmin()
-      );
-
-      // Hanya Admin yang berhak menyetujui (Approve) atau menolak (Reject) izin
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      // Hanya Admin yang berhak menyetujui (Approve), menolak (Reject), atau menghapus izin
+      allow update, delete: if isAdmin();
     }
 
     // -------------------------------------------------------------------------

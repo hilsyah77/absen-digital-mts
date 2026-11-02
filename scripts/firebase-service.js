@@ -99,7 +99,7 @@ const FirebaseService = {
   /**
    * Login menggunakan NIP + Password
    */
-  async loginWithNip(nip, password, role = "teacher") {
+  async loginWithNip(nip, password, role = "teacher", extraData = {}) {
     if (!this.isReady()) {
       return { success: false, fallback: true, message: "Firebase belum aktif, menggunakan autentikasi lokal." };
     }
@@ -117,6 +117,8 @@ const FirebaseService = {
         const initialDoc = {
           uid: user.uid,
           nip: String(nip),
+          teacherId: extraData.id || (role === "admin" ? "admin" : ""),
+          name: extraData.name || (role === "admin" ? "Administrator" : ""),
           email: email,
           role: role,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -136,6 +138,8 @@ const FirebaseService = {
           const userDocData = {
             uid: newUser.uid,
             nip: String(nip),
+            teacherId: extraData.id || (role === "admin" ? "admin" : ""),
+            name: extraData.name || (role === "admin" ? "Administrator" : ""),
             email: email,
             role: role,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
