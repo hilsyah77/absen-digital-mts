@@ -6,21 +6,24 @@
  */
 
 window.FIREBASE_CONFIG = {
-  apiKey: "MASUKKAN_API_KEY_ANDA_DI_SINI",
-  authDomain: "hadir-guru-mts.firebaseapp.com",
-  projectId: "hadir-guru-mts",
-  storageBucket: "hadir-guru-mts.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
+  apiKey: "AIzaSyA37k_iuFSoj5yYDeQYUcJsO4n3689pTB8",
+  authDomain: "absen-digital-6486d.firebaseapp.com",
+  projectId: "absen-digital-6486d",
+  storageBucket: "absen-digital-6486d.firebasestorage.app",
+  messagingSenderId: "1029784790813",
+  appId: "1:1029784790813:web:da7f1a35e7ced49327a3f4"
 };
+
+
 
 /**
  * Cek apakah konfigurasi Firebase telah diisi dengan nilai asli
  */
 function isFirebaseConfigured() {
   return window.FIREBASE_CONFIG &&
-         window.FIREBASE_CONFIG.apiKey &&
-         !window.FIREBASE_CONFIG.apiKey.includes("MASUKKAN_API_KEY");
+    window.FIREBASE_CONFIG.apiKey &&
+    !window.FIREBASE_CONFIG.apiKey.includes("MASUKKAN_API_KEY") &&
+    !window.FIREBASE_CONFIG.apiKey.includes("xxxx");
 }
 
 window.isFirebaseConfigured = isFirebaseConfigured;
