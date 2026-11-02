@@ -92,7 +92,11 @@ public class MainActivity extends AppCompatActivity {
     private void setupSwipeRefresh() {
         mSwipeRefresh.setColorSchemeResources(R.color.primary_brand);
         mSwipeRefresh.setProgressBackgroundColorSchemeResource(R.color.primary_dark);
-        mSwipeRefresh.setOnRefreshListener(() -> mWebView.reload());
+        mSwipeRefresh.setOnRefreshListener(() -> {
+            mWebView.clearCache(true);
+            mWebView.reload();
+            mSwipeRefresh.setRefreshing(false);
+        });
 
         // Only allow swipe to refresh when webview is scrolled to the very top
         mWebView.getViewTreeObserver().addOnScrollChangedListener(() -> {
@@ -102,7 +106,10 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView() {
+        mWebView.clearCache(true);
+
         WebSettings settings = mWebView.getSettings();
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
