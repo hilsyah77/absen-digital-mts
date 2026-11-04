@@ -261,90 +261,6 @@
     </div>
 </div>
 
-  <!-- Immediate Login Engine (Active Instantly on Any Device / WebView) -->
-  <script>
-    (function initImmediateLoginEngine() {
-      // 1. Live Clock WIB
-      function tickLoginClock() {
-        var el = document.getElementById("loginClockLive");
-        if (!el) return;
-        var now = new Date();
-        var h = String(now.getHours()).padStart(2, '0');
-        var m = String(now.getMinutes()).padStart(2, '0');
-        var s = String(now.getSeconds()).padStart(2, '0');
-        el.textContent = h + ":" + m + ":" + s + " WIB";
-      }
-      tickLoginClock();
-      setInterval(tickLoginClock, 1000);
-
-      // 2. Global Tab Switcher
-      window.switchLoginTab = function(mode) {
-        var tabTeacher = document.getElementById("tabBtnMainTeacherAuth");
-        var tabAdmin = document.getElementById("tabBtnMainAdminAuth");
-        var panelTeacher = document.getElementById("loginPanelTeacher");
-        var panelAdmin = document.getElementById("loginPanelAdmin");
-        var alertBox = document.getElementById("loginMainAlert");
-        if (alertBox) alertBox.style.display = "none";
-
-        if (mode === "admin") {
-          if (tabAdmin) tabAdmin.classList.add("active");
-          if (tabTeacher) tabTeacher.classList.remove("active");
-          if (panelAdmin) panelAdmin.style.display = "block";
-          if (panelTeacher) panelTeacher.style.display = "none";
-          var passA = document.getElementById("inputMainAdminPassword");
-          if (passA) setTimeout(function() { passA.focus(); }, 100);
-        } else {
-          if (tabTeacher) tabTeacher.classList.add("active");
-          if (tabAdmin) tabAdmin.classList.remove("active");
-          if (panelTeacher) panelTeacher.style.display = "block";
-          if (panelAdmin) panelAdmin.style.display = "none";
-        }
-      };
-
-      // 3. Quick Filter for 51 Teachers
-      var inputFilter = document.getElementById("inputMainTeacherIdentifier");
-      var selectElem = document.getElementById("selectMainTeacherAccount");
-      if (inputFilter && selectElem) {
-        inputFilter.addEventListener("input", function() {
-          var q = (this.value || "").trim().toLowerCase();
-          var visibleCount = 0;
-          for (var i = 1; i < selectElem.options.length; i++) {
-            var opt = selectElem.options[i];
-            var match = !q || opt.textContent.toLowerCase().indexOf(q) !== -1 || opt.value.toLowerCase().indexOf(q) !== -1;
-            opt.style.display = match ? "" : "none";
-            if (match) visibleCount++;
-          }
-          if (q && visibleCount === 1) {
-            for (var j = 1; j < selectElem.options.length; j++) {
-              if (selectElem.options[j].style.display !== "none") {
-                selectElem.value = selectElem.options[j].value;
-                break;
-              }
-            }
-          }
-        });
-      }
-
-      // 4. Eye Password Toggles
-      var btnEyeTeacher = document.getElementById("btnToggleMainTeacherPass");
-      var inputPassTeacher = document.getElementById("inputMainTeacherPassword");
-      if (btnEyeTeacher && inputPassTeacher) {
-        btnEyeTeacher.onclick = function() {
-          var isPass = inputPassTeacher.type === "password";
-          inputPassTeacher.type = isPass ? "text" : "password";
-        };
-      }
-      var btnEyeAdmin = document.getElementById("btnToggleMainAdminPass");
-      var inputPassAdmin = document.getElementById("inputMainAdminPassword");
-      if (btnEyeAdmin && inputPassAdmin) {
-        btnEyeAdmin.onclick = function() {
-          var isPass = inputPassAdmin.type === "password";
-          inputPassAdmin.type = isPass ? "text" : "password";
-        };
-      }
-    })();
-  </script>
-
   <div class="app-shell">
 
     
@@ -4802,12 +4718,13 @@
 
   <!-- Firebase Config & Service -->
   <script src="scripts/firebase-config.js"></script>
-  <script src="scripts/firebase-service.js?v=2.9"></script>
+  <script src="scripts/firebase-service.js?v=3.1"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js?v=2.9"></script>
-  <script src="scripts/app.js?v=2.9"></script>
+  <script src="scripts/data.js?v=3.1"></script>
+  <script src="scripts/app.js?v=3.1"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>
+
 

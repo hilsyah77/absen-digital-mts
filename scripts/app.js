@@ -3497,6 +3497,10 @@ function initMainApplication() {
 
   window.switchAppRole = function(role, bypassAuth = false) {
     document.body.classList.remove("mode-login");
+    const loginView = document.getElementById("appLoginView");
+    if (loginView) {
+      loginView.style.display = "none";
+    }
     try { sessionStorage.setItem("hadir_guru_last_role", role === "admin" ? "admin" : "teacher"); } catch (e) {}
 
     const btnTeacher = document.getElementById("btnRoleTeacher");
@@ -6060,20 +6064,20 @@ function initMainApplication() {
     const startIdx = totalItems === 0 ? 0 : (isAll ? 1 : (currentPage - 1) * pageSize + 1);
     const endIdx = totalItems === 0 ? 0 : (isAll ? totalItems : Math.min(currentPage * pageSize, totalItems));
 
-    let html = 
+    let html = `
       <div class="table-pagination-info">
-        <span>Menampilkan <strong> + startIdx + â€“ + endIdx + </strong> dari <strong> + totalItems + </strong>  + itemLabel + </span>
+        <span>Menampilkan <strong>${startIdx}–${endIdx}</strong> dari <strong>${totalItems}</strong> ${itemLabel}</span>
         <div style="display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem;">
           <span style="font-size: 0.76rem; color: var(--text-muted);">Baris:</span>
           <select class="pagination-size-select" data-role="pageSizeSelect" aria-label="Jumlah baris per halaman">
-             + pageSizeOptions.map(opt => <option value=" + opt + "  + (opt === pageSize ? 'selected' : '') + > + (opt === -1 ? 'Semua' : opt) + </option>).join('') + 
+            ${pageSizeOptions.map(opt => `<option value="${opt}" ${opt === pageSize ? 'selected' : ''}>${opt === -1 ? 'Semua' : opt}</option>`).join('')}
           </select>
         </div>
       </div>
       <div class="table-pagination-controls">
-        <button type="button" class="pagination-btn pagination-btn-nav" data-page="first"  + (currentPage <= 1 || isAll ? 'disabled' : '') +  title="Halaman Pertama">Â«</button>
-        <button type="button" class="pagination-btn pagination-btn-nav" data-page="prev"  + (currentPage <= 1 || isAll ? 'disabled' : '') +  title="Halaman Sebelumnya">â€¹</button>
-    ;
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="first" ${currentPage <= 1 || isAll ? 'disabled' : ''} title="Halaman Pertama">«</button>
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="prev" ${currentPage <= 1 || isAll ? 'disabled' : ''} title="Halaman Sebelumnya">‹</button>
+    `;
 
     if (!isAll && totalPages > 1) {
       const delta = 2;
@@ -6088,20 +6092,20 @@ function initMainApplication() {
 
       range.forEach(p => {
         if (p === "...") {
-          html += <span class="pagination-ellipsis">...</span>;
+          html += `<span class="pagination-ellipsis">...</span>`;
         } else {
-          html += <button type="button" class="pagination-btn  + (p === currentPage ? 'active' : '') + " data-page=" + p + "> + p + </button>;
+          html += `<button type="button" class="pagination-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
         }
       });
     } else {
-      html += <button type="button" class="pagination-btn active" data-page="1">1</button>;
+      html += `<button type="button" class="pagination-btn active" data-page="1">1</button>`;
     }
 
-    html += 
-        <button type="button" class="pagination-btn pagination-btn-nav" data-page="next"  + (currentPage >= totalPages || isAll ? 'disabled' : '') +  title="Halaman Berikutnya">â€º</button>
-        <button type="button" class="pagination-btn pagination-btn-nav" data-page="last"  + (currentPage >= totalPages || isAll ? 'disabled' : '') +  title="Halaman Terakhir">Â»</button>
+    html += `
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="next" ${currentPage >= totalPages || isAll ? 'disabled' : ''} title="Halaman Berikutnya">›</button>
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="last" ${currentPage >= totalPages || isAll ? 'disabled' : ''} title="Halaman Terakhir">»</button>
       </div>
-    ;
+    `;
 
     container.innerHTML = html;
 
@@ -9755,7 +9759,16 @@ function initMainApplication() {
         }
 
         document.body.classList.remove("mode-login");
+        document.body.classList.add("mode-guru");
+        document.body.classList.remove("mode-admin");
+        const loginView = document.getElementById("appLoginView");
+        if (loginView) {
+          loginView.style.display = "none";
+        }
         window.switchAppRole("teacher", true);
+        if (typeof window.switchToTab === "function") {
+          window.switchToTab("tab-dashboard");
+        }
         showToast("Login Berhasil", `Selamat datang, ${teacher.name}! Sesi presensi aktif.`, "success");
       } else {
         showLoginAlert(authResult.message || "Gagal login. Periksa NIP/Username dan PIN.");
@@ -9804,7 +9817,16 @@ function initMainApplication() {
         }
 
         document.body.classList.remove("mode-login");
+        document.body.classList.add("mode-admin");
+        document.body.classList.remove("mode-guru");
+        const loginView = document.getElementById("appLoginView");
+        if (loginView) {
+          loginView.style.display = "none";
+        }
         window.switchAppRole("admin", true);
+        if (typeof window.switchToTab === "function") {
+          window.switchToTab("tab-admin-monitoring");
+        }
         showToast("Login Administrator Berhasil", "Selamat datang di Command Center Administrator MTs.", "success");
       } else {
         showLoginAlert("Username atau password administrator salah. Silakan periksa kembali.");
