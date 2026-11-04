@@ -417,6 +417,9 @@
 
         <div class="topbar-right">
           
+          <!-- Cloud Real-time Sync Status Badge -->
+          <div id="firebaseStatusBadge" class="firebase-status-badge" style="display: none; align-items: center; padding: 0.32rem 0.7rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); cursor: pointer; white-space: nowrap;" onclick="if(window.FirebaseService){window.FirebaseService.forceSyncAll().then(()=>typeof showToast==='function'&&showToast('Cloud Sync','Data berhasil disinkronkan antara APK dan Web.','success'));}"></div>
+
           <!-- Active Session Badge (Mode Guru / Mode Admin) -->
           <div class="app-session-badge teacher" id="appSessionBadge" title="Status Sesi Sistem Presensi">
             <span class="session-dot"></span>

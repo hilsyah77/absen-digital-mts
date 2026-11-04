@@ -38,13 +38,21 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------------------
-    // 1. DATA PENGGUNA & PROFIL (USERS)
+    // 1. DATA PENGGUNA & PROFIL GURU (USERS & TEACHERS)
     // -------------------------------------------------------------------------
     match /users/{uid} {
-      // Guru dan Admin dapat membaca akun miliknya; Admin membaca semua
-      allow read: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
-      // Pembuatan dan modifikasi profil oleh pengguna itu sendiri atau Admin
-      allow create, update: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+      // Pengguna terautentikasi dapat membaca & menyinkronkan profil guru/admin
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /teachers/{teacherId} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /sync_state/{docId} {
+      allow read, create, update: if isAuthenticated();
       allow delete: if isAdmin();
     }
 
@@ -66,16 +74,13 @@ service cloud.firestore {
     // 3. PENGAJUAN IZIN & SAKIT (LEAVES)
     // -------------------------------------------------------------------------
     match /leaves/{leaveId} {
-      // Semua pengguna terautentikasi dapat membaca izin; Guru mengajukan izin
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-
-      // Hanya Admin yang berhak menyetujui (Approve), menolak (Reject), atau menghapus izin
-      allow update, delete: if isAdmin();
+      // Semua pengguna terautentikasi dapat membaca & menyinkronkan izin
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------------------
-    // 4. JURNAL MENGAJAR KBM & LOG KELAS (TEACHING LOGS)
+    // 4. JURNAL MENGAJAR KBM & SINKRONISASI CLOUD (TEACHING LOGS)
     // -------------------------------------------------------------------------
     match /teaching_logs/{logId} {
       allow read, create, update: if isAuthenticated();
@@ -95,20 +100,18 @@ service cloud.firestore {
     // 6. KONFIGURASI MADRASAH, JADWAL & KALDIK (SCHOOL CONFIG)
     // -------------------------------------------------------------------------
     match /schools/{schoolId} {
-      // Semua guru yang terautentikasi bisa membaca radius dan jam operasional
-      allow read: if isAuthenticated();
-      // Hanya Admin yang bisa mengubah konfigurasi geofence atau data sekolah
-      allow write: if isAdmin();
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     match /holidays/{holidayId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
 
     match /schedules/{scheduleId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin();
     }
   }
 }

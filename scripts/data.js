@@ -1734,6 +1734,9 @@ const StorageService = {
   },
   saveSchoolConfig(data) {
     localStorage.setItem("hadir_guru_school_config", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("school_config", data);
+    }
   },
   normalizeKbmDayGroup(dayOrGroup) {
     if (!dayOrGroup) {
@@ -1980,34 +1983,45 @@ const StorageService = {
         if (Array.isArray(parsed) && parsed.length > 0) teachers = parsed;
       } catch (e) { console.error(e); }
     }
+
+    // Gabungkan override profil individual dari Cloud jika ada
+    let cloudOverrides = {};
+    try {
+      const ovRaw = localStorage.getItem("hadir_guru_cloud_profile_overrides");
+      if (ovRaw) cloudOverrides = JSON.parse(ovRaw) || {};
+    } catch (e) {}
+
     // Pastikan setiap guru memiliki data akun login, penugasan & kepegawaian
     let hasMissing = false;
     const enriched = teachers.map((t, idx) => {
-      const initTeacher = INITIAL_TEACHERS_MASTER_60.find(it => it.id === t.id);
-      let classAssigned = t.classAssigned || (initTeacher ? initTeacher.classAssigned : "Guru Mapel");
-      if (initTeacher && initTeacher.classAssigned && initTeacher.classAssigned !== "Guru Mapel" && (!t.classAssigned || t.classAssigned === "Guru Mapel")) {
+      const ov = cloudOverrides[t.id] || {};
+      const mergedT = { ...t, ...ov };
+      const initTeacher = INITIAL_TEACHERS_MASTER_60.find(it => it.id === mergedT.id);
+      let classAssigned = mergedT.classAssigned || (initTeacher ? initTeacher.classAssigned : "Guru Mapel");
+      if (initTeacher && initTeacher.classAssigned && initTeacher.classAssigned !== "Guru Mapel" && (!mergedT.classAssigned || mergedT.classAssigned === "Guru Mapel")) {
         classAssigned = initTeacher.classAssigned;
         hasMissing = true;
       }
-      let email = t.email || "";
+      let email = mergedT.email || "";
       if (email.toLowerCase().indexOf("@mtsn.sch.id") !== -1) {
         email = email.replace(/@mtsn\.sch\.id/gi, "@mtsasyjtb.sch.id");
         hasMissing = true;
       }
-      const username = t.username || (email ? email.split("@")[0] : ("guru" + (idx + 1)));
-      const pin = t.pin || "123456";
-      const password = t.password || pin;
-      const kepegawaian = t.kepegawaian || (idx < 35 ? "PNS / ASN" : (idx < 45 ? "PPPK" : "GTT / Honorer"));
-      const role = t.role || (classAssigned?.includes("Wali") ? "Wali Kelas" : (classAssigned?.includes("Piket") ? "Guru Piket" : "Guru Pengajar"));
-      if (!t.username || !t.password || !t.kepegawaian || !t.role || !t.classAssigned) hasMissing = true;
+      const username = mergedT.username || (email ? email.split("@")[0] : ("guru" + (idx + 1)));
+      const pin = mergedT.pin || mergedT.password || "123456";
+      const password = mergedT.password || pin;
+      const kepegawaian = mergedT.kepegawaian || mergedT.employmentStatus || (idx < 35 ? "PNS / ASN" : (idx < 45 ? "PPPK" : "GTT / Honorer"));
+      const role = mergedT.role || (classAssigned?.includes("Wali") ? "Wali Kelas" : (classAssigned?.includes("Piket") ? "Guru Piket" : "Guru Pengajar"));
+      if (!mergedT.username || !mergedT.password || !mergedT.kepegawaian || !mergedT.role || !mergedT.classAssigned) hasMissing = true;
       return {
-        ...t,
+        ...mergedT,
         email,
         classAssigned,
         username,
         password,
         pin,
         kepegawaian,
+        employmentStatus: kepegawaian,
         role
       };
     });
@@ -2016,8 +2030,46 @@ const StorageService = {
     }
     return enriched;
   },
-  saveTeachersMaster(data) {
+  saveTeachersMaster(data, changedTeacherId = null) {
     localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(data));
+
+    // Pastikan hadir_guru_profile untuk guru aktif ikut diperbarui secara lokal
+    const activeId = this.getActiveTeacherId();
+    const activeTeacher = Array.isArray(data) ? data.find(t => t.id === activeId) : null;
+    if (activeTeacher) {
+      let curProf = {};
+      try {
+        curProf = JSON.parse(localStorage.getItem("hadir_guru_profile") || "{}") || {};
+      } catch (e) {}
+      const syncedProf = {
+        ...curProf,
+        id: activeTeacher.id,
+        name: activeTeacher.name,
+        nip: activeTeacher.nip,
+        nuptk: activeTeacher.nuptk || curProf.nuptk || "-",
+        subject: activeTeacher.subject,
+        dept: activeTeacher.dept || curProf.dept || "PAI",
+        classAssigned: activeTeacher.classAssigned,
+        email: activeTeacher.email,
+        phone: activeTeacher.phone,
+        employmentStatus: activeTeacher.kepegawaian || activeTeacher.employmentStatus || curProf.employmentStatus || "Guru Tetap Kemenag",
+        kepegawaian: activeTeacher.kepegawaian || activeTeacher.employmentStatus || curProf.kepegawaian || "Guru Tetap Kemenag",
+        password: activeTeacher.password || activeTeacher.pin || "123456",
+        pin: activeTeacher.pin || activeTeacher.password || "123456",
+        avatarUrl: activeTeacher.avatarUrl !== undefined ? activeTeacher.avatarUrl : (curProf.avatarUrl || "")
+      };
+      localStorage.setItem("hadir_guru_profile", JSON.stringify(syncedProf));
+    }
+
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      if (changedTeacherId && Array.isArray(data)) {
+        const targetT = data.find(t => t.id === changedTeacherId);
+        if (targetT) {
+          FirebaseService.pushTeacherProfile(changedTeacherId, targetT);
+        }
+      }
+      FirebaseService.pushSyncState("teachers_master", data);
+    }
   },
 
   // Export database dan akun login guru ke CSV (Sesuai format data guru real)
@@ -2054,11 +2106,17 @@ const StorageService = {
   // Welcoming Picket (Piket Penyambutan Siswa 5S)
   // ==========================================
   getWelcomingPicketRoster() {
+    const now = new Date();
+    const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const daysIndo = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const todayDayName = daysIndo[now.getDay()];
+
     const stored = localStorage.getItem("hadir_guru_welcoming_picket_v2");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          let dirty = false;
           const hasSunday = parsed.some(r => r.day === "Minggu");
           if (!hasSunday) {
             parsed.push({
@@ -2072,6 +2130,25 @@ const StorageService = {
               theme: "Kegiatan Khusus & Pelayanan Ekstra",
               members: []
             });
+            dirty = true;
+          }
+          // Auto-reset stale check-ins from previous weeks on today's picket squad
+          const todaySquad = parsed.find(r => r.day === todayDayName);
+          if (todaySquad && Array.isArray(todaySquad.members)) {
+            todaySquad.members.forEach(m => {
+              if (m && m.standbyStatus === "standby" && m.checkInDate && m.checkInDate !== curDateStr) {
+                m.standbyStatus = "terjadwal";
+                m.status = "Terjadwal";
+                m.checkInTime = "-";
+                m.standbyTime = "-";
+                m.punctuality = "-";
+                m.isLate = false;
+                m.checkInDate = "";
+                dirty = true;
+              }
+            });
+          }
+          if (dirty) {
             this.saveWelcomingPicketRoster(parsed);
           }
           return parsed;
@@ -2083,6 +2160,9 @@ const StorageService = {
 
   saveWelcomingPicketRoster(data) {
     localStorage.setItem("hadir_guru_welcoming_picket_v2", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("picket", data);
+    }
   },
 
   getTodayWelcomingPicket(date = new Date()) {
@@ -2136,6 +2216,7 @@ const StorageService = {
     if (!member) return null;
 
     const now = new Date();
+    const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const timeStr = customTimeStr || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")} WIB`;
     
     // Check punctuality against target 06:15
@@ -2149,6 +2230,7 @@ const StorageService = {
     member.status = "Standby di Gerbang";
     member.checkInTime = timeStr;
     member.standbyTime = timeStr;
+    member.checkInDate = curDateStr;
     member.checkInTimestamp = now.toISOString();
     member.punctuality = punctuality;
     member.isLate = isLate;
@@ -2176,6 +2258,7 @@ const StorageService = {
     member.status = "Terjadwal";
     member.checkInTime = "-";
     member.standbyTime = "-";
+    member.checkInDate = "";
     member.punctuality = "-";
     member.isLate = false;
     member.checkInTimestamp = null;
@@ -2414,20 +2497,33 @@ const StorageService = {
     localStorage.setItem("hadir_guru_active_teacher_id", id);
     const teacher = this.getActiveTeacher();
     if (teacher) {
-      const currentProfile = this.getProfile();
+      let currentProfile = {};
+      try {
+        currentProfile = JSON.parse(localStorage.getItem("hadir_guru_profile") || "{}") || {};
+      } catch (e) {}
       const updated = {
+        ...INITIAL_TEACHER_PROFILE,
         ...currentProfile,
         id: teacher.id,
         name: teacher.name,
         nip: teacher.nip,
-        nuptk: teacher.nuptk,
+        nuptk: teacher.nuptk || "-",
+        gender: teacher.gender || currentProfile.gender || "Laki-laki",
+        role: teacher.role || "Pendidik",
+        position: teacher.position || teacher.classAssigned || "Pendidik",
         subject: teacher.subject,
+        dept: teacher.dept || "PAI",
         classAssigned: teacher.classAssigned,
+        employmentStatus: teacher.kepegawaian || teacher.employmentStatus || "Guru Tetap Kemenag",
+        kepegawaian: teacher.kepegawaian || teacher.employmentStatus || "Guru Tetap Kemenag",
         email: teacher.email,
         phone: teacher.phone,
+        password: teacher.password || teacher.pin || "123456",
+        pin: teacher.pin || teacher.password || "123456",
         avatarUrl: teacher.avatarUrl || ""
       };
-      this.saveProfile(updated);
+      // Hanya simpan ke localStorage saat berpindah akun agar tidak menimpa data Cloud sebelum sinkronisasi selesai
+      localStorage.setItem("hadir_guru_profile", JSON.stringify(updated));
     }
     this.syncActiveTeachingSchedules();
   },
@@ -2438,23 +2534,85 @@ const StorageService = {
   },
 
   getProfile() {
+    const activeTeacher = this.getActiveTeacher();
     const stored = localStorage.getItem("hadir_guru_profile");
+    let parsed = null;
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === "object") {
-          if (parsed.email && parsed.email.toLowerCase().indexOf("@mtsn.sch.id") !== -1) {
-            parsed.email = parsed.email.replace(/@mtsn\.sch\.id/gi, "@mtsasyjtb.sch.id");
-            localStorage.setItem("hadir_guru_profile", JSON.stringify(parsed));
-          }
-          return parsed;
-        }
+        parsed = JSON.parse(stored);
       } catch (e) { console.error(e); }
+    }
+
+    if (activeTeacher) {
+      const isMatchingActive = parsed && parsed.id === activeTeacher.id;
+      const base = isMatchingActive ? { ...INITIAL_TEACHER_PROFILE, ...parsed } : { ...INITIAL_TEACHER_PROFILE };
+      const merged = {
+        ...base,
+        id: activeTeacher.id,
+        name: activeTeacher.name || base.name,
+        nip: activeTeacher.nip || base.nip,
+        nuptk: activeTeacher.nuptk || base.nuptk || "-",
+        gender: activeTeacher.gender || base.gender || "Laki-laki",
+        role: activeTeacher.role || base.role || "Pendidik",
+        position: activeTeacher.position || activeTeacher.classAssigned || base.position || "Pendidik",
+        subject: activeTeacher.subject || base.subject,
+        dept: activeTeacher.dept || base.dept || "PAI",
+        classAssigned: activeTeacher.classAssigned || base.classAssigned,
+        employmentStatus: activeTeacher.kepegawaian || activeTeacher.employmentStatus || base.employmentStatus || "Guru Tetap Kemenag",
+        kepegawaian: activeTeacher.kepegawaian || activeTeacher.employmentStatus || base.kepegawaian || "Guru Tetap Kemenag",
+        email: activeTeacher.email || base.email,
+        phone: activeTeacher.phone !== undefined ? activeTeacher.phone : base.phone,
+        password: activeTeacher.password || activeTeacher.pin || base.password || "123456",
+        pin: activeTeacher.pin || activeTeacher.password || base.pin || "123456",
+        avatarUrl: activeTeacher.avatarUrl || base.avatarUrl || ""
+      };
+      if (merged.email && merged.email.toLowerCase().indexOf("@mtsn.sch.id") !== -1) {
+        merged.email = merged.email.replace(/@mtsn\.sch\.id/gi, "@mtsasyjtb.sch.id");
+      }
+      return merged;
+    }
+
+    if (parsed && typeof parsed === "object") {
+      return parsed;
     }
     return INITIAL_TEACHER_PROFILE;
   },
   saveProfile(data) {
     localStorage.setItem("hadir_guru_profile", JSON.stringify(data));
+
+    const targetId = (data && data.id) ? data.id : this.getActiveTeacherId();
+    const teachers = this.getTeachersMaster();
+    const idx = teachers.findIndex(t => t.id === targetId);
+    let updatedTeacherObj = null;
+
+    if (idx !== -1 && data) {
+      teachers[idx] = {
+        ...teachers[idx],
+        name: data.name || teachers[idx].name,
+        nip: data.nip || teachers[idx].nip,
+        nuptk: data.nuptk || teachers[idx].nuptk,
+        subject: data.subject || teachers[idx].subject,
+        dept: data.dept || teachers[idx].dept,
+        classAssigned: data.classAssigned || teachers[idx].classAssigned,
+        email: data.email !== undefined ? data.email : teachers[idx].email,
+        phone: data.phone !== undefined ? data.phone : teachers[idx].phone,
+        kepegawaian: data.employmentStatus || data.kepegawaian || teachers[idx].kepegawaian,
+        employmentStatus: data.employmentStatus || data.kepegawaian || teachers[idx].employmentStatus,
+        password: data.password || data.pin || teachers[idx].password,
+        pin: data.pin || data.password || teachers[idx].pin,
+        avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : (teachers[idx].avatarUrl || "")
+      };
+      updatedTeacherObj = teachers[idx];
+      localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(teachers));
+    }
+
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      const payloadToPush = updatedTeacherObj || { ...data, id: targetId };
+      FirebaseService.pushTeacherProfile(targetId, payloadToPush);
+      if (updatedTeacherObj) {
+        FirebaseService.pushSyncState("teachers_master", teachers);
+      }
+    }
   },
 
   // Master Jadwal Mengajar Guru
@@ -2482,6 +2640,9 @@ const StorageService = {
   saveMasterSchedules(data) {
     localStorage.setItem("hadir_guru_master_schedules", JSON.stringify(data));
     this.syncActiveTeachingSchedules();
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("schedules", data);
+    }
   },
 
   // Filter jadwal khusus untuk guru yang sedang aktif/login
@@ -2629,34 +2790,66 @@ const StorageService = {
 
   getAllTeachersAttendance() {
     const teachers = this.getTeachersMaster();
+    const now = new Date();
+    const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const stored = localStorage.getItem("hadir_guru_all_teachers");
     let map = {};
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          parsed.forEach(p => { if (p && p.id) map[p.id] = p; });
+          parsed.forEach(p => {
+            if (p && p.id) {
+              // If stored record is from a previous day, ignore its daily check-in status so each day resets cleanly
+              if (p.date && p.date !== curDateStr) {
+                return;
+              }
+              map[p.id] = p;
+            }
+          });
         }
       } catch (e) { console.error(e); }
     }
 
+    // Check approved leave requests covering today's date
+    const leaves = this.getLeaveRequests() || [];
+    const activeLeavesMap = {};
+    leaves.forEach(lv => {
+      if (lv && lv.status === "Disetujui" && lv.teacherId && lv.startDate && lv.endDate) {
+        if (curDateStr >= lv.startDate && curDateStr <= lv.endDate) {
+          activeLeavesMap[lv.teacherId] = lv;
+        }
+      }
+    });
+
     const all = teachers.map((t, idx) => {
+      const approvedLeave = activeLeavesMap[t.id];
       if (map[t.id]) {
-        return {
+        const rec = {
           ...map[t.id],
           name: t.name,
           nip: t.nip,
           subject: t.subject,
           phone: t.phone
         };
+        if (approvedLeave && (!rec.status || rec.status === "Belum Absen")) {
+          rec.status = String(approvedLeave.type || "").toLowerCase().includes("sakit") ? "Sakit" : "Izin";
+          rec.statusDetail = `Disetujui: ${approvedLeave.type} (${approvedLeave.reason || "-"})`;
+        }
+        return rec;
       }
-      const initial = INITIAL_ALL_TEACHERS_ATTENDANCE.find(it => it.id === t.id);
-      if (initial) {
+      if (approvedLeave) {
         return {
-          ...initial,
+          id: t.id,
           name: t.name,
           nip: t.nip,
           subject: t.subject,
+          checkIn: "-",
+          checkOut: "-",
+          status: String(approvedLeave.type || "").toLowerCase().includes("sakit") ? "Sakit" : "Izin",
+          statusDetail: `Disetujui: ${approvedLeave.type} (${approvedLeave.reason || "-"})`,
+          isLate: false,
+          date: curDateStr,
           phone: t.phone
         };
       }
@@ -2670,6 +2863,7 @@ const StorageService = {
         status: "Belum Absen",
         statusDetail: "Belum Melakukan Check-In",
         isLate: false,
+        date: curDateStr,
         phone: t.phone
       };
     });
@@ -2677,6 +2871,9 @@ const StorageService = {
   },
   saveAllTeachersAttendance(data) {
     localStorage.setItem("hadir_guru_all_teachers", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("all_teachers_attendance", data);
+    }
   },
 
   getTodayAttendance() {
@@ -2693,11 +2890,11 @@ const StorageService = {
     }
     return INITIAL_TODAY_ATTENDANCE;
   },
-  saveTodayAttendance(data) {
+  saveTodayAttendance(data, skipCloud = false) {
     localStorage.setItem("hadir_guru_today", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+    if (!skipCloud && typeof FirebaseService !== "undefined" && FirebaseService.isReady() && !FirebaseService.isApplyingCloud()) {
       const activeTeacher = this.getActiveTeacher();
-      if (activeTeacher) {
+      if (activeTeacher && data && data.status && data.status !== "Belum Absen") {
         FirebaseService.recordAttendance({
           ...data,
           teacherId: activeTeacher.id,
@@ -2716,6 +2913,9 @@ const StorageService = {
   },
   saveHistory(data) {
     localStorage.setItem("hadir_guru_history", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("attendance_history", data);
+    }
   },
   getLeaveRequests() {
     const stored = localStorage.getItem("hadir_guru_leaves");
@@ -2726,14 +2926,19 @@ const StorageService = {
   },
   saveLeaveRequests(data) {
     localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-      const activeTeacher = this.getActiveTeacher();
-      const lastRequest = Array.isArray(data) && data.length > 0 ? data[data.length - 1] : null;
-      if (lastRequest && lastRequest.id && !lastRequest._synced) {
-        FirebaseService.submitLeaveRequest({
-          ...lastRequest,
-          teacherId: activeTeacher ? activeTeacher.id : (lastRequest.teacherId || "TCH-01")
-        }).catch(err => console.warn("[Firebase] Leave sync error:", err));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("leaves", data);
+      if (FirebaseService.isReady()) {
+        const activeTeacher = this.getActiveTeacher();
+        const firstRequest = Array.isArray(data) && data.length > 0 ? data[0] : null;
+        if (firstRequest && firstRequest.id && !firstRequest._synced) {
+          firstRequest._synced = true;
+          localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
+          FirebaseService.submitLeaveRequest({
+            ...firstRequest,
+            teacherId: activeTeacher ? activeTeacher.id : (firstRequest.teacherId || "TCH-01")
+          }).catch(err => console.warn("[Firebase] Leave sync error:", err));
+        }
       }
     }
   },
@@ -2749,21 +2954,44 @@ const StorageService = {
   },
   saveTeachingLogs(data) {
     localStorage.setItem("hadir_guru_teaching_logs", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("teaching_logs", data);
+    }
   },
 
   // Real-time Classroom Check-In & Admin Radar Storage
   getClassCheckIns() {
+    const now = new Date();
+    const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const stored = localStorage.getItem("hadir_guru_class_checkins");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === "object") return parsed;
+        if (parsed && typeof parsed === "object") {
+          const valid = {};
+          let hadStale = false;
+          Object.keys(parsed).forEach(k => {
+            const rec = parsed[k];
+            if (rec && (!rec.date || rec.date === curDateStr)) {
+              valid[k] = rec;
+            } else {
+              hadStale = true;
+            }
+          });
+          if (hadStale) {
+            localStorage.setItem("hadir_guru_class_checkins", JSON.stringify(valid));
+          }
+          return valid;
+        }
       } catch (e) { console.error(e); }
     }
     return {};
   },
   saveClassCheckIns(data) {
     localStorage.setItem("hadir_guru_class_checkins", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("class_checkins", data);
+    }
   },
 
   // --- Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah ---
@@ -2779,9 +3007,15 @@ const StorageService = {
   },
   saveHolidays(holidays) {
     localStorage.setItem("hadir_guru_holidays", JSON.stringify(holidays));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("holidays", holidays);
+    }
   },
   resetHolidaysToKaldik() {
     localStorage.setItem("hadir_guru_holidays", JSON.stringify(KALDIK_JATENG_HOLIDAYS));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("holidays", KALDIK_JATENG_HOLIDAYS);
+    }
     return KALDIK_JATENG_HOLIDAYS;
   },
   getHolidayForDate(dateInput = new Date()) {
@@ -3065,8 +3299,11 @@ const StorageService = {
       const roomCode = `KLS-${cls}-${subCode}`;
 
       // Live state key for this room & schedule
-      const stateKey = `${roomId}_${activeSched.id}`;
-      const savedRoomState = liveState[stateKey] || {};
+      const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const stateKeyBySched = `${roomId}_${activeSched.id}`;
+      const stateKeyByDay = `${roomId}_${targetDay}`;
+      const rawRoomState = liveState[stateKeyBySched] || liveState[stateKeyByDay] || {};
+      const savedRoomState = (!rawRoomState.date || rawRoomState.date === curDateStr) ? rawRoomState : {};
 
       // Check if actual check-in occurred for this session
       const checkInRec = checkIns[activeSched.id] || (savedRoomState.checkInTime ? savedRoomState : null);
@@ -3080,20 +3317,35 @@ const StorageService = {
       let note = "Guru aktif mengajar di kelas. KBM kondusif.";
       let invalTeacher = savedRoomState.invalTeacher || null;
 
-      if (savedRoomState.status) {
+      if (checkInRec && (checkInRec.time || checkInRec.checkInTime)) {
+        const puncObj = (checkInRec.punctuality && typeof checkInRec.punctuality === "object") ? checkInRec.punctuality : null;
+        const isLate = puncObj ? Boolean(puncObj.isLate) : Boolean(checkInRec.isLate);
+        checkInTime = checkInRec.time || checkInRec.checkInTime;
+        punctuality = puncObj ? (puncObj.detail || puncObj.statusLabel || (isLate ? "Terlambat" : "Tepat Waktu")) : (typeof checkInRec.punctuality === "string" ? checkInRec.punctuality : (isLate ? "Terlambat" : "Tepat Waktu"));
+
+        if (checkInRec.finished) {
+          status = "selesai";
+          statusLabel = "KBM Selesai";
+          statusClass = "status-finished";
+          note = `Sesi KBM telah diselesaikan (Check-Out pukul ${checkInRec.checkOutTime || "-"}).`;
+        } else {
+          status = isLate ? "terlambat" : "hadir_tepat";
+          statusLabel = (puncObj && puncObj.statusLabel) || checkInRec.statusLabel || (isLate ? "Hadir Terlambat" : "Hadir Tepat Waktu");
+          statusClass = isLate ? "status-late" : "status-on-time";
+          note = isLate
+            ? `Guru hadir mengajar di kelas (${punctuality}).`
+            : `Guru aktif mengajar di kelas tepat waktu (Check-In ${checkInTime}).`;
+        }
+      } else if (savedRoomState.status) {
         status = savedRoomState.status;
         statusLabel = savedRoomState.statusLabel;
         statusClass = savedRoomState.statusClass;
         checkInTime = savedRoomState.checkInTime;
-        punctuality = savedRoomState.punctuality;
+        punctuality = typeof savedRoomState.punctuality === "object" && savedRoomState.punctuality
+          ? (savedRoomState.punctuality.detail || savedRoomState.punctuality.statusLabel || "Tepat Waktu")
+          : (savedRoomState.punctuality || "-");
         alertMinutes = savedRoomState.alertMinutes || 0;
         note = savedRoomState.note || note;
-      } else if (checkInRec && (checkInRec.time || checkInRec.checkInTime)) {
-        status = checkInRec.isLate ? "terlambat" : "hadir_tepat";
-        statusLabel = checkInRec.statusLabel || (checkInRec.isLate ? "Terlambat" : "Hadir Tepat Waktu");
-        statusClass = checkInRec.isLate ? "status-late" : "status-on-time";
-        checkInTime = checkInRec.time || checkInRec.checkInTime;
-        punctuality = checkInRec.punctuality || (checkInRec.isLate ? "Terlambat" : "Tepat Waktu");
       } else {
         // Evaluasi kehadiran real-time jika hari ini dan jam KBM telah berjalan
         let alertMins = 0;
@@ -3165,23 +3417,44 @@ const StorageService = {
   saveRoomsMonitoring(data) {
     localStorage.setItem("hadir_guru_rooms_monitoring", JSON.stringify(data));
   },
-  saveRoomState(roomId, day, stateObj) {
+  saveRoomState(roomId, day, stateObj, scheduleId = null) {
     let liveState = {};
     try {
       const stored = localStorage.getItem("hadir_guru_rooms_monitoring_state");
       if (stored) liveState = JSON.parse(stored) || {};
     } catch(e) {}
+    const now = new Date();
+    const curDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const enrichedState = {
+      ...stateObj,
+      date: curDateStr
+    };
     const stateKey = `${roomId}_${day}`;
     liveState[stateKey] = {
       ...(liveState[stateKey] || {}),
-      ...stateObj
+      ...enrichedState
     };
+    const targetSchedId = scheduleId || (stateObj && stateObj.scheduleId);
+    if (targetSchedId) {
+      const schedKey = `${roomId}_${targetSchedId}`;
+      liveState[schedKey] = {
+        ...(liveState[schedKey] || {}),
+        ...enrichedState
+      };
+    }
     localStorage.setItem("hadir_guru_rooms_monitoring_state", JSON.stringify(liveState));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("rooms_state", liveState);
+    }
   },
   resetRoomMonitoringState() {
     localStorage.removeItem("hadir_guru_rooms_monitoring");
     localStorage.removeItem("hadir_guru_rooms_monitoring_state");
     localStorage.removeItem("hadir_guru_class_checkins");
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("rooms_state", {});
+      FirebaseService.pushSyncState("class_checkins", {});
+    }
   },
   getAdminActivityFeed() {
     const stored = localStorage.getItem("hadir_guru_admin_feed");
@@ -3195,6 +3468,9 @@ const StorageService = {
   },
   saveAdminActivityFeed(data) {
     localStorage.setItem("hadir_guru_admin_feed", JSON.stringify(data));
+    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      FirebaseService.pushSyncState("admin_feed", data);
+    }
   },
   addAdminActivity(text, type = "info") {
     const feed = this.getAdminActivityFeed();

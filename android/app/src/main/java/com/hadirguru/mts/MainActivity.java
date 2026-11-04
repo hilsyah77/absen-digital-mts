@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.os.Parcelable;
 import android.provider.MediaStore;
 import android.view.View;
+import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -122,6 +123,8 @@ public class MainActivity extends AppCompatActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            CookieManager.getInstance().setAcceptCookie(true);
+            CookieManager.getInstance().setAcceptThirdPartyCookies(mWebView, true);
         }
 
         mWebView.setWebViewClient(new WebViewClient() {
@@ -153,8 +156,22 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
+                // Never hijack background iframes or Firebase Auth / Firestore requests
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && !request.isForMainFrame()) {
+                    return false;
+                }
+
+                String host = uri.getHost() != null ? uri.getHost().toLowerCase(Locale.ROOT) : "";
+                if (host.contains("firebaseapp.com") ||
+                        host.contains("googleapis.com") ||
+                        host.contains("gstatic.com") ||
+                        host.contains("firebasestorage.app") ||
+                        host.contains("google.com")) {
+                    return false;
+                }
+
                 // If loading external HTTP/HTTPS domains (e.g. documentation, help)
-                if (uri.getHost() != null && !uri.getHost().contains("appassets.androidplatform.net")) {
+                if (!host.isEmpty() && !host.contains("appassets.androidplatform.net")) {
                     try {
                         Intent browserIntent = new Intent(Intent.ACTION_VIEW, uri);
                         startActivity(browserIntent);

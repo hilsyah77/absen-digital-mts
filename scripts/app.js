@@ -116,6 +116,26 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (e) {
         console.warn(e);
       }
+    },
+    playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch (e) {
+        console.warn(e);
+      }
+    },
+    playAlert() {
+      this.playError();
     }
   };
 
@@ -485,10 +505,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const allTeachers = StorageService.getAllTeachersAttendance();
       const activeTeacher = StorageService.getActiveTeacher();
-      const targetId = teacherId || (activeTeacher ? activeTeacher.id  : null);
+      const targetId = teacherId || (activeTeacher ? activeTeacher.id : null);
+      const curDateStr = getAppTodayDateString();
       
       const record = allTeachers.find(t => (targetId && t.id === targetId) || (activeTeacher && t.name === activeTeacher.name));
       if (record) {
+        record.date = curDateStr;
         if (status) record.status = status;
         if (checkInTime !== undefined && checkInTime !== null) record.checkIn = checkInTime;
         if (checkOutTime !== undefined && checkOutTime !== null) record.checkOut = checkOutTime;
@@ -511,10 +533,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const activeTeacher = StorageService.getActiveTeacher();
       if (!activeTeacher) return;
 
+      const curDateStr = getAppTodayDateString();
+      todayAttendance.date = curDateStr;
+
       const allTeachers = StorageService.getAllTeachersAttendance();
       const record = allTeachers.find(t => t.id === activeTeacher.id || t.name === activeTeacher.name);
 
-      if (record && record.status && record.status !== "Belum Absen" && record.checkIn && record.checkIn !== "-") {
+      if (record && (record.status === "Izin" || record.status === "Sakit")) {
+        todayAttendance.status = record.status;
+        todayAttendance.checkIn = null;
+        todayAttendance.checkOut = null;
+      } else if (record && record.status && record.status !== "Belum Absen" && record.checkIn && record.checkIn !== "-") {
         todayAttendance.status = record.status;
         todayAttendance.checkIn = {
           time: record.checkIn,
@@ -522,6 +551,7 @@ document.addEventListener("DOMContentLoaded", () => {
           lng: 106.845612,
           distance: "18 Meter",
           verified: true,
+          isLate: Boolean(record.isLate),
           photo: null,
           device: "Perangkat Guru"
         };
@@ -538,7 +568,7 @@ document.addEventListener("DOMContentLoaded", () => {
         todayAttendance.checkOut = null;
       }
 
-      StorageService.saveTodayAttendance(todayAttendance);
+      StorageService.saveTodayAttendance(todayAttendance, true);
       updateAttendanceUI();
     } catch (e) {
       console.error("Gagal memuat status presensi guru aktif:", e);
@@ -898,8 +928,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Determine if Late: late if past standard check-in time (FR-05)
         const isLate = timeStatus ? (!timeStatus.isCheckInOnTime) : ((now.getHours() > 7) || (now.getHours() === 7 && now.getMinutes() > 0));
-        const statusStr = isLate ? "Terlambat"  : "Hadir";
+        const statusStr = isLate ? "Terlambat" : "Hadir";
+        const curDateStr = getAppTodayDateString();
+        const curDayName = getAppTodayDayName();
 
+        todayAttendance.date = curDateStr;
         todayAttendance.status = statusStr;
         todayAttendance.checkIn = {
           time: timeFormatted,
@@ -907,6 +940,7 @@ document.addEventListener("DOMContentLoaded", () => {
           lng: 106.845612,
           distance: "18 Meter",
           verified: true,
+          isLate: isLate,
           photo: null,
           device: "Chrome / Windows 11 Desktop"
         };
@@ -915,20 +949,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Sinkronisasi langsung ke Master Rekap Guru agar Admin melihatnya seketika
         const activeTch = StorageService.getActiveTeacher();
+        const activeTchId = activeTch ? activeTch.id : "TCH-01";
         syncTeacherAttendanceToMaster(
-          activeTch ? activeTch.id  : null,
+          activeTchId,
           statusStr,
           timeFormatted,
           "-",
           isLate,
-          isLate ? "Hadir Terlambat"  : "Tepat Waktu"
+          isLate ? "Hadir Terlambat" : "Tepat Waktu"
         );
 
-        // Prepend to history table
-        const curDateStr = getAppTodayDateString();
-        const curDayName = getAppTodayDayName();
+        // Prepend to history table (isolated per teacher & date)
         const newHistoryItem = {
-          id: `ATT-${curDateStr.replace(/-/g, '')}`,
+          id: `ATT-${curDateStr.replace(/-/g, '')}-${activeTchId}`,
+          teacherId: activeTchId,
+          teacherName: activeTch ? activeTch.name : "",
+          nip: activeTch ? activeTch.nip : "",
           date: curDateStr,
           day: curDayName,
           checkIn: timeFormatted,
@@ -943,12 +979,16 @@ document.addEventListener("DOMContentLoaded", () => {
           correction: null
         };
 
-        attendanceHistory = [newHistoryItem, ...attendanceHistory.filter(h => h.date !== curDateStr)];
+        attendanceHistory = [
+          newHistoryItem,
+          ...attendanceHistory.filter(h => !(h.date === curDateStr && (!h.teacherId || h.teacherId === activeTchId)))
+        ];
         StorageService.saveHistory(attendanceHistory);
 
         SoundService.playSuccess();
         closeModal("modalCheckIn");
         updateAttendanceUI();
+        renderDashboardRecentTable();
         renderFullHistoryTable();
         updateKpiCounts();
 
@@ -1040,6 +1080,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const minutes = String(now.getMinutes()).padStart(2, "0");
         const timeFormatted = `${hours}:${minutes} WIB`;
 
+        const wasLate = todayAttendance.status === "Terlambat" || Boolean(todayAttendance.checkIn && todayAttendance.checkIn.isLate);
+        const curDateStr = getAppTodayDateString();
+        todayAttendance.date = curDateStr;
         todayAttendance.status = "Pulang";
         todayAttendance.checkOut = {
           time: timeFormatted,
@@ -1053,19 +1096,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Sinkronisasi langsung ke Master Rekap Guru agar Admin melihat absen pulang seketika
         const activeTch = StorageService.getActiveTeacher();
+        const activeTchId = activeTch ? activeTch.id : "TCH-01";
         syncTeacherAttendanceToMaster(
-          activeTch ? activeTch.id  : null,
+          activeTchId,
           "Pulang",
-          todayAttendance.checkIn ? todayAttendance.checkIn.time  : timeFormatted,
+          todayAttendance.checkIn ? todayAttendance.checkIn.time : timeFormatted,
           timeFormatted,
-          todayAttendance.status === "Terlambat",
-          `Selesai (${todayAttendance.checkIn ? todayAttendance.checkIn.time  : ''} - ${timeFormatted})`
+          wasLate,
+          `Selesai (${todayAttendance.checkIn ? todayAttendance.checkIn.time : ''} - ${timeFormatted})`
         );
 
-        // Update history item
-        const curDateStr = getAppTodayDateString();
+        // Update history item for active teacher
         attendanceHistory = attendanceHistory.map(item => {
-          if (item.date === curDateStr) {
+          if (item.date === curDateStr && (!item.teacherId || item.teacherId === activeTchId)) {
             return {
               ...item,
               checkOut: timeFormatted
@@ -1078,6 +1121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         SoundService.playSuccess();
         closeModal("modalCheckOut");
         updateAttendanceUI();
+        renderDashboardRecentTable();
         renderFullHistoryTable();
 
         showToast(
@@ -1116,6 +1160,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const endD = new Date(endDate);
         const diffTime = Math.abs(endD - startD);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const durationStr = `${diffDays} Hari`;
         const activeT = StorageService.getActiveTeacher() || {};
         const newLeave = {
           id: `IZN-2026-${String(leaveRequests.length + 5).padStart(3, "0")}`,
@@ -1168,7 +1213,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!tbody) return;
 
     tbody.innerHTML = "";
-    const recent = attendanceHistory.slice(0, 5);
+    const activeTch = StorageService.getActiveTeacher();
+    const activeTchId = activeTch ? activeTch.id : null;
+    const teacherHistory = activeTchId
+      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId)
+      : attendanceHistory;
+    const recent = teacherHistory.slice(0, 5);
 
     if (recent.length === 0) {
       tbody.innerHTML = `
@@ -1214,13 +1264,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const statusFilter = document.getElementById("historyStatusFilter")?.value || "all";
     const searchKeyword = (document.getElementById("historySearchInput")?.value || "").toLowerCase().trim();
 
-    let filtered = [...attendanceHistory];
+    const activeTch = StorageService.getActiveTeacher();
+    const activeTchId = activeTch ? activeTch.id : null;
+    let filtered = activeTchId
+      ? attendanceHistory.filter(item => !item.teacherId || item.teacherId === activeTchId)
+      : [...attendanceHistory];
 
-    // Filter by period
+    // Filter by period dynamically based on current app date
+    const nowDate = getAppCurrentDate();
+    const curYear = nowDate.getFullYear();
+    const curMonth = nowDate.getMonth() + 1;
+    const curYm = `${curYear}-${String(curMonth).padStart(2, "0")}`;
+    const prevDate = new Date(curYear, curMonth - 2, 1);
+    const prevYm = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
+
     if (periodFilter === "current") {
-      filtered = filtered.filter(item => item.date.startsWith("2026-10"));
+      filtered = filtered.filter(item => item.date && item.date.startsWith(curYm));
     } else if (periodFilter === "last") {
-      filtered = filtered.filter(item => item.date.startsWith("2026-09"));
+      filtered = filtered.filter(item => item.date && item.date.startsWith(prevYm));
+    } else if (periodFilter !== "all" && /^\d{4}-\d{2}$/.test(periodFilter)) {
+      filtered = filtered.filter(item => item.date && item.date.startsWith(periodFilter));
     }
 
     // Filter by status
@@ -1488,9 +1551,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const kpiIzinVal = document.getElementById("kpiIzinVal");
     const kpiAlphaVal = document.getElementById("kpiAlphaVal");
 
-    const hadirCount = attendanceHistory.filter(h => h.status === "Hadir").length;
-    const terlambatCount = attendanceHistory.filter(h => h.status === "Terlambat").length;
-    const izinCount = attendanceHistory.filter(h => h.status === "Izin" || h.status === "Sakit").length;
+    const activeTch = StorageService.getActiveTeacher();
+    const activeTchId = activeTch ? activeTch.id : null;
+    const myHistory = activeTchId
+      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId)
+      : attendanceHistory;
+
+    const hadirCount = myHistory.filter(h => h.status === "Hadir" || h.status === "Pulang").length;
+    const terlambatCount = myHistory.filter(h => h.status === "Terlambat").length;
+    const izinCount = myHistory.filter(h => h.status === "Izin" || h.status === "Sakit").length;
 
     if (kpiHadirVal) kpiHadirVal.textContent = `${hadirCount} Hari`;
     if (kpiTerlambatVal) kpiTerlambatVal.textContent = `${terlambatCount} Hari`;
@@ -1919,18 +1988,24 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       let remainingSessions = 0;
+      const activeTeacherObj = StorageService.getActiveTeacher();
+      const activeTeacherId = activeTeacherObj ? activeTeacherObj.id : StorageService.getActiveTeacherId();
 
-      // Cek apakah guru sedang aktif mengajar di salah satu kelas
+      // Cek apakah guru yang sedang aktif ini tengah mengajar di salah satu kelas hari ini
       const currentlyTeachingSession = isShowingToday ? displayedLessons.find(s => {
         const rec = classCheckIns[s.id];
+        if (!rec || rec.finished) return false;
+        if (rec.date && rec.date !== curRealDateStr) return false;
+        if (rec.teacherId && activeTeacherId && rec.teacherId !== activeTeacherId) return false;
         const done = teachingLogs.some(log => log.scheduleId === s.id && log.date === curRealDateStr);
-        return rec && !rec.finished && !done;
+        return !done;
       }) : null;
 
       displayedLessons.forEach((session, idx) => {
         const completedLog = isShowingToday ? teachingLogs.find(log => log.scheduleId === session.id && log.date === curRealDateStr) : null;
         const isDone = !!completedLog;
-        const checkInRec = isShowingToday ? classCheckIns[session.id] : null;
+        const rawCheckInRec = isShowingToday ? classCheckIns[session.id] : null;
+        const checkInRec = (rawCheckInRec && (!rawCheckInRec.date || rawCheckInRec.date === curRealDateStr)) ? rawCheckInRec : null;
         const isCurrentlyInClass = checkInRec && !checkInRec.finished && !isDone;
 
         if (!isDone) remainingSessions++;
@@ -1947,23 +2022,26 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "completed-session";
           statusBadge = `<span class="badge-pill-status badge-hadir">✓ KBM Selesai</span>`;
           actionButton = `
-            <div style="display: flex; align-items: center; justify-content: flex-end;">
-              <span class="badge-pill-status badge-hadir" style="padding: 0.45rem 0.95rem; font-size: 0.8rem; font-weight: 700;">
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end;">
+              <span class="badge-pill-status badge-hadir" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; font-weight: 700;">
                 ✓ Presensi KBM Selesai
               </span>
+              <button type="button" class="btn-secondary" style="font-size: 0.73rem; padding: 0.28rem 0.68rem;" onclick="openTeachingJournalModal('${session.id}')" title="Isi atau perbarui jurnal materi pokok & kehadiran siswa">
+                📝 Isi / Edit Jurnal KBM
+              </button>
             </div>
           `;
-          const timeInStr = checkInRec && checkInRec.checkInTime ? checkInRec.checkInTime  : (completedLog.checkInTime || session.startTime);
-          const timeOutStr = checkInRec && checkInRec.checkOutTime ? checkInRec.checkOutTime  : (completedLog.checkOutTime || session.endTime);
-          const puncText = checkInRec ? checkInRec.punctuality.detail  : 'Tepat Waktu';
-          const durText = checkInRec && checkInRec.durationMinutes ? `${checkInRec.durationMinutes} mnt`  : `${session.jtm * 45} mnt`;
+          const timeInStr = checkInRec && checkInRec.checkInTime ? checkInRec.checkInTime : (completedLog.checkInTime || session.startTime);
+          const timeOutStr = checkInRec && checkInRec.checkOutTime ? checkInRec.checkOutTime : (completedLog.checkOutTime || session.endTime);
+          const puncText = (checkInRec && checkInRec.punctuality && checkInRec.punctuality.detail) ? checkInRec.punctuality.detail : (completedLog.teacherStatus || 'Tepat Waktu');
+          const durText = checkInRec && checkInRec.durationMinutes ? `${checkInRec.durationMinutes} mnt` : `${completedLog.durationMinutes || (session.jtm * 45)} mnt`;
           checkInDetailsHtml = `
             <div class="kbm-attendance-details-grid">
               <div class="kbm-detail-chip in-chip">
                 <span>🟢</span>
                 <span class="chip-label">Masuk:</span>
                 <span class="chip-val">${timeInStr}</span>
-                <span class="chip-punc ${checkInRec && checkInRec.punctuality.isLate ? 'late'  : 'ontime'}">(${puncText})</span>
+                <span class="chip-punc ${checkInRec && checkInRec.punctuality && checkInRec.punctuality.isLate ? 'late' : 'ontime'}">(${puncText})</span>
               </div>
               <div class="kbm-detail-chip out-chip">
                 <span>🏁</span>
@@ -1981,18 +2059,25 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "active-session";
           statusBadge = `<span class="badge-pill-status badge-kbm-ongoing" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-600); border: 1px solid rgba(16, 185, 129, 0.3);"><span class="status-dot-pulse"></span> SEDANG MENGAJAR DI KELAS</span>`;
           actionButton = `
-            <button class="btn-emerald" style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);" onclick="openClassCheckOutModal('${session.id}')">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>🏁 Selesai Mengajar (Check-Out)</span>
-            </button>
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end;">
+              <button class="btn-emerald" style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);" onclick="openClassCheckOutModal('${session.id}')">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>🏁 Selesai Mengajar (Check-Out)</span>
+              </button>
+              <button type="button" class="btn-secondary" style="font-size: 0.73rem; padding: 0.28rem 0.68rem;" onclick="openTeachingJournalModal('${session.id}')" title="Catat materi pokok & absen siswa">
+                📝 Isi Jurnal & Absen Siswa
+              </button>
+            </div>
           `;
+          const puncDetail = (checkInRec.punctuality && checkInRec.punctuality.detail) ? checkInRec.punctuality.detail : "Tepat Waktu";
+          const puncIsLate = Boolean(checkInRec.punctuality && checkInRec.punctuality.isLate);
           checkInDetailsHtml = `
             <div class="kbm-attendance-details-grid">
               <div class="kbm-detail-chip in-chip">
                 <span>🟢</span>
                 <span class="chip-label">Masuk:</span>
                 <span class="chip-val">${checkInRec.checkInTime}</span>
-                <span class="chip-punc ${checkInRec.punctuality.isLate ? 'late'  : 'ontime'}">(${checkInRec.punctuality.detail})</span>
+                <span class="chip-punc ${puncIsLate ? 'late' : 'ontime'}">(${puncDetail})</span>
               </div>
               <div class="kbm-timer-badge" id="liveClassTimerBadge">⏱️ Menghitung Durasi...</div>
             </div>
@@ -2134,23 +2219,91 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // Filter teachingLogs for active teacher
+    const activeTeacherForLogs = StorageService.getActiveTeacher();
+    const activeTeacherIdForLogs = activeTeacherForLogs ? activeTeacherForLogs.id : StorageService.getActiveTeacherId();
+    const myTeachingLogs = activeTeacherIdForLogs
+      ? teachingLogs.filter(l => !l.teacherId || l.teacherId === activeTeacherIdForLogs)
+      : teachingLogs;
+
+    // Render Riwayat Jurnal Mengajar & Presensi Kelas table (#teachingLogsTableBody)
+    if (logsTbody) {
+      logsTbody.innerHTML = "";
+      if (myTeachingLogs.length === 0) {
+        logsTbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted);">
+              <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">📖</div>
+              <p style="margin: 0; font-size: 0.88rem; font-weight: 600; color: var(--text-main);">Belum ada riwayat presensi mengajar & jurnal kelas</p>
+              <p style="margin: 0.2rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">Lakukan Check-In & Check-Out atau isi Jurnal KBM pada sesi mengajar hari ini.</p>
+            </td>
+          </tr>
+        `;
+      } else {
+        myTeachingLogs.forEach(log => {
+          const tr = document.createElement("tr");
+          const isLateLog = String(log.teacherStatus || "").toLowerCase().includes("terlambat");
+          const statusBadgeClass = isLateLog ? "badge-terlambat" : "badge-hadir";
+          tr.innerHTML = `
+            <td>
+              <div style="font-weight: 700;">${log.day || "-"}, ${formatDateShort(log.date || curRealDateStr)}</div>
+              <div style="font-size: 0.74rem; color: var(--text-muted);">${log.time || "-"} (${log.checkInTime || "-"} - ${log.checkOutTime || "-"})</div>
+            </td>
+            <td>
+              <div style="font-weight: 700; color: var(--text-primary);">${log.subject || "-"}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">Kelas ${log.class || "-"} • ${log.room || "-"}</div>
+            </td>
+            <td style="max-width: 240px;">
+              <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-main);">${log.topic || "Tatap Muka Pembelajaran Terjadwal"}</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">${log.method || "Tatap Muka Interaktif"}</div>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; font-size: 0.74rem; font-weight: 700;">
+                <span style="color: var(--emerald-700); background: var(--emerald-50); padding: 0.15rem 0.45rem; border-radius: 4px;">H: ${log.studentsPresent ?? 32}</span>
+                <span style="color: var(--amber-700); background: var(--amber-50); padding: 0.15rem 0.45rem; border-radius: 4px;">S: ${log.studentsSick ?? 0}</span>
+                <span style="color: var(--blue-700); background: var(--blue-50); padding: 0.15rem 0.45rem; border-radius: 4px;">I: ${log.studentsPermit ?? 0}</span>
+                <span style="color: var(--rose-700); background: var(--rose-50); padding: 0.15rem 0.45rem; border-radius: 4px;">A: ${log.studentsAlpha ?? 0}</span>
+              </div>
+            </td>
+            <td>
+              <span class="badge-pill-status ${statusBadgeClass}">${log.teacherStatus || "Hadir Tepat Waktu"}</span>
+              <div style="font-size: 0.72rem; font-weight: 700; color: var(--emerald-600); margin-top: 0.2rem;">+${log.jtm || 2} JTM</div>
+            </td>
+            <td>
+              <div style="display: flex; gap: 0.35rem;">
+                <button type="button" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.74rem;" onclick="viewJournalDetail('${log.id}')">
+                  Detail
+                </button>
+                ${log.scheduleId ? `
+                  <button type="button" class="btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.74rem;" onclick="openTeachingJournalModal('${log.scheduleId}')" title="Edit Jurnal & Absen Siswa">
+                    ✏️
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          `;
+          logsTbody.appendChild(tr);
+        });
+      }
+    }
+
     // Calculate JTM Stats (Target: 24 JTM)
     let totalJtm = 0;
-    teachingLogs.forEach(l => {
+    myTeachingLogs.forEach(l => {
       totalJtm += (l.jtm || 2);
     });
 
-    const targetJtm = 24;
+    const targetJtm = (activeTeacherForLogs && activeTeacherForLogs.jtmTarget) ? activeTeacherForLogs.jtmTarget : 24;
     const percentage = Math.min(100, Math.round((totalJtm / targetJtm) * 100));
 
     if (kbmJtmCompletedVal) kbmJtmCompletedVal.textContent = `${totalJtm} / ${targetJtm} JTM`;
     if (kbmJtmProgressFill) {
       kbmJtmProgressFill.style.width = `${percentage}%`;
-      kbmJtmProgressFill.style.background = percentage >= 100 ? "var(--emerald-600)"  : "var(--emerald-500)";
+      kbmJtmProgressFill.style.background = percentage >= 100 ? "var(--emerald-600)" : "var(--emerald-500)";
     }
     if (kbmJtmStatusBadge) {
       kbmJtmStatusBadge.textContent = `${percentage}% Terpenuhi`;
-      kbmJtmStatusBadge.className = percentage >= 100 ? "badge-pill-status badge-hadir"  : "badge-pill-status badge-izin";
+      kbmJtmStatusBadge.className = percentage >= 100 ? "badge-pill-status badge-hadir" : "badge-pill-status badge-izin";
     }
   }
 
@@ -2205,9 +2358,17 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Cek apakah guru sedang aktif mengajar di kelas lain
+    // Cek apakah guru yang bersangkutan sedang aktif mengajar di kelas lain hari ini
     const currentClassIns = StorageService.getClassCheckIns();
-    const otherActive = Object.values(currentClassIns).find(rec => rec && !rec.finished && rec.scheduleId !== session.id);
+    const curDateStr = getAppTodayDateString();
+    const activeTchId = session.teacherId || StorageService.getActiveTeacherId();
+    const otherActive = Object.values(currentClassIns).find(rec =>
+      rec &&
+      !rec.finished &&
+      rec.scheduleId !== session.id &&
+      (!rec.date || rec.date === curDateStr) &&
+      (!rec.teacherId || !activeTchId || rec.teacherId === activeTchId)
+    );
     if (otherActive) {
       showToast(
         "Sesi Lain Sedang Berlangsung",
@@ -2288,9 +2449,17 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Cek apakah guru sedang aktif mengajar di kelas lain
+    // Cek apakah guru yang bersangkutan sedang aktif mengajar di kelas lain hari ini
     const currentClassIns = StorageService.getClassCheckIns();
-    const otherActive = Object.values(currentClassIns).find(rec => rec && !rec.finished && rec.scheduleId !== session.id);
+    const curDateStr = getAppTodayDateString();
+    const activeTchId = session.teacherId || StorageService.getActiveTeacherId();
+    const otherActive = Object.values(currentClassIns).find(rec =>
+      rec &&
+      !rec.finished &&
+      rec.scheduleId !== session.id &&
+      (!rec.date || rec.date === curDateStr) &&
+      (!rec.teacherId || !activeTchId || rec.teacherId === activeTchId)
+    );
     if (otherActive) {
       showToast(
         "Sesi Lain Sedang Berlangsung",
@@ -2315,15 +2484,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!session) return;
 
     const simulatedDate = new Date();
+    const curDateStr = getAppTodayDateString();
     const puncResult = StorageService.evaluateClassPunctuality(session.startTime, simulatedDate);
 
     const nowH = String(simulatedDate.getHours()).padStart(2, '0');
     const nowM = String(simulatedDate.getMinutes()).padStart(2, '0');
     const timeStr = `${nowH}:${nowM} WIB`;
 
+    const activeTeacherObj = StorageService.getActiveTeacher();
+    const currentTeacherId = session.teacherId || (activeTeacherObj ? activeTeacherObj.id : StorageService.getActiveTeacherId());
+    const currentTeacherName = session.teacherName || (activeTeacherObj ? activeTeacherObj.name : "Guru");
+
     // Save class check-in record
     classCheckIns[session.id] = {
       scheduleId: session.id,
+      teacherId: currentTeacherId,
+      teacherName: currentTeacherName,
+      date: curDateStr,
       room: session.room,
       class: session.class,
       subject: session.subject,
@@ -2333,8 +2510,11 @@ document.addEventListener("DOMContentLoaded", () => {
       finished: false
     };
     StorageService.saveClassCheckIns(classCheckIns);
+    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+      FirebaseService.recordClassCheckIn(classCheckIns[session.id]).catch(() => {});
+    }
 
-        // Update real-time admin monitoring room dataset (26 Rombel Sync)
+    // Update real-time admin monitoring room dataset (26 Rombel Sync)
     const classIdClean = (session.class || "").replace(/[^A-Za-z0-9]/g, '').replace('Kelas', '').trim();
     roomsMonitoring = StorageService.getRoomsMonitoring(session.day || currentRadarDay);
     const roomIdx = roomsMonitoring.findIndex(r => 
@@ -2343,31 +2523,36 @@ document.addEventListener("DOMContentLoaded", () => {
       (session.room && r.roomName === session.room)
     );
     if (roomIdx !== -1) {
-      roomsMonitoring[roomIdx].status = puncResult.isLate ? "terlambat"  : "hadir_tepat";
+      roomsMonitoring[roomIdx].status = puncResult.isLate ? "terlambat" : "hadir_tepat";
       roomsMonitoring[roomIdx].statusLabel = puncResult.statusLabel;
       roomsMonitoring[roomIdx].statusClass = puncResult.statusClass;
       roomsMonitoring[roomIdx].checkInTime = timeStr;
       roomsMonitoring[roomIdx].punctuality = puncResult.detail;
-      roomsMonitoring[roomIdx].alertMinutes = puncResult.isLate ? puncResult.diffMinutes  : 0;
+      roomsMonitoring[roomIdx].alertMinutes = puncResult.isLate ? puncResult.diffMinutes : 0;
       roomsMonitoring[roomIdx].note = `Guru aktif di kelas. Presensi masuk: ${timeStr} (${puncResult.detail}).`;
       StorageService.saveRoomsMonitoring(roomsMonitoring);
       if (typeof StorageService.saveRoomState === "function") {
-        StorageService.saveRoomState(roomsMonitoring[roomIdx].id, roomsMonitoring[roomIdx].day || session.day, {
-          status: roomsMonitoring[roomIdx].status,
-          statusLabel: roomsMonitoring[roomIdx].statusLabel,
-          statusClass: roomsMonitoring[roomIdx].statusClass,
-          checkInTime: timeStr,
-          punctuality: puncResult.detail,
-          alertMinutes: roomsMonitoring[roomIdx].alertMinutes,
-          note: roomsMonitoring[roomIdx].note
-        });
+        StorageService.saveRoomState(
+          roomsMonitoring[roomIdx].id,
+          roomsMonitoring[roomIdx].day || session.day,
+          {
+            scheduleId: session.id,
+            status: roomsMonitoring[roomIdx].status,
+            statusLabel: roomsMonitoring[roomIdx].statusLabel,
+            statusClass: roomsMonitoring[roomIdx].statusClass,
+            checkInTime: timeStr,
+            punctuality: puncResult.detail,
+            alertMinutes: roomsMonitoring[roomIdx].alertMinutes,
+            note: roomsMonitoring[roomIdx].note
+          },
+          session.id
+        );
       }
     }
 
     // Add to Admin Real-Time Feed
-    const currentTeacherName = (typeof StorageService !== "undefined" && StorageService.getActiveTeacher && StorageService.getActiveTeacher()?.name) || (typeof INITIAL_TEACHER_PROFILE !== "undefined" ? INITIAL_TEACHER_PROFILE.name : "Guru");
     const logText = `${currentTeacherName} check-in ${session.room} (${session.class} - ${session.subject}) : ${puncResult.detail}`;
-    StorageService.addAdminActivity(logText, puncResult.isLate ? "warning"  : "success");
+    StorageService.addAdminActivity(logText, puncResult.isLate ? "warning" : "success");
 
     SoundService.playSuccess();
     closeModal("modalClassCheckIn");
@@ -2456,11 +2641,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Automatically create / update record in teachingLogs
     const todayDateStr = getAppTodayDateString();
+    const currentTeacher = StorageService.getActiveTeacher();
+    const teacherId = session.teacherId || (currentTeacher ? currentTeacher.id : StorageService.getActiveTeacherId());
+    const teacherName = session.teacherName || (currentTeacher ? currentTeacher.name : "Guru Pendidik");
     const existingLogIdx = teachingLogs.findIndex(l => l.scheduleId === session.id && l.date === todayDateStr);
+    const existingLog = existingLogIdx !== -1 ? teachingLogs[existingLogIdx] : null;
     const puncText = checkIn?.punctuality?.detail || "Tepat Waktu";
     const logEntry = {
-      id: existingLogIdx !== -1 ? teachingLogs[existingLogIdx].id  : `KBM-${todayDateStr.replace(/-/g, '')}-${String(teachingLogs.length + 1).padStart(2, '0')}`,
+      id: existingLog ? existingLog.id : `KBM-${todayDateStr.replace(/-/g, '')}-${String(teachingLogs.length + 1).padStart(2, '0')}`,
       scheduleId: session.id,
+      teacherId: teacherId,
+      teacherName: teacherName,
       date: todayDateStr,
       day: session.day || getAppTodayDayName(),
       subject: session.subject,
@@ -2468,18 +2659,18 @@ document.addEventListener("DOMContentLoaded", () => {
       time: session.time,
       room: session.room,
       jtm: session.jtm,
-      topic: "Tatap Muka Pembelajaran Terjadwal (Check-in Terekam)",
-      method: "Tatap Muka Interaktif",
-      teacherStatus: checkIn?.punctuality?.isLate ? `Terlambat ${checkIn.punctuality.diffMinutes} mnt`  : "Hadir Tepat Waktu",
+      topic: existingLog?.topic || "Tatap Muka Pembelajaran Terjadwal (Check-in Terekam)",
+      method: existingLog?.method || "Tatap Muka Interaktif",
+      teacherStatus: checkIn?.punctuality?.isLate ? `Terlambat ${checkIn.punctuality.diffMinutes} mnt` : "Hadir Tepat Waktu",
       checkInTime: checkIn?.checkInTime || session.startTime,
       checkOutTime: timeOutStr,
       durationMinutes: durationMnt,
-      studentsTotal: session.totalStudents || 32,
-      studentsPresent: session.totalStudents || 32,
-      studentsSick: 0,
-      studentsPermit: 0,
-      studentsAlpha: 0,
-      notes: `Presensi Masuk: ${checkIn?.checkInTime || session.startTime} (${puncText}). Presensi Selesai: ${timeOutStr}.`,
+      studentsTotal: existingLog?.studentsTotal || session.totalStudents || 32,
+      studentsPresent: existingLog?.studentsPresent || session.totalStudents || 32,
+      studentsSick: existingLog?.studentsSick || 0,
+      studentsPermit: existingLog?.studentsPermit || 0,
+      studentsAlpha: existingLog?.studentsAlpha || 0,
+      notes: existingLog?.notes || `Presensi Masuk: ${checkIn?.checkInTime || session.startTime} (${puncText}). Presensi Selesai: ${timeOutStr}.`,
       recordedAt: `${todayDateStr} ${timeOutStr}`
     };
 
@@ -2489,10 +2680,13 @@ document.addEventListener("DOMContentLoaded", () => {
       teachingLogs = [logEntry, ...teachingLogs];
     }
     StorageService.saveTeachingLogs(teachingLogs);
+    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+      FirebaseService.recordTeachingLog(logEntry).catch(() => {});
+    }
 
     // Update room in admin radar (26 Rombel Sync)
-    const classIdCleanOut = session ? (session.class || "").replace(/[^A-Za-z0-9]/g, '').replace('Kelas', '').trim()  : "";
-    roomsMonitoring = StorageService.getRoomsMonitoring(session ? session.day  : currentRadarDay);
+    const classIdCleanOut = session ? (session.class || "").replace(/[^A-Za-z0-9]/g, '').replace('Kelas', '').trim() : "";
+    roomsMonitoring = StorageService.getRoomsMonitoring(session ? session.day : currentRadarDay);
     const roomIdx = roomsMonitoring.findIndex(r => 
       r.scheduleId === scheduleId || 
       (classIdCleanOut && r.classId === classIdCleanOut) ||
@@ -2505,17 +2699,23 @@ document.addEventListener("DOMContentLoaded", () => {
       roomsMonitoring[roomIdx].note = `KBM selesai pukul ${timeOutStr}. Durasi: ${durationMnt} mnt. Beban kerja tuntas.`;
       StorageService.saveRoomsMonitoring(roomsMonitoring);
       if (typeof StorageService.saveRoomState === "function") {
-        StorageService.saveRoomState(roomsMonitoring[roomIdx].id, roomsMonitoring[roomIdx].day, {
-          status: "selesai",
-          statusLabel: "KBM Selesai",
-          statusClass: "status-finished",
-          note: roomsMonitoring[roomIdx].note
-        });
+        StorageService.saveRoomState(
+          roomsMonitoring[roomIdx].id,
+          roomsMonitoring[roomIdx].day || session.day,
+          {
+            scheduleId: session.id,
+            status: "selesai",
+            statusLabel: "KBM Selesai",
+            statusClass: "status-finished",
+            checkInTime: checkIn?.checkInTime || session.startTime,
+            checkOutTime: timeOutStr,
+            note: roomsMonitoring[roomIdx].note
+          },
+          session.id
+        );
       }
     }
 
-    const currentTeacher = StorageService.getActiveTeacher();
-    const teacherName = currentTeacher ? currentTeacher.name : "Guru Pendidik";
     StorageService.addAdminActivity(
       `${teacherName} menyelesaikan jam mengajar di ${session.room} (${timeOutStr} - Durasi ${durationMnt} mnt).`,
       "info"
@@ -3869,6 +4069,22 @@ document.addEventListener("DOMContentLoaded", () => {
       item.verifiedAt = "Hari ini";
       item.adminNote = "Permohonan izin resmi telah diverifikasi dan disetujui.";
       StorageService.saveLeaveRequests(leaves);
+
+      // Jika rentang tanggal izin mencakup hari ini, otomatis sinkronkan status presensi harian guru
+      const curDateStr = getAppTodayDateString();
+      if (item.startDate && item.endDate && curDateStr >= item.startDate && curDateStr <= item.endDate) {
+        const leaveStatus = String(item.type || "").toLowerCase().includes("sakit") ? "Sakit" : "Izin";
+        syncTeacherAttendanceToMaster(
+          item.teacherId,
+          leaveStatus,
+          "-",
+          "-",
+          false,
+          `Disetujui: ${item.type} (${item.reason || "-"})`
+        );
+        loadActiveTeacherAttendance();
+      }
+
       renderLeaveRequestsTable();
       renderAdminLeaveVerificationTable();
       showToast("Izin Disetujui", `Permohonan ${item.type} (${item.id}) telah disetujui.`, "success");
@@ -5351,21 +5567,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputTopic = document.getElementById("journalTopicInput");
     const inputNotes = document.getElementById("journalNotesInput");
 
+    const curDateStr = getAppTodayDateString();
+    const existingLog = teachingLogs.find(l => l.scheduleId === session.id && l.date === curDateStr);
+    const defaultTotal = session.totalStudents || 32;
+
     if (modalScheduleId) modalScheduleId.value = session.id;
     if (modalSubjectClass) modalSubjectClass.textContent = `${session.subject} • ${session.class}`;
     if (modalJtm) modalJtm.textContent = `${session.jtm} JTM`;
     if (modalTime) modalTime.textContent = session.time;
     if (modalRoom) modalRoom.textContent = session.room;
-    if (modalStudentsTotal) modalStudentsTotal.textContent = `Total Siswa: ${session.totalStudents}`;
+    if (modalStudentsTotal) modalStudentsTotal.textContent = `Total Siswa: ${defaultTotal}`;
 
-    if (inputPresent) inputPresent.value = session.totalStudents;
-    if (inputSick) inputSick.value = 0;
-    if (inputPermit) inputPermit.value = 0;
-    if (inputAlpha) inputAlpha.value = 0;
-    if (calcTotal) calcTotal.textContent = `Total: ${session.totalStudents} Siswa`;
+    if (inputPresent) inputPresent.value = existingLog ? (existingLog.studentsPresent ?? defaultTotal) : defaultTotal;
+    if (inputSick) inputSick.value = existingLog ? (existingLog.studentsSick ?? 0) : 0;
+    if (inputPermit) inputPermit.value = existingLog ? (existingLog.studentsPermit ?? 0) : 0;
+    if (inputAlpha) inputAlpha.value = existingLog ? (existingLog.studentsAlpha ?? 0) : 0;
+    if (calcTotal) calcTotal.textContent = `Total: ${existingLog ? (existingLog.studentsTotal ?? defaultTotal) : defaultTotal} Siswa`;
 
-    if (inputTopic) inputTopic.value = "";
-    if (inputNotes) inputNotes.value = "";
+    if (inputTopic) inputTopic.value = (existingLog && existingLog.topic && !existingLog.topic.includes("(Check-in Terekam)")) ? existingLog.topic : "";
+    if (inputNotes) inputNotes.value = existingLog ? (existingLog.notes || "") : "";
 
     openModal("modalTeachingJournal");
   };
@@ -5497,7 +5717,9 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         const scheduleId = document.getElementById("journalScheduleId")?.value;
-        const session = TEACHING_SCHEDULES.find(s => s.id === scheduleId);
+        const session = TEACHING_SCHEDULES.find(s => s.id === scheduleId) ||
+          StorageService.getActiveTeacherSchedules().find(s => s.id === scheduleId) ||
+          StorageService.getMasterSchedules().find(s => s.id === scheduleId);
         if (!session) {
           showToast("Kesalahan", "Jadwal mengajar tidak ditemukan.", "error");
           return;
@@ -5523,11 +5745,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const checkInRec = classCheckIns[session.id];
         const curDateStr = getAppTodayDateString();
         const curDayName = session.day || getAppTodayDayName();
+        const activeTch = StorageService.getActiveTeacher();
+        const teacherId = session.teacherId || (activeTch ? activeTch.id : StorageService.getActiveTeacherId());
+        const teacherName = session.teacherName || (activeTch ? activeTch.name : "Guru Pengajar");
         const existingIdx = teachingLogs.findIndex(l => l.scheduleId === session.id && l.date === curDateStr);
 
         const newJournalEntry = {
-          id: existingIdx !== -1 ? teachingLogs[existingIdx].id  : `KBM-${curDateStr.replace(/-/g, '')}-${String(teachingLogs.length + 1).padStart(2, '0')}`,
+          id: existingIdx !== -1 ? teachingLogs[existingIdx].id : `KBM-${curDateStr.replace(/-/g, '')}-${String(teachingLogs.length + 1).padStart(2, '0')}`,
           scheduleId: session.id,
+          teacherId: teacherId,
+          teacherName: teacherName,
           date: curDateStr,
           day: curDayName,
           subject: session.subject,
@@ -5541,13 +5768,13 @@ document.addEventListener("DOMContentLoaded", () => {
           checkInTime: checkInRec?.checkInTime || session.startTime,
           checkOutTime: checkInRec?.checkOutTime || session.endTime,
           durationMinutes: checkInRec?.durationMinutes || (session.jtm * 45),
-          studentsTotal: (present + sick + permit + alpha) || session.totalStudents,
-          studentsPresent: present || session.totalStudents,
+          studentsTotal: (present + sick + permit + alpha) || session.totalStudents || 32,
+          studentsPresent: present || session.totalStudents || 32,
           studentsSick: sick,
           studentsPermit: permit,
           studentsAlpha: alpha,
           notes: notes || "KBM berlangsung lancar sesuai kompetensi dasar.",
-          recordedAt: `${todayAttendance.date} ${recordedTimeStr}`
+          recordedAt: `${curDateStr} ${recordedTimeStr}`
         };
 
         if (existingIdx !== -1) {
@@ -5556,6 +5783,9 @@ document.addEventListener("DOMContentLoaded", () => {
           teachingLogs = [newJournalEntry, ...teachingLogs];
         }
         StorageService.saveTeachingLogs(teachingLogs);
+        if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+          FirebaseService.recordTeachingLog(newJournalEntry).catch(() => {});
+        }
 
         SoundService.playSuccess();
         closeModal("modalTeachingJournal");
@@ -6610,6 +6840,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = document.getElementById("inputTeacherPassword").value.trim() || "Guru@2026!";
         const phone = document.getElementById("inputTeacherPhone").value.trim();
 
+        let targetSyncId = editId;
         if (editId) {
           // Edit existing
           const idx = teachers.findIndex(t => t.id === editId);
@@ -6622,10 +6853,12 @@ document.addEventListener("DOMContentLoaded", () => {
               dept,
               subject,
               kepegawaian,
+              employmentStatus: kepegawaian,
               classAssigned,
               email,
               username,
               password,
+              pin: password,
               phone
             };
           }
@@ -6633,21 +6866,28 @@ document.addEventListener("DOMContentLoaded", () => {
             const currentProfile = StorageService.getProfile();
             StorageService.saveProfile({
               ...currentProfile,
+              id: editId,
               name,
               nip,
               nuptk,
+              dept,
               subject,
               classAssigned,
               email,
+              username,
+              password,
+              pin: password,
               phone,
+              kepegawaian,
               employmentStatus: kepegawaian
             });
             applySyncedTeacherAndSchoolData();
           }
-          showToast("Data Guru Diperbarui", `Informasi dan akun ${name} berhasil disimpan.`, "success");
+          showToast("Data Guru Diperbarui", `Informasi dan akun ${name} berhasil disimpan & disinkronkan ke Cloud.`, "success");
         } else {
           // Create new
           const newId = `TCH-${String(teachers.length + 1).padStart(2, "0")}`;
+          targetSyncId = newId;
           const newTeacher = {
             id: newId,
             name,
@@ -6656,10 +6896,12 @@ document.addEventListener("DOMContentLoaded", () => {
             dept,
             subject,
             kepegawaian,
+            employmentStatus: kepegawaian,
             classAssigned,
             email,
             username,
             password,
+            pin: password,
             phone,
             avatarUrl: "",
             gender: "Laki-laki",
@@ -6670,11 +6912,13 @@ document.addEventListener("DOMContentLoaded", () => {
           showToast("Guru Baru Ditambahkan", `Pendidik ${name} dan akun loginnya berhasil didaftarkan.`, "success");
         }
 
-        StorageService.saveTeachersMaster(teachers);
+        StorageService.saveTeachersMaster(teachers, targetSyncId);
         window.closeModal("modalTeacherForm");
 
         renderTeachersDb();
+        if (typeof renderAdminAllTeachersAttendance === "function") renderAdminAllTeachersAttendance();
         initTeacherAccountSwitcher();
+        if (typeof window.refreshLoginScreenData === "function") window.refreshLoginScreenData();
         SoundService.playSuccess();
       });
     }
@@ -6963,22 +7207,54 @@ document.addEventListener("DOMContentLoaded", () => {
       inputPhotoFile.addEventListener("change", (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
-        if (file.size > 2.5 * 1024 * 1024) {
-          showToast("Ukuran File Terlalu Besar", "Maksimal ukuran foto adalah 2.5MB.", "warning");
+        if (file.size > 5 * 1024 * 1024) {
+          showToast("Ukuran File Terlalu Besar", "Maksimal ukuran foto adalah 5MB.", "warning");
           return;
         }
         const reader = new FileReader();
         reader.onload = (evt) => {
-          uploadedAvatarBase64 = evt.target.result;
-          const previewImg = document.getElementById("modalProfileAvatarImg");
-          const previewInitials = document.getElementById("modalProfileAvatarInitials");
-          if (previewImg) {
-            previewImg.src = uploadedAvatarBase64;
-            previewImg.style.display = "block";
-          }
-          if (previewInitials) previewInitials.style.display = "none";
-          if (btnRemovePhoto) btnRemovePhoto.style.display = "inline-flex";
-          showToast("Foto Siap Disimpan", "Klik 'Simpan Perubahan Profil' untuk menerapkan.", "info");
+          const rawDataUrl = evt.target.result;
+          // Kompres dan resize foto otomatis agar ringan disinkronkan ke Cloud Firestore & Web/APK
+          const img = new Image();
+          img.onload = () => {
+            try {
+              const canvas = document.createElement("canvas");
+              const maxDim = 256;
+              let w = img.width;
+              let h = img.height;
+              if (w > h) {
+                if (w > maxDim) {
+                  h = Math.round((h * maxDim) / w);
+                  w = maxDim;
+                }
+              } else {
+                if (h > maxDim) {
+                  w = Math.round((w * maxDim) / h);
+                  h = maxDim;
+                }
+              }
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, w, h);
+              uploadedAvatarBase64 = canvas.toDataURL("image/jpeg", 0.78);
+            } catch (compErr) {
+              uploadedAvatarBase64 = rawDataUrl;
+            }
+            const previewImg = document.getElementById("modalProfileAvatarImg");
+            const previewInitials = document.getElementById("modalProfileAvatarInitials");
+            if (previewImg) {
+              previewImg.src = uploadedAvatarBase64;
+              previewImg.style.display = "block";
+            }
+            if (previewInitials) previewInitials.style.display = "none";
+            if (btnRemovePhoto) btnRemovePhoto.style.display = "inline-flex";
+            showToast("Foto Siap Disimpan", "Klik 'Simpan Perubahan Profil' untuk menerapkan.", "info");
+          };
+          img.onerror = () => {
+            uploadedAvatarBase64 = rawDataUrl;
+          };
+          img.src = rawDataUrl;
         };
         reader.readAsDataURL(file);
       });
@@ -7016,7 +7292,28 @@ document.addEventListener("DOMContentLoaded", () => {
         const phone = document.getElementById("inputMyProfilePhone")?.value.trim() || "";
         const password = document.getElementById("inputMyProfilePassword")?.value.trim() || "123456";
 
-        // Update teacher master record
+        // Update active profile in localStorage & push to Cloud
+        const currentProfile = StorageService.getProfile() || {};
+        const newAvatarUrl = (uploadedAvatarBase64 !== null) ? uploadedAvatarBase64 : (currentProfile.avatarUrl || "");
+        StorageService.saveProfile({
+          ...currentProfile,
+          id: activeId,
+          name,
+          nip,
+          nuptk,
+          dept,
+          subject,
+          classAssigned,
+          email,
+          phone,
+          password,
+          pin: password,
+          kepegawaian,
+          employmentStatus: kepegawaian,
+          avatarUrl: newAvatarUrl
+        });
+
+        // Update teacher master record & sync to Cloud
         const teachers = StorageService.getTeachersMaster();
         const idx = teachers.findIndex(t => t.id === activeId);
         if (idx !== -1) {
@@ -7026,6 +7323,7 @@ document.addEventListener("DOMContentLoaded", () => {
             nip,
             nuptk,
             kepegawaian,
+            employmentStatus: kepegawaian,
             subject,
             dept,
             classAssigned,
@@ -7033,27 +7331,10 @@ document.addEventListener("DOMContentLoaded", () => {
             phone,
             password,
             pin: password,
-            avatarUrl: (uploadedAvatarBase64 !== null) ? uploadedAvatarBase64 : (teachers[idx].avatarUrl || "")
+            avatarUrl: newAvatarUrl
           };
-          StorageService.saveTeachersMaster(teachers);
+          StorageService.saveTeachersMaster(teachers, activeId);
         }
-
-        // Update active profile in localStorage
-        const currentProfile = StorageService.getProfile() || {};
-        const newAvatarUrl = (uploadedAvatarBase64 !== null) ? uploadedAvatarBase64 : (currentProfile.avatarUrl || "");
-        StorageService.saveProfile({
-          ...currentProfile,
-          id: activeId,
-          name,
-          nip,
-          nuptk,
-          subject,
-          classAssigned,
-          email,
-          phone,
-          employmentStatus: kepegawaian,
-          avatarUrl: newAvatarUrl
-        });
 
         // Sync teacher name to master schedules if modified
         const allSchedules = StorageService.getMasterSchedules();
@@ -7068,14 +7349,39 @@ document.addEventListener("DOMContentLoaded", () => {
           StorageService.saveMasterSchedules(allSchedules);
         }
 
+        // Sync teacher name/subject/phone to welcoming picket roster if assigned
+        try {
+          const picketRoster = StorageService.getWelcomingPicketRoster();
+          let picketUpdated = false;
+          Object.keys(picketRoster || {}).forEach(dayKey => {
+            if (Array.isArray(picketRoster[dayKey])) {
+              picketRoster[dayKey].forEach(member => {
+                if (member && member.teacherId === activeId) {
+                  if (member.name !== name || member.subject !== subject || member.phone !== phone) {
+                    member.name = name;
+                    member.subject = subject;
+                    member.phone = phone;
+                    picketUpdated = true;
+                  }
+                }
+              });
+            }
+          });
+          if (picketUpdated) {
+            StorageService.saveWelcomingPicketRoster(picketRoster);
+          }
+        } catch (errPicket) {}
+
         // Apply changes across UI
         applySyncedTeacherAndSchoolData();
         if (typeof renderTeachersDb === "function") renderTeachersDb();
+        if (typeof renderAdminAllTeachersAttendance === "function") renderAdminAllTeachersAttendance();
         if (typeof initTeacherAccountSwitcher === "function") initTeacherAccountSwitcher();
         if (typeof renderTeachingSchedules === "function") renderTeachingSchedules();
+        if (typeof window.refreshLoginScreenData === "function") window.refreshLoginScreenData();
 
         window.closeModal("modalEditMyProfile");
-        showToast("Profil Berhasil Diperbarui", `Informasi kepegawaian ${name} berhasil disimpan.`, "success");
+        showToast("Profil & Cloud Tersinkron", `Perubahan akun ${name} telah disimpan dan disinkronkan ke Web & APK.`, "success");
         if (typeof SoundService !== "undefined" && SoundService.playSuccess) {
           SoundService.playSuccess();
         }
@@ -7693,7 +7999,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : `<span class="picket-role-badge role-member">🛡️ Petugas Sambut 5S</span>`;
 
         const phoneClean = (member.phone || teacherInfo.phone || "").replace(/[^0-9]/g, "");
-        const waLink = phoneClean ? `https ://wa.me/${phoneClean}?text=Assalamu%27alaikum%20${encodeURIComponent(member.teacherName || teacherInfo.name)}%2C%20mengenai%20jadwal%20piket%20sambut%20siswa%20MTsN%201%20Teladan...` : "#";
+        const waLink = phoneClean ? `https://wa.me/${phoneClean}?text=Assalamu%27alaikum%20${encodeURIComponent(member.teacherName || teacherInfo.name)}%2C%20mengenai%20jadwal%20piket%20sambut%20siswa%20MTsN%201%20Teladan...` : "#";
 
         let invalNotice = "";
         if (member.isSubstituted) {
@@ -7908,7 +8214,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (squad.members.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted);">
+          <td colspan="7" style="text-align: center; padding: 2.2rem 1rem; color: var(--text-muted);">
             <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">📋</div>
             <p style="margin: 0; font-size: 0.88rem; font-weight: 600; color: var(--text-main);">Belum ada petugas piket yang ditugaskan untuk hari ${squad.day}</p>
             <p style="margin: 0.2rem 0 0 0; font-size: 0.78rem; color: var(--text-muted);">Gunakan tombol "➕ Input Guru Piket" untuk menambahkan petugas ke regu ini.</p>
@@ -8030,6 +8336,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const todayDay = getTodayPicketDay();
     const targetDay = day || currentSelectedPicketDay || todayDay;
+    modal.dataset.picketDay = targetDay;
     const activeTeacherId = StorageService.getActiveTeacherId();
     const isAdmin = currentActiveRole === "admin";
     const teachersMaster = StorageService.getTeachersMaster();
@@ -8313,12 +8620,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (formCheckIn) {
       formCheckIn.addEventListener("submit", (e) => {
         e.preventDefault();
+        const modal = document.getElementById("modalPicketCheckIn");
         const todayDay = getTodayPicketDay();
+        const targetPicketDay = (modal && modal.dataset.picketDay) ? modal.dataset.picketDay : (currentSelectedPicketDay || todayDay);
         const activeTeacherId = StorageService.getActiveTeacherId();
         const isAdmin = currentActiveRole === "admin";
-        const teacherId = document.getElementById("selectPicketTeacherCheckIn")?.value;
+        const teacherId = document.getElementById("selectPicketTeacherCheckIn")?.value || activeTeacherId;
 
-        if (currentSelectedPicketDay !== todayDay && !isAdmin) {
+        if (targetPicketDay !== todayDay && !isAdmin) {
           showToast("Jadwal Tidak Sesuai", `Presensi piket hanya dapat dilakukan pada jadwal hari ini (${todayDay}).`, "warning");
           return;
         }
@@ -8332,21 +8641,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")} WIB`;
 
-        const updatedSquad = StorageService.confirmPicketCheckIn(currentSelectedPicketDay, teacherId, timeStr, notes);
+        const updatedSquad = StorageService.confirmPicketCheckIn(targetPicketDay, teacherId, timeStr, notes);
         if (updatedSquad) {
           const member = updatedSquad.members.find(m => m.teacherId === teacherId);
           SoundService.playSuccess();
           window.closeModal("modalPicketCheckIn");
           if (picketClockInterval) clearInterval(picketClockInterval);
 
-          renderPicketRoster(currentSelectedPicketDay);
+          renderPicketRoster(targetPicketDay);
           renderDashboardPicketReminder();
           renderAdminActivityFeed();
           updatePicketBannerQuickCheckIn();
 
           showToast(
-            "Check-In Berhasil!",
-            `Guru Piket ${member ? member.teacherName  : 'Petugas'} berhasil tercatat masuk pukul ${timeStr} (${member ? member.punctuality  : 'Tepat Waktu'}).`,
+            "Check-In Piket Berhasil!",
+            `Guru Piket ${member ? member.teacherName : 'Petugas'} berhasil tercatat masuk pukul ${timeStr} (${member ? member.punctuality : 'Tepat Waktu'}).`,
             "success"
           );
         }
@@ -8924,10 +9233,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropdownCombobox = document.getElementById("teacherComboboxDropdown");
     const btnToggleCombobox = document.getElementById("btnToggleTeacherCombobox");
     const badgeCount = document.getElementById("badgeTeacherCount");
-    const teachers = StorageService.getTeachersMaster() || [];
+    const getLiveTeachers = () => StorageService.getTeachersMaster() || [];
 
     if (badgeCount) {
-      badgeCount.textContent = `${teachers.length} Pendidik Terdaftar`;
+      badgeCount.textContent = `${getLiveTeachers().length} Pendidik Terdaftar`;
     }
 
     function updateMainTeacherPreview(teacherId) {
@@ -8936,6 +9245,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (card) card.style.display = "none";
         return;
       }
+      const teachers = getLiveTeachers();
       const t = teachers.find(item => item.id === teacherId);
       const previewName = document.getElementById("teacherPreviewName");
       const previewDetail = document.getElementById("teacherPreviewDetail");
@@ -8956,6 +9266,10 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderComboboxItems(filterText = "") {
       if (!dropdownCombobox) return;
       dropdownCombobox.innerHTML = "";
+      const teachers = getLiveTeachers();
+      if (badgeCount) {
+        badgeCount.textContent = `${teachers.length} Pendidik Terdaftar`;
+      }
       const q = (filterText || "").trim().toLowerCase();
       const selectedId = hiddenTeacherId ? hiddenTeacherId.value : "";
 
@@ -9055,7 +9369,7 @@ document.addEventListener("DOMContentLoaded", () => {
           updateMainTeacherPreview(null);
           return;
         }
-        const exact = teachers.find(t => 
+        const exact = getLiveTeachers().find(t => 
           (t.name || "").toLowerCase() === val || 
           (t.nip || "").replace(/\s+/g, "") === val.replace(/\s+/g, "") ||
           (t.username || "").toLowerCase() === val
@@ -9138,8 +9452,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const selectedId = hiddenTeacherId?.value || "";
 
         let targetIdentifier = selectedId;
+        const liveTeachers = getLiveTeachers();
         if (inputVal) {
-          const match = teachers.find(t => 
+          const match = liveTeachers.find(t => 
             (t.name || "").toLowerCase() === inputVal.toLowerCase() ||
             (t.nip || "").replace(/\s+/g, "") === inputVal.replace(/\s+/g, "") ||
             (t.username || "").toLowerCase() === inputVal.toLowerCase() ||
@@ -9191,6 +9506,29 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
     }
+
+    // Expose refresh helper so real-time Cloud updates immediately reflect on Login View
+    window.refreshLoginScreenData = function() {
+      const liveTeachers = getLiveTeachers();
+      if (badgeCount) {
+        badgeCount.textContent = `${liveTeachers.length} Pendidik Terdaftar`;
+      }
+      if (dropdownCombobox && dropdownCombobox.classList.contains("show")) {
+        renderComboboxItems(inputTeacherSearch ? inputTeacherSearch.value : "");
+      }
+      if (hiddenTeacherId && hiddenTeacherId.value) {
+        const currentSelected = liveTeachers.find(t => t.id === hiddenTeacherId.value);
+        if (currentSelected && inputTeacherSearch) {
+          inputTeacherSearch.value = currentSelected.name;
+        }
+        updateMainTeacherPreview(hiddenTeacherId.value);
+      }
+      const latestSchool = StorageService.getSchoolConfig();
+      const loginSchoolTitle = document.getElementById("loginSchoolNameTitle");
+      if (loginSchoolTitle && latestSchool && latestSchool.name) {
+        loginSchoolTitle.textContent = latestSchool.name;
+      }
+    };
 
     // Admin Form Submit
     const formAdmin = document.getElementById("formMainAdminLogin");
@@ -10291,14 +10629,57 @@ document.addEventListener("DOMContentLoaded", () => {
     const session = StorageService.getAuthSession();
     if (session && session.role === "admin") {
       window.switchAppRole("admin", true);
+      if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+        FirebaseService.ensureAuthenticated().catch(() => {});
+      }
     } else if (session && session.role === "teacher") {
       StorageService.setActiveTeacherId(session.teacherId);
       window.switchAppRole("teacher", true);
+      if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+        FirebaseService.ensureAuthenticated().catch(() => {});
+      }
     } else {
       // Default: Show Halaman Login
       window.showLoginView("teacher");
     }
   }
+
+  // Real-Time Cloud Sync Callback (Triggered automatically when Firestore updates from APK or Web)
+  window.onCloudSyncUpdate = function () {
+    try {
+      // Reload in-memory variables from updated localStorage
+      todayAttendance = StorageService.getTodayAttendance();
+      attendanceHistory = StorageService.getHistory();
+      leaveRequests = StorageService.getLeaveRequests();
+      teachingLogs = StorageService.getTeachingLogs();
+      classCheckIns = StorageService.getClassCheckIns();
+      roomsMonitoring = StorageService.getRoomState();
+      adminActivityFeed = StorageService.getAdminActivityFeed();
+
+      StorageService.syncActiveTeachingSchedules();
+      applySyncedTeacherAndSchoolData();
+      loadActiveTeacherAttendance();
+      updateAttendanceUI();
+      renderDashboardRecentTable();
+      renderFullHistoryTable();
+      renderLeaveRequestsTable();
+      renderTeachingSchedules();
+      if (typeof renderKbmTimelineAndLogs === "function") renderKbmTimelineAndLogs();
+      updateKpiCounts();
+      renderClassroomRadar();
+      if (typeof updateRadarKpis === "function") updateRadarKpis();
+      renderAdminActivityFeed();
+      renderAdminAllTeachersAttendance();
+      renderAdminLeaveVerificationTable();
+      if (typeof window.renderTeachersDb === "function") window.renderTeachersDb();
+      if (typeof window.renderRoster === "function") window.renderRoster();
+      if (typeof window.renderPicketRoster === "function") window.renderPicketRoster();
+      if (typeof initTeacherAccountSwitcher === "function") initTeacherAccountSwitcher();
+      if (typeof window.refreshLoginScreenData === "function") window.refreshLoginScreenData();
+    } catch (err) {
+      console.warn("[CloudSync] UI refresh warning:", err);
+    }
+  };
 
   // Initialize All Systems safely
   const initModules = [
