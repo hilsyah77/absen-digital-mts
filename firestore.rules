@@ -41,19 +41,16 @@ service cloud.firestore {
     // 1. DATA PENGGUNA & PROFIL GURU (USERS & TEACHERS)
     // -------------------------------------------------------------------------
     match /users/{uid} {
-      // Pengguna terautentikasi dapat membaca & menyinkronkan profil guru/admin
-      allow read, create, update: if isAuthenticated();
-      allow delete: if isAdmin();
+      // Pengguna terautentikasi dapat membaca, menyinkronkan & membersihkan duplikat profil
+      allow read, write: if isAuthenticated();
     }
 
     match /teachers/{teacherId} {
-      allow read, create, update: if isAuthenticated();
-      allow delete: if isAdmin();
+      allow read, write: if isAuthenticated();
     }
 
     match /sync_state/{docId} {
-      allow read, create, update: if isAuthenticated();
-      allow delete: if isAdmin();
+      allow read, write: if isAuthenticated();
     }
 
     // -------------------------------------------------------------------------

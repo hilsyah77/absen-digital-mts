@@ -3307,6 +3307,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (badge) {
         badge.className = "app-session-badge admin";
         badge.innerHTML = `<span class="session-dot pulse"></span><span id="sessionTitleText">Mode Admin</span>`;
+        badge.onclick = null;
+        badge.style.cursor = "";
+        badge.title = "Status Sesi Sistem Presensi";
       }
       if (teacherWrap) teacherWrap.style.display = "none";
       if (topbarUserName) topbarUserName.textContent = "ADMINISTRATOR";
@@ -3314,7 +3317,19 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       if (badge) {
         badge.className = "app-session-badge teacher";
-        badge.innerHTML = `<span class="session-dot"></span><span id="sessionTitleText">Mode Guru</span>`;
+        const adminStillLoggedIn = typeof StorageService !== "undefined" && StorageService.isAdminLoggedIn && StorageService.isAdminLoggedIn();
+        if (adminStillLoggedIn) {
+          // Sesi admin masih aktif: sediakan jalan kembali satu klik ke Mode Admin
+          badge.innerHTML = `<span class="session-dot"></span><span id="sessionTitleText">Mode Guru ↩ Admin</span>`;
+          badge.style.cursor = "pointer";
+          badge.title = "Klik untuk kembali ke Mode Administrator";
+          badge.onclick = () => window.switchAppRole("admin", true);
+        } else {
+          badge.innerHTML = `<span class="session-dot"></span><span id="sessionTitleText">Mode Guru</span>`;
+          badge.onclick = null;
+          badge.style.cursor = "";
+          badge.title = "Status Sesi Sistem Presensi";
+        }
       }
       if (teacherWrap) teacherWrap.style.display = "inline-flex";
       try {
@@ -3482,6 +3497,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.switchAppRole = function(role, bypassAuth = false) {
     document.body.classList.remove("mode-login");
+    try { sessionStorage.setItem("hadir_guru_last_role", role === "admin" ? "admin" : "teacher"); } catch (e) {}
 
     const btnTeacher = document.getElementById("btnRoleTeacher");
     const btnAdmin = document.getElementById("btnRoleAdmin");
@@ -3761,8 +3777,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Topbar User Info Pill - Protect Administrator session
     const isAdminActive = (typeof currentActiveRole !== "undefined" && currentActiveRole === "admin") ||
-                          (document.body && document.body.classList.contains("mode-admin")) ||
-                          (typeof StorageService !== "undefined" && typeof StorageService.isAdminLoggedIn === "function" && StorageService.isAdminLoggedIn());
+                          (document.body && document.body.classList.contains("mode-admin"));
 
     const topbarUserName = document.querySelector(".user-profile-pill .user-name");
     const topbarUserRole = document.querySelector(".user-profile-pill .user-role-label, .user-profile-pill .user-role");
@@ -7061,6 +7076,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const teachers = StorageService.getTeachersMaster();
       const teacher = teachers.find(t => t.id === teacherId);
       if (!teacher) return;
+
+      // Cegah pindah mode tidak sengaja: Admin yang sedang di Command Center harus konfirmasi dulu
+      if (currentActiveRole === "admin" && StorageService.isAdminLoggedIn()) {
+        const ok = window.confirm(`Beralih ke perspektif guru "${teacher.name}"?\n\nSesi Administrator tetap aktif. Anda bisa kembali dengan klik badge "Mode Guru ↩ Admin" di bagian atas.`);
+        if (!ok) return;
+      }
 
       StorageService.setActiveTeacherId(teacherId);
       StorageService.syncActiveTeachingSchedules();
@@ -10736,6 +10757,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initial Authentication Check
   function checkInitialAuthSession() {
     const session = StorageService.getAuthSession();
+    let lastRole = null;
+    try { lastRole = sessionStorage.getItem("hadir_guru_last_role"); } catch (e) {}
+    // Jika sesi Admin & Guru sama-sama aktif, kembalikan ke mode terakhir yang dipakai (bukan selalu admin)
+    if (lastRole === "teacher" && StorageService.isAdminLoggedIn() && StorageService.isTeacherLoggedIn()) {
+      StorageService.setActiveTeacherId(StorageService.getActiveTeacherId());
+      window.switchAppRole("teacher", true);
+      return;
+    }
     if (session && session.role === "admin") {
       window.switchAppRole("admin", true);
       if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
