@@ -9493,10 +9493,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const elFoot = document.getElementById("loginFooterSchoolName");
     if (elFoot) elFoot.textContent = schName;
 
-    const tabTeacher = document.getElementById("tabBtnMainTeacherAuth");
-    const tabAdmin = document.getElementById("tabBtnMainAdminAuth");
-    const panelTeacher = document.getElementById("loginPanelTeacher");
-    const panelAdmin = document.getElementById("loginPanelAdmin");
     const alertBox = document.getElementById("loginMainAlert");
     const alertText = document.getElementById("loginMainAlertText");
 
@@ -9508,40 +9504,41 @@ document.addEventListener("DOMContentLoaded", () => {
         void alertBox.offsetWidth;
         alertBox.classList.add("shake-error");
       }
-      SoundService.playError();
+      if (typeof SoundService !== "undefined" && typeof SoundService.playError === "function") {
+        SoundService.playError();
+      }
     }
+
     function hideLoginAlert() {
       if (alertBox) alertBox.style.display = "none";
     }
 
-    // Tab switching in login view
-    if (tabTeacher) {
-      tabTeacher.addEventListener("click", () => {
-        tabTeacher.classList.add("active");
-        if (tabAdmin) tabAdmin.classList.remove("active");
-        if (panelTeacher) panelTeacher.style.display = "block";
-        if (panelAdmin) panelAdmin.style.display = "none";
-        hideLoginAlert();
-      });
-    }
-    if (tabAdmin) {
-      tabAdmin.addEventListener("click", () => {
-        tabAdmin.classList.add("active");
+    // Global Tab Switching function (Available from onclick="window.switchLoginTab('teacher'|'admin')")
+    window.switchLoginTab = function(mode) {
+      const tabTeacher = document.getElementById("tabBtnMainTeacherAuth");
+      const tabAdmin = document.getElementById("tabBtnMainAdminAuth");
+      const panelTeacher = document.getElementById("loginPanelTeacher");
+      const panelAdmin = document.getElementById("loginPanelAdmin");
+      hideLoginAlert();
+
+      if (mode === "admin") {
+        if (tabAdmin) tabAdmin.classList.add("active");
         if (tabTeacher) tabTeacher.classList.remove("active");
         if (panelAdmin) panelAdmin.style.display = "block";
         if (panelTeacher) panelTeacher.style.display = "none";
-        hideLoginAlert();
         const pass = document.getElementById("inputMainAdminPassword");
-        if (pass) setTimeout(() => pass.focus(), 100);
-      });
-    }
+        if (pass) setTimeout(() => pass.focus(), 80);
+      } else {
+        if (tabTeacher) tabTeacher.classList.add("active");
+        if (tabAdmin) tabAdmin.classList.remove("active");
+        if (panelTeacher) panelTeacher.style.display = "block";
+        if (panelAdmin) panelAdmin.style.display = "none";
+        const selectTeacher = document.getElementById("selectMainTeacherAccount");
+        if (selectTeacher && !selectTeacher.value) setTimeout(() => selectTeacher.focus(), 80);
+      }
+    };
 
-    // Smart Combobox for 51+ Teachers Autocomplete Search & Selection
-    const inputTeacherSearch = document.getElementById("inputMainTeacherIdentifier");
-    const hiddenTeacherId = document.getElementById("selectMainTeacherAccount");
-    const dropdownCombobox = document.getElementById("teacherComboboxDropdown");
-    const btnToggleCombobox = document.getElementById("btnToggleTeacherCombobox");
-    const badgeCount = document.getElementById("badgeTeacherCount");
+    // Helper: Retrieve all registered teachers
     const getLiveTeachers = () => {
       try {
         const list = StorageService.getTeachersMaster();
@@ -9552,11 +9549,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return (typeof INITIAL_TEACHERS_MASTER_60 !== "undefined" ? INITIAL_TEACHERS_MASTER_60 : []);
     };
 
-    if (badgeCount) {
-      badgeCount.textContent = `${getLiveTeachers().length} Pendidik Terdaftar`;
-    }
-
-    function updateMainTeacherPreview(teacherId) {
+    // Update Teacher Preview Profile Card
+    window.updateMainTeacherPreview = function(teacherId) {
       const card = document.getElementById("teacherSelectedPreviewCard");
       if (!teacherId) {
         if (card) card.style.display = "none";
@@ -9583,17 +9577,21 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         if (card) card.style.display = "none";
       }
-    }
+    };
 
-    function renderComboboxItems(filterText = "", showAll = false) {
-      if (!dropdownCombobox) return;
-      dropdownCombobox.innerHTML = "";
+    // Populate the Native Select Dropdown for 51+ Teachers
+    window.populateTeacherSelect = function(filterKeyword = "") {
+      const select = document.getElementById("selectMainTeacherAccount");
+      const badgeCount = document.getElementById("badgeTeacherCount");
+      if (!select) return;
+
       const teachers = getLiveTeachers();
       if (badgeCount) {
         badgeCount.textContent = `${teachers.length} Pendidik Terdaftar`;
       }
-      const q = showAll ? "" : (filterText || "").trim().toLowerCase();
-      const selectedId = hiddenTeacherId ? hiddenTeacherId.value : "";
+
+      const q = (filterKeyword || "").trim().toLowerCase();
+      const currentSelected = select.value;
 
       const filtered = q
         ? teachers.filter(t => {
@@ -9607,293 +9605,231 @@ document.addEventListener("DOMContentLoaded", () => {
           })
         : teachers;
 
-      if (filtered.length === 0) {
-        dropdownCombobox.innerHTML = `
-          <div class="combobox-empty" style="padding: 1.25rem 0.75rem; text-align: center; color: #94a3b8;">
-            <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🔍</div>
-            <div style="font-weight: 600; color: #ffffff; font-size: 0.88rem;">Tidak ada guru ditemukan</div>
-            <div style="font-size: 0.75rem; margin-top: 0.2rem;">Kata kunci: "${filterText}"</div>
-            <button type="button" class="btn-clear-combobox-filter" style="margin-top: 0.65rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer;">Tampilkan Semua Pendidik</button>
-          </div>
-        `;
-        const btnClear = dropdownCombobox.querySelector(".btn-clear-combobox-filter");
-        if (btnClear) {
-          btnClear.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (inputTeacherSearch) inputTeacherSearch.value = "";
-            renderComboboxItems("", true);
-          });
-        }
-        return;
-      }
+      select.innerHTML = '<option value="">-- Pilih Akun Guru Pendidik --</option>';
 
-      const fragment = document.createDocumentFragment();
       filtered.forEach(t => {
         if (!t) return;
         const canonicalId = (t.nip && t.nip.length > 3 && t.nip !== "-") ? t.nip : (t.teacherId || t.id);
-        const isSelected = selectedId && (selectedId === canonicalId || selectedId === t.id || selectedId === t.nip || selectedId === t.teacherId);
-
-        const item = document.createElement("div");
-        item.className = `combobox-item ${isSelected ? 'selected' : ''}`;
-        item.dataset.teacherId = canonicalId;
-        item.dataset.legacyId = t.id || "";
-        item.dataset.nip = t.nip || "";
-        item.dataset.name = t.name || "";
-
-        const initials = (t.name || "GR").split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase();
-        
-        item.innerHTML = `
-          <div class="combobox-avatar">${initials}</div>
-          <div class="combobox-info">
-            <div class="combobox-name">
-              <span>${t.name}</span>
-              ${isSelected ? '<span class="combobox-check">✓</span>' : ''}
-            </div>
-            <div class="combobox-sub">${t.subject || 'Guru Mapel'} • NIP: ${t.nip || '-'}</div>
-          </div>
-        `;
-
-        fragment.appendChild(item);
+        const opt = document.createElement("option");
+        opt.value = canonicalId;
+        const nipInfo = (t.nip && t.nip !== "-") ? ` [NIP: ${t.nip}]` : "";
+        const subjInfo = t.subject ? ` (${t.subject})` : "";
+        opt.textContent = `${t.name}${subjInfo}${nipInfo}`;
+        if (currentSelected && (currentSelected === canonicalId || currentSelected === t.id || currentSelected === t.nip || currentSelected === t.teacherId)) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
       });
-      dropdownCombobox.appendChild(fragment);
-    }
 
-    // Event delegation on dropdown container for seamless touch and mouse interactions
-    function handleComboboxItemSelection(e) {
-      const item = e.target.closest(".combobox-item");
-      if (!item) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const tid = item.dataset.teacherId;
-      const legId = item.dataset.legacyId;
-      const nip = item.dataset.nip;
-      const teachers = getLiveTeachers();
-      const teacher = teachers.find(t => 
-        (tid && (t.nip === tid || t.id === tid || t.teacherId === tid)) ||
-        (legId && (t.id === legId || t.teacherId === legId)) ||
-        (nip && t.nip === nip)
-      );
-      if (teacher) {
-        selectTeacherAccount(teacher);
+      // If user typed and only 1 teacher matched, auto-select
+      if (q && filtered.length === 1) {
+        const only = filtered[0];
+        const canonicalId = (only.nip && only.nip.length > 3 && only.nip !== "-") ? only.nip : (only.teacherId || only.id);
+        select.value = canonicalId;
+        window.updateMainTeacherPreview(canonicalId);
       }
-    }
+    };
 
-    if (dropdownCombobox) {
-      dropdownCombobox.addEventListener("pointerdown", handleComboboxItemSelection);
-      dropdownCombobox.addEventListener("click", handleComboboxItemSelection);
-    }
+    // Initialize select dropdown with all teachers
+    window.populateTeacherSelect("");
 
-    function selectTeacherAccount(teacher) {
-      if (!teacher) return;
-      const canonicalId = (teacher.nip && teacher.nip.length > 3 && teacher.nip !== "-") ? teacher.nip : (teacher.teacherId || teacher.id);
-      if (hiddenTeacherId) hiddenTeacherId.value = canonicalId;
-      if (inputTeacherSearch) inputTeacherSearch.value = teacher.name;
-      updateMainTeacherPreview(canonicalId);
-      closeCombobox();
-      hideLoginAlert();
-      const pass = document.getElementById("inputMainTeacherPassword");
-      if (pass) {
-        pass.value = "";
-        setTimeout(() => pass.focus(), 80);
-      }
-    }
-
-    function openCombobox(forceShowAll = false) {
-      if (!dropdownCombobox) return;
-      renderComboboxItems(forceShowAll ? "" : (inputTeacherSearch ? inputTeacherSearch.value : ""), forceShowAll);
-      dropdownCombobox.classList.add("show");
-      if (btnToggleCombobox) btnToggleCombobox.classList.add("open");
-    }
-
-    function closeCombobox() {
-      if (!dropdownCombobox) return;
-      dropdownCombobox.classList.remove("show");
-      if (btnToggleCombobox) btnToggleCombobox.classList.remove("open");
-    }
-
-    function toggleCombobox() {
-      if (dropdownCombobox && dropdownCombobox.classList.contains("show")) {
-        closeCombobox();
-      } else {
-        openCombobox(true); // Klik tombol panah selalu tampilkan seluruh guru
-        if (inputTeacherSearch) inputTeacherSearch.focus();
-      }
-    }
-
+    // Quick Search Input Listener
+    const inputTeacherSearch = document.getElementById("inputMainTeacherIdentifier");
     if (inputTeacherSearch) {
-      inputTeacherSearch.addEventListener("focus", () => {
-        openCombobox(true); // Buka seluruh daftar saat fokus
-      });
-
-      inputTeacherSearch.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openCombobox(true);
-      });
-
-      inputTeacherSearch.addEventListener("input", () => {
-        const val = inputTeacherSearch.value.trim().toLowerCase();
-        openCombobox(false);
-        if (!val) {
-          if (hiddenTeacherId) hiddenTeacherId.value = "";
-          updateMainTeacherPreview(null);
-          return;
-        }
-        const exact = getLiveTeachers().find(t => 
-          (t.name || "").toLowerCase() === val || 
-          (t.nip || "").replace(/\s+/g, "") === val.replace(/\s+/g, "") ||
-          (t.username || "").toLowerCase() === val
-        );
-        if (exact) {
-          const canonicalId = (exact.nip && exact.nip.length > 3 && exact.nip !== "-") ? exact.nip : (exact.teacherId || exact.id);
-          if (hiddenTeacherId) hiddenTeacherId.value = canonicalId;
-          updateMainTeacherPreview(canonicalId);
+      inputTeacherSearch.addEventListener("input", (e) => {
+        const query = e.target.value;
+        window.populateTeacherSelect(query);
+        const select = document.getElementById("selectMainTeacherAccount");
+        if (select && select.value) {
+          window.updateMainTeacherPreview(select.value);
         } else {
-          if (hiddenTeacherId) hiddenTeacherId.value = "";
-          updateMainTeacherPreview(null);
-        }
-      });
-
-      inputTeacherSearch.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          closeCombobox();
-        } else if (e.key === "Enter") {
-          const firstItem = dropdownCombobox ? dropdownCombobox.querySelector(".combobox-item") : null;
-          if (firstItem && dropdownCombobox.classList.contains("show")) {
-            e.preventDefault();
-            firstItem.dispatchEvent(new MouseEvent("click"));
-          }
+          window.updateMainTeacherPreview(null);
         }
       });
     }
 
-    if (btnToggleCombobox) {
-      btnToggleCombobox.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        toggleCombobox();
+    // Select Account Change Listener
+    const selectTeacher = document.getElementById("selectMainTeacherAccount");
+    if (selectTeacher) {
+      selectTeacher.addEventListener("change", (e) => {
+        const chosenId = e.target.value;
+        window.updateMainTeacherPreview(chosenId);
+        hideLoginAlert();
+        const pass = document.getElementById("inputMainTeacherPassword");
+        if (pass && chosenId) {
+          pass.value = "";
+          setTimeout(() => pass.focus(), 80);
+        }
       });
     }
-
-    document.addEventListener("click", (e) => {
-      const wrap = document.querySelector(".teacher-combobox-wrap");
-      if (wrap && !wrap.contains(e.target)) {
-        closeCombobox();
-      }
-    });
-
-    // Set initial teacher selection: Form login bersih / tidak langsung terpilih Abdur Rouf
-    if (hiddenTeacherId) hiddenTeacherId.value = "";
-    if (inputTeacherSearch) inputTeacherSearch.value = "";
-    updateMainTeacherPreview(null);
 
     // Eye Password Toggles
     const btnToggleTeacherPass = document.getElementById("btnToggleMainTeacherPass");
     const inputTeacherPass = document.getElementById("inputMainTeacherPassword");
     if (btnToggleTeacherPass && inputTeacherPass) {
-      btnToggleTeacherPass.addEventListener("click", () => {
+      btnToggleTeacherPass.onclick = function() {
         const isPass = inputTeacherPass.type === "password";
         inputTeacherPass.type = isPass ? "text" : "password";
         btnToggleTeacherPass.innerHTML = isPass
           ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
           : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-      });
+      };
     }
 
     const btnToggleAdminPass = document.getElementById("btnToggleMainAdminPass");
     const inputAdminPass = document.getElementById("inputMainAdminPassword");
     if (btnToggleAdminPass && inputAdminPass) {
-      btnToggleAdminPass.addEventListener("click", () => {
+      btnToggleAdminPass.onclick = function() {
         const isPass = inputAdminPass.type === "password";
         inputAdminPass.type = isPass ? "text" : "password";
         btnToggleAdminPass.innerHTML = isPass
           ? `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
           : `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-      });
+      };
     }
 
-    // Teacher Form Submit
+    // Teacher Form Submit Handler (Globally accessible)
+    window.handleTeacherLoginSubmit = function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      const select = document.getElementById("selectMainTeacherAccount");
+      const searchInput = document.getElementById("inputMainTeacherIdentifier");
+      const passInput = document.getElementById("inputMainTeacherPassword");
+      const rememberCheck = document.getElementById("checkMainTeacherRemember");
+
+      let targetIdentifier = select ? select.value.trim() : "";
+      const queryVal = searchInput ? searchInput.value.trim() : "";
+
+      if (!targetIdentifier && queryVal) {
+        const teachers = getLiveTeachers();
+        const match = teachers.find(t => 
+          (t.name || "").toLowerCase() === queryVal.toLowerCase() ||
+          (t.nip || "").replace(/\s+/g, "") === queryVal.replace(/\s+/g, "") ||
+          (t.username || "").toLowerCase() === queryVal.toLowerCase() ||
+          (t.email || "").toLowerCase() === queryVal.toLowerCase()
+        );
+        if (match) {
+          targetIdentifier = (match.nip && match.nip.length > 3 && match.nip !== "-") ? match.nip : (match.teacherId || match.id);
+          if (select) select.value = targetIdentifier;
+        } else {
+          targetIdentifier = queryVal;
+        }
+      }
+
+      if (!targetIdentifier) {
+        showLoginAlert("Silakan pilih akun guru pendidik Anda dari daftar di atas.");
+        if (select) select.focus();
+        return;
+      }
+
+      const pin = passInput ? passInput.value.trim() : "";
+      if (!pin) {
+        showLoginAlert("Silakan masukkan PIN / Password Akun Anda (Default: 123456).");
+        if (passInput) passInput.focus();
+        return;
+      }
+
+      const remember = rememberCheck ? rememberCheck.checked : true;
+      const authResult = StorageService.verifyTeacherCredentials(targetIdentifier, pin);
+
+      if (authResult.success) {
+        hideLoginAlert();
+        const teacher = authResult.teacher;
+        const canonicalId = (teacher.nip && teacher.nip.length > 3 && teacher.nip !== "-") ? teacher.nip : (teacher.teacherId || teacher.id);
+        StorageService.setTeacherLoggedIn(canonicalId, remember);
+        StorageService.setActiveTeacherId(canonicalId);
+        StorageService.syncActiveTeachingSchedules();
+        if (typeof SoundService !== "undefined" && typeof SoundService.playSuccess === "function") {
+          SoundService.playSuccess();
+        }
+
+        // Firebase Cloud Session
+        if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+          FirebaseService.loginWithNip(teacher.nip || canonicalId, pin, "teacher", teacher)
+            .then(res => {
+              if (res.success) {
+                console.log("[Firebase] Akun guru terautentikasi:", teacher.name);
+              }
+            })
+            .catch(err => console.warn("[Firebase] Auth warning:", err));
+        }
+
+        document.body.classList.remove("mode-login");
+        window.switchAppRole("teacher", true);
+        showToast("Login Berhasil", `Selamat datang, ${teacher.name}! Sesi presensi aktif.`, "success");
+      } else {
+        showLoginAlert(authResult.message || "Gagal login. Periksa NIP/Username dan PIN.");
+      }
+    };
+
+    // Admin Form Submit Handler (Globally accessible)
+    window.handleAdminLoginSubmit = function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+
+      const userInput = document.getElementById("inputMainAdminUsername");
+      const passInput = document.getElementById("inputMainAdminPassword");
+      const rememberCheck = document.getElementById("checkMainAdminRemember");
+
+      const username = userInput ? userInput.value.trim() : "";
+      const password = passInput ? passInput.value : "";
+      const remember = rememberCheck ? rememberCheck.checked : true;
+
+      if (!username) {
+        showLoginAlert("Silakan masukkan username administrator.");
+        if (userInput) userInput.focus();
+        return;
+      }
+      if (!password) {
+        showLoginAlert("Silakan masukkan password administrator.");
+        if (passInput) passInput.focus();
+        return;
+      }
+
+      if (StorageService.verifyAdminCredentials(username, password)) {
+        hideLoginAlert();
+        StorageService.setAdminLoggedIn(true, remember);
+        if (typeof SoundService !== "undefined" && typeof SoundService.playSuccess === "function") {
+          SoundService.playSuccess();
+        }
+
+        // Firebase Admin Auth
+        if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
+          FirebaseService.loginWithNip("admin", password, "admin", { id: "admin", name: "Administrator" })
+            .then(res => {
+              if (res.success) {
+                console.log("[Firebase] Administrator terautentikasi (Sesi Tertutup Penuh)");
+              }
+            })
+            .catch(err => console.warn("[Firebase] Admin auth warning:", err));
+        }
+
+        document.body.classList.remove("mode-login");
+        window.switchAppRole("admin", true);
+        showToast("Login Administrator Berhasil", "Selamat datang di Command Center Administrator MTs.", "success");
+      } else {
+        showLoginAlert("Username atau password administrator salah. Silakan periksa kembali.");
+      }
+    };
+
+    // Attach submit listeners to both forms
     const formTeacher = document.getElementById("formMainTeacherLogin");
     if (formTeacher) {
-      formTeacher.addEventListener("submit", (e) => {
-        e.preventDefault();
-        closeCombobox();
-
-        const inputVal = inputTeacherSearch?.value.trim() || "";
-        const selectedId = hiddenTeacherId?.value || "";
-
-        let targetIdentifier = selectedId;
-        const liveTeachers = getLiveTeachers();
-        if (inputVal) {
-          const match = liveTeachers.find(t => 
-            (t.name || "").toLowerCase() === inputVal.toLowerCase() ||
-            (t.nip || "").replace(/\s+/g, "") === inputVal.replace(/\s+/g, "") ||
-            (t.username || "").toLowerCase() === inputVal.toLowerCase() ||
-            (t.email || "").toLowerCase() === inputVal.toLowerCase()
-          );
-          if (match) {
-            targetIdentifier = (match.nip && match.nip.length > 3 && match.nip !== "-") ? match.nip : (match.teacherId || match.id);
-          } else if (!targetIdentifier) {
-            targetIdentifier = inputVal;
-          }
-        }
-
-        if (!targetIdentifier) {
-          showLoginAlert("Silakan pilih atau cari akun guru pendidik Anda terlebih dahulu.");
-          if (inputTeacherSearch) inputTeacherSearch.focus();
-          return;
-        }
-
-        const pin = document.getElementById("inputMainTeacherPassword")?.value || "";
-        const remember = document.getElementById("checkMainTeacherRemember")?.checked || false;
-
-        const authResult = StorageService.verifyTeacherCredentials(targetIdentifier, pin);
-        if (authResult.success) {
-          hideLoginAlert();
-          const teacher = authResult.teacher;
-          const canonicalId = (teacher.nip && teacher.nip.length > 3 && teacher.nip !== "-") ? teacher.nip : (teacher.teacherId || teacher.id);
-          StorageService.setTeacherLoggedIn(canonicalId, remember);
-          StorageService.setActiveTeacherId(canonicalId);
-          StorageService.syncActiveTeachingSchedules();
-          SoundService.playSuccess();
-
-          // Autentikasi Firebase Cloud Database Tertutup jika aktif
-          if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-            FirebaseService.loginWithNip(teacher.nip || canonicalId, pin, "teacher", teacher)
-              .then(res => {
-                if (res.success) {
-                  console.log("[Firebase] Akun guru terautentikasi (Sesi Tertutup):", teacher.name);
-                }
-              })
-              .catch(err => console.warn("[Firebase] Auth warning:", err));
-          }
-
-          // Explicitly clear mode-login and activate teacher mode
-          document.body.classList.remove("mode-login");
-          window.switchAppRole("teacher", true);
-
-          showToast("Login Berhasil", `Selamat datang, ${teacher.name}! Sesi presensi aktif.`, "success");
-        } else {
-          showLoginAlert(authResult.message || "Gagal login. Periksa NIP/Username dan PIN.");
-        }
-      });
+      formTeacher.onsubmit = window.handleTeacherLoginSubmit;
+    }
+    const formAdmin = document.getElementById("formMainAdminLogin");
+    if (formAdmin) {
+      formAdmin.onsubmit = window.handleAdminLoginSubmit;
     }
 
     // Expose refresh helper so real-time Cloud updates immediately reflect on Login View
     window.refreshLoginScreenData = function() {
-      const liveTeachers = getLiveTeachers();
-      if (badgeCount) {
-        badgeCount.textContent = `${liveTeachers.length} Pendidik Terdaftar`;
+      if (typeof window.populateTeacherSelect === "function") {
+        const inputTeacherSearch = document.getElementById("inputMainTeacherIdentifier");
+        window.populateTeacherSelect(inputTeacherSearch ? inputTeacherSearch.value : "");
       }
-      if (dropdownCombobox && dropdownCombobox.classList.contains("show")) {
-        renderComboboxItems(inputTeacherSearch ? inputTeacherSearch.value : "");
-      }
-      if (hiddenTeacherId && hiddenTeacherId.value) {
-        const currentSelected = liveTeachers.find(t => t.id === hiddenTeacherId.value);
-        if (currentSelected && inputTeacherSearch) {
-          inputTeacherSearch.value = currentSelected.name;
-        }
-        updateMainTeacherPreview(hiddenTeacherId.value);
+      const selectTeacher = document.getElementById("selectMainTeacherAccount");
+      if (selectTeacher && selectTeacher.value) {
+        window.updateMainTeacherPreview(selectTeacher.value);
       }
       const latestSchool = StorageService.getSchoolConfig();
       const loginSchoolTitle = document.getElementById("loginSchoolNameTitle");
@@ -9902,46 +9838,12 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     };
 
-    // Admin Form Submit
-    const formAdmin = document.getElementById("formMainAdminLogin");
-    if (formAdmin) {
-      formAdmin.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const username = document.getElementById("inputMainAdminUsername")?.value.trim() || "";
-        const password = document.getElementById("inputMainAdminPassword")?.value || "";
-        const remember = document.getElementById("checkMainAdminRemember")?.checked || false;
-
-        if (StorageService.verifyAdminCredentials(username, password)) {
-          hideLoginAlert();
-          StorageService.setAdminLoggedIn(true, remember);
-          SoundService.playSuccess();
-
-          // Autentikasi Admin ke Firebase Cloud Database
-          if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-            FirebaseService.loginWithNip("admin", password, "admin", { id: "admin", name: "Administrator" })
-              .then(res => {
-                if (res.success) {
-                  console.log("[Firebase] Administrator terautentikasi (Sesi Tertutup Penuh)");
-                }
-              })
-              .catch(err => console.warn("[Firebase] Admin auth warning:", err));
-          }
-
-          window.switchAppRole("admin", true);
-          showToast("Login Administrator Berhasil", "Selamat datang di Command Center Administrator MTs.", "success");
-        } else {
-          showLoginAlert("Username atau password administrator salah. Silakan periksa kembali.");
-        }
-
-      });
-    }
-
     // Teacher Help Note
     const btnHelp = document.getElementById("btnTeacherHelpNote");
     if (btnHelp) {
-      btnHelp.addEventListener("click", () => {
-        showToast("Bantuan Login Guru", "Pilih nama Anda dari daftar Pendidik, masukkan PIN / Password Akun Anda, lalu klik 'Masuk ke Presensi Guru'.", "info");
-      });
+      btnHelp.onclick = function() {
+        showToast("Bantuan Login Guru", "Pilih nama Anda dari daftar Pendidik, masukkan PIN / Password Akun Anda (Default: 123456), lalu klik 'Masuk ke Presensi Guru'.", "info");
+      };
     }
   }
 
@@ -10973,8 +10875,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.body.classList.remove("mode-guru", "mode-admin");
     document.body.classList.add("mode-login");
 
-    const tabTeacher = document.getElementById("tabBtnMainTeacherAuth");
-    const tabAdmin = document.getElementById("tabBtnMainAdminAuth");
     const alertBox = document.getElementById("loginMainAlert");
     if (alertBox) alertBox.style.display = "none";
 
@@ -10989,10 +10889,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (passTeacher) passTeacher.value = "";
     if (passAdmin) passAdmin.value = "";
 
-    if (defaultMode === "admin") {
-      if (tabAdmin) tabAdmin.click();
+    // Refresh teacher options in the select dropdown
+    if (typeof window.populateTeacherSelect === "function") {
+      window.populateTeacherSelect("");
+    }
+
+    if (typeof window.switchLoginTab === "function") {
+      window.switchLoginTab(defaultMode);
     } else {
-      if (tabTeacher) tabTeacher.click();
+      const tabTeacher = document.getElementById("tabBtnMainTeacherAuth");
+      const tabAdmin = document.getElementById("tabBtnMainAdminAuth");
+      if (defaultMode === "admin") {
+        if (tabAdmin) tabAdmin.click();
+      } else {
+        if (tabTeacher) tabTeacher.click();
+      }
     }
   };
 

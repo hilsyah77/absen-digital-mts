@@ -39,14 +39,14 @@
       <div class="login-card">
         <!-- Dual Mode Switcher Tabs -->
         <div class="login-tabs-nav" role="tablist">
-          <button type="button" class="login-tab-btn active" id="tabBtnMainTeacherAuth" data-auth-mode="teacher">
+          <button type="button" class="login-tab-btn active" id="tabBtnMainTeacherAuth" data-auth-mode="teacher" onclick="window.switchLoginTab('teacher')">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
             <span>Login Guru & Tendik</span>
           </button>
-          <button type="button" class="login-tab-btn" id="tabBtnMainAdminAuth" data-auth-mode="admin">
+          <button type="button" class="login-tab-btn" id="tabBtnMainAdminAuth" data-auth-mode="admin" onclick="window.switchLoginTab('admin')">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
               <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -73,30 +73,32 @@
             <p>Silakan pilih atau masukkan akun pendidik Anda untuk mengakses pencatatan presensi, agenda KBM, dan pengajuan izin.</p>
           </div>
 
-          <form id="formMainTeacherLogin" autocomplete="on">
-            <!-- Smart Unified Teacher Account Search & Autocomplete Combobox -->
-            <div class="form-group teacher-combobox-wrap" style="margin-bottom: 0.85rem;">
-              <label class="form-label" for="inputMainTeacherIdentifier" style="display: flex; justify-content: space-between; align-items: center;">
-                <span>Akun Guru Pendidik (Cari Nama / NIP)</span>
+          <form id="formMainTeacherLogin" onsubmit="window.handleTeacherLoginSubmit(event)" autocomplete="on">
+            <!-- Unified Teacher Account Selector: Clean Native Select + Quick Search -->
+            <div class="form-group" style="margin-bottom: 0.85rem;">
+              <label class="form-label" for="selectMainTeacherAccount" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Akun Guru Pendidik</span>
                 <span style="font-size: 0.72rem; color: #a7f3d0; font-weight: 700;" id="badgeTeacherCount">51 Pendidik Terdaftar</span>
               </label>
-              
-              <div class="login-input-icon-wrap has-combobox-btn">
+
+              <!-- Quick Search Filter Box -->
+              <div class="login-input-icon-wrap" style="margin-bottom: 0.5rem;">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="inputMainTeacherIdentifier" class="form-control login-input-field" placeholder="Ketik nama atau NIP untuk menyaring guru..." autocomplete="off">
+              </div>
+
+              <!-- Native Dropdown Select (Works 100% reliably on Android, iOS, Windows, Touch & Keyboard) -->
+              <div class="login-input-icon-wrap">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
                 </svg>
-                <input type="text" id="inputMainTeacherIdentifier" class="form-control login-input-field" placeholder="Ketik Nama, NIP, atau klik untuk memilih..." autocomplete="off">
-                <input type="hidden" id="selectMainTeacherAccount" value="">
-                
-                <button type="button" class="btn-toggle-combobox" id="btnToggleTeacherCombobox" title="Buka / Tutup Daftar Akun Guru">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-              </div>
-
-              <!-- Floating Autocomplete List Container -->
-              <div class="teacher-combobox-dropdown" id="teacherComboboxDropdown">
-                <!-- Dynamically populated via JS -->
+                <select id="selectMainTeacherAccount" class="form-control login-input-field login-select-account" style="cursor: pointer; appearance: auto; -webkit-appearance: menulist; padding-right: 1rem;">
+                  <option value="">-- Pilih Akun Guru Pendidik --</option>
+                </select>
               </div>
             </div>
 
@@ -120,7 +122,7 @@
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <input type="password" id="inputMainTeacherPassword" class="form-control login-input-field" placeholder="Masukkan PIN / Password Akun..." value="" required autocomplete="current-password">
+                <input type="password" id="inputMainTeacherPassword" class="form-control login-input-field" placeholder="Masukkan PIN / Password Akun..." value="" autocomplete="current-password">
                 <button type="button" class="btn-toggle-eye" id="btnToggleMainTeacherPass" title="Lihat PIN">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </button>
@@ -135,7 +137,7 @@
               <span class="login-help-chip" id="btnTeacherHelpNote">Bantuan Akun</span>
             </div>
 
-            <button type="submit" class="btn-login-submit btn-submit-teacher" id="btnSubmitTeacherLogin">
+            <button type="button" class="btn-login-submit btn-submit-teacher" id="btnSubmitTeacherLogin" onclick="window.handleTeacherLoginSubmit(event)">
               <span>Masuk ke Presensi Guru</span>
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </button>
@@ -150,7 +152,7 @@
             <p>Login sebagai Administrator Sekolah untuk memantau radar KBM 26 rombel, memverifikasi izin guru, dan mengelola jadwal Simpatika.</p>
           </div>
 
-          <form id="formMainAdminLogin" autocomplete="on">
+          <form id="formMainAdminLogin" onsubmit="window.handleAdminLoginSubmit(event)" autocomplete="on">
             <div class="form-group" style="margin-bottom: 1rem;">
               <label class="form-label" for="inputMainAdminUsername">Username Administrator</label>
               <div class="login-input-icon-wrap">
@@ -158,7 +160,7 @@
                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <input type="text" id="inputMainAdminUsername" class="form-control login-input-field" placeholder="Masukkan username admin..." value="" required autocomplete="username">
+                <input type="text" id="inputMainAdminUsername" class="form-control login-input-field" placeholder="Masukkan username admin..." value="" autocomplete="username">
               </div>
             </div>
 
@@ -172,7 +174,7 @@
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <input type="password" id="inputMainAdminPassword" class="form-control login-input-field" placeholder="Masukkan password admin..." value="" required autocomplete="current-password">
+                <input type="password" id="inputMainAdminPassword" class="form-control login-input-field" placeholder="Masukkan password admin..." value="" autocomplete="current-password">
                 <button type="button" class="btn-toggle-eye" id="btnToggleMainAdminPass" title="Lihat Password">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </button>
@@ -186,7 +188,7 @@
               </label>
             </div>
 
-            <button type="submit" class="btn-login-submit btn-submit-admin" id="btnSubmitAdminLogin">
+            <button type="button" class="btn-login-submit btn-submit-admin" id="btnSubmitAdminLogin" onclick="window.handleAdminLoginSubmit(event)">
               <span>Masuk Command Center Admin</span>
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </button>
@@ -4666,8 +4668,8 @@
   <script src="scripts/firebase-service.js?v=2.7"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js?v=2.7"></script>
-  <script src="scripts/app.js?v=2.7"></script>
+  <script src="scripts/data.js?v=2.8"></script>
+  <script src="scripts/app.js?v=2.8"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>

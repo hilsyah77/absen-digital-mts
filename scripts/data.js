@@ -1631,13 +1631,13 @@ const StorageService = {
       return { success: false, message: "Akun guru tidak ditemukan. Periksa kembali NIP, Username, atau pilih dari daftar." };
     }
 
-    const validPin = String(found.pin || "").trim();
-    const validPass = String(found.password || validPin).trim();
+    const validPin = String(found.pin || "123456").trim();
+    const validPass = String(found.password || validPin || "123456").trim();
 
     if ((validPin && pinClean === validPin) || (validPass && pinClean === validPass)) {
       return { success: true, teacher: found };
     } else {
-      return { success: false, message: "Password atau PIN akun guru salah. Silakan periksa kembali sandi Anda." };
+      return { success: false, message: "Password atau PIN akun guru salah. Silakan periksa kembali sandi Anda (Default: 123456)." };
     }
   },
   getAuthSession() {
