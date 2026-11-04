@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HADIR.GURU - Data Store & Master Database Guru Reel (51 Guru)
  * Berdasarkan PRD HADIR.GURU v1.0 (Sistem Absensi Digital Guru MTs)
  */
@@ -2096,8 +2096,11 @@ const StorageService = {
     // Pastikan setiap guru memiliki data akun login, penugasan & kepegawaian
     let hasMissing = false;
     const enriched = teachers.map((t, idx) => {
-      const ov = cloudOverrides[t.id] || {};
-      const mergedT = { ...t, ...ov };
+      const cleanNip = String(t.nip || "").trim();
+      const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+      const canonicalTeacherId = hasValidNip ? cleanNip : (t.teacherId || t.id);
+      const ov = (hasValidNip && cloudOverrides[cleanNip]) || cloudOverrides[t.id] || cloudOverrides[canonicalTeacherId] || {};
+      const mergedT = { ...t, ...ov, teacherId: canonicalTeacherId };
       const initTeacher = INITIAL_TEACHERS_MASTER_60.find(it => it.id === mergedT.id);
       let classAssigned = mergedT.classAssigned || (initTeacher ? initTeacher.classAssigned : "Guru Mapel");
       if (initTeacher && initTeacher.classAssigned && initTeacher.classAssigned !== "Guru Mapel" && (!mergedT.classAssigned || mergedT.classAssigned === "Guru Mapel")) {
@@ -2632,7 +2635,12 @@ const StorageService = {
   getActiveTeacher() {
     const activeId = this.getActiveTeacherId();
     const teachers = this.getTeachersMaster();
-    return teachers.find(t => t.id === activeId) || teachers[0];
+    return teachers.find(t => 
+      t.nip === activeId || 
+      t.id === activeId || 
+      t.teacherId === activeId || 
+      (t.nip && activeId && String(t.nip).trim() === String(activeId).trim())
+    ) || teachers[0];
   },
 
   getProfile() {
@@ -2682,16 +2690,25 @@ const StorageService = {
   saveProfile(data) {
     localStorage.setItem("hadir_guru_profile", JSON.stringify(data));
 
-    const targetId = (data && data.id) ? data.id : this.getActiveTeacherId();
+    const cleanNip = String((data && data.nip) || "").trim();
+    const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+    const targetId = hasValidNip ? cleanNip : ((data && data.id) || this.getActiveTeacherId());
+
     const teachers = this.getTeachersMaster();
-    const idx = teachers.findIndex(t => t.id === targetId);
+    const idx = teachers.findIndex(t => 
+      (hasValidNip && String(t.nip).trim() === cleanNip) || 
+      t.id === targetId || 
+      t.teacherId === targetId || 
+      (data && data.id && t.id === data.id)
+    );
     let updatedTeacherObj = null;
 
     if (idx !== -1 && data) {
       teachers[idx] = {
         ...teachers[idx],
         name: data.name || teachers[idx].name,
-        nip: data.nip || teachers[idx].nip,
+        nip: hasValidNip ? cleanNip : teachers[idx].nip,
+        teacherId: hasValidNip ? cleanNip : (teachers[idx].teacherId || teachers[idx].id),
         nuptk: data.nuptk || teachers[idx].nuptk,
         subject: data.subject || teachers[idx].subject,
         dept: data.dept || teachers[idx].dept,
@@ -2709,8 +2726,11 @@ const StorageService = {
     }
 
     if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      const payloadToPush = updatedTeacherObj || { ...data, id: targetId };
+      const payloadToPush = updatedTeacherObj || { ...data, id: targetId, teacherId: targetId };
       FirebaseService.pushTeacherProfile(targetId, payloadToPush);
+      if (data && data.id && data.id !== targetId) {
+        FirebaseService.pushTeacherProfile(data.id, payloadToPush);
+      }
       if (updatedTeacherObj) {
         FirebaseService.pushSyncState("teachers_master", teachers);
       }
@@ -2749,9 +2769,17 @@ const StorageService = {
 
   // Filter jadwal khusus untuk guru yang sedang aktif/login
   getActiveTeacherSchedules() {
+    const activeTeacher = this.getActiveTeacher();
     const activeId = this.getActiveTeacherId();
+    const activeNip = activeTeacher ? activeTeacher.nip : null;
+    const activeLegacyId = activeTeacher ? activeTeacher.id : null;
     const schedules = this.getMasterSchedules();
-    return schedules.filter(s => s.teacherId === activeId);
+    return schedules.filter(s => 
+      s.teacherId === activeId || 
+      (activeNip && s.teacherId === activeNip) ||
+      (activeLegacyId && s.teacherId === activeLegacyId) ||
+      (activeTeacher && s.teacherName && activeTeacher.name && s.teacherName.toLowerCase() === activeTeacher.name.toLowerCase())
+    );
   },
 
   // Sinkronisasi memory TEACHING_SCHEDULES array agar kompatibel 100% dengan KBM check-in

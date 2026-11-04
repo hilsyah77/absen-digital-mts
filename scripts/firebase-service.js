@@ -302,7 +302,8 @@ const FirebaseService = {
       }
 
       const cleanNip = String(nip || "").trim();
-      const teacherId = extraData.id || (role === "admin" ? "admin" : "");
+      const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+      const teacherId = (role === "admin") ? "admin" : (hasValidNip ? cleanNip : (extraData.nip || extraData.id || ""));
       const email = this.nipToEmail(nip);
 
       let finalName = extraData.name || (role === "admin" ? "Administrator" : "Guru MTs");
@@ -542,7 +543,9 @@ const FirebaseService = {
       const teacherGroups = {};
       usersSnap.forEach((doc) => {
         const d = doc.data();
-        const tid = d.teacherId || (d.role === "teacher" && d.nip ? d.nip : null);
+        const cleanNip = String(d.nip || "").trim();
+        const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+        const tid = (d.role === "admin" || d.teacherId === "admin") ? "admin" : (hasValidNip ? cleanNip : (d.teacherId || null));
         if (!tid || tid === "admin") return;
 
         if (!teacherGroups[tid]) {
@@ -570,18 +573,27 @@ const FirebaseService = {
 
         const bestDoc = docs[0];
         const bestData = bestDoc.data;
-        const teacherId = bestData.teacherId || tid;
+        const cleanNip = String(bestData.nip || tid || "").trim();
+        const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+        const teacherId = hasValidNip ? cleanNip : (bestData.teacherId || tid);
 
         if (bestData && bestData.name) {
-          this._mergeSingleTeacherIntoLocal(teacherId, bestData);
+          this._mergeSingleTeacherIntoLocal(teacherId, {
+            ...bestData,
+            id: teacherId,
+            teacherId: teacherId,
+            nip: hasValidNip ? cleanNip : (bestData.nip || "-")
+          });
           changed = true;
         }
 
-        // Simpan ke dokumen kanonikal `teachers/{teacherId}`
+        // Simpan ke dokumen kanonikal `teachers/{NIP}`
         try {
           await this.db.collection("teachers").doc(teacherId).set({
             ...bestData,
             id: teacherId,
+            teacherId: teacherId,
+            nip: hasValidNip ? cleanNip : (bestData.nip || "-"),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
         } catch (e) {}
@@ -625,7 +637,9 @@ const FirebaseService = {
         if (!teachersSnap.empty) {
           teachersSnap.forEach((doc) => {
             const tData = doc.data();
-            const tid = doc.id || tData.id;
+            const cleanNip = String((tData && tData.nip) || doc.id || "").trim();
+            const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+            const tid = hasValidNip ? cleanNip : (doc.id || tData.id);
             if (tid) {
               this._mergeSingleTeacherIntoLocal(tid, tData);
               hasChanges = true;
@@ -739,20 +753,32 @@ const FirebaseService = {
     this._isApplyingCloud = true;
 
     try {
-      // 1. DOKUMEN PROFIL INDIVIDUAL GURU (`__profile_TCH-XX__`)
+      // 1. DOKUMEN PROFIL INDIVIDUAL GURU (`__profile_NIP__` atau `__profile_TCH-XX__`)
       if (docId.startsWith("__profile_") && docData.teacher) {
         const t = docData.teacher;
-        const teacherId = docData.teacherId || t.id;
-        if (teacherId) {
-          this._profileOverrides[teacherId] = {
+        const cleanNip = String((t && t.nip) || docData.teacherId || "").trim();
+        const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+        const canonicalTeacherId = hasValidNip ? cleanNip : (docData.teacherId || t.id);
+        if (canonicalTeacherId) {
+          const overrideObj = {
             ...t,
+            id: canonicalTeacherId,
+            teacherId: canonicalTeacherId,
+            nip: hasValidNip ? cleanNip : (t.nip || "-"),
             updatedAtMs: updatedAtMs || Date.now()
           };
+          this._profileOverrides[canonicalTeacherId] = overrideObj;
+          if (docData.teacherId && docData.teacherId !== canonicalTeacherId) {
+            this._profileOverrides[docData.teacherId] = overrideObj;
+          }
+          if (t.id && t.id !== canonicalTeacherId) {
+            this._profileOverrides[t.id] = overrideObj;
+          }
           try {
             localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(this._profileOverrides));
           } catch (e) {}
 
-          this._mergeSingleTeacherIntoLocal(teacherId, t);
+          this._mergeSingleTeacherIntoLocal(canonicalTeacherId, overrideObj);
           applied = true;
         }
       }
@@ -774,13 +800,16 @@ const FirebaseService = {
 
           let overridesChanged = false;
           const mergedTeachers = parsedTeachers.map((t) => {
-            const override = this._profileOverrides[t.id];
+            const cleanNip = String(t.nip || "").trim();
+            const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+            const override = (hasValidNip && this._profileOverrides[cleanNip]) || this._profileOverrides[t.id] || this._profileOverrides[t.teacherId];
             // Gunakan override profil per-guru jika override tersebut lebih baru atau memiliki foto
             const overrideIsNewer = override && (!updatedAtMs || (override.updatedAtMs || 0) >= updatedAtMs);
-            if (override && !overrideIsNewer && !this._isProfilePending(t.id)) {
+            if (override && !overrideIsNewer && !this._isProfilePending(t.id) && (!hasValidNip || !this._isProfilePending(cleanNip))) {
               // Master dari Cloud lebih baru daripada override lokal -> buang override basi
               // agar tidak menimpa data terbaru (penyebab perubahan di Web tidak muncul di APK)
               delete this._profileOverrides[t.id];
+              if (hasValidNip) delete this._profileOverrides[cleanNip];
               overridesChanged = true;
             }
             const base = overrideIsNewer
@@ -872,12 +901,25 @@ const FirebaseService = {
       } catch (e) {}
     }
 
-    const idx = teachers.findIndex((item) => item.id === teacherId);
+    const cleanNip = String((teacherData && teacherData.nip) || teacherId || "").trim();
+    const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+    const canonicalTeacherId = hasValidNip ? cleanNip : teacherId;
+
+    const idx = teachers.findIndex((item) => {
+      if (hasValidNip && item.nip && String(item.nip).trim() === cleanNip) return true;
+      if (item.id === teacherId || item.nip === teacherId || item.teacherId === teacherId) return true;
+      if (item.id === canonicalTeacherId || item.nip === canonicalTeacherId || item.teacherId === canonicalTeacherId) return true;
+      if (teacherData && teacherData.id && item.id === teacherData.id) return true;
+      return false;
+    });
+
     if (idx !== -1) {
       teachers[idx] = {
         ...teachers[idx],
         ...teacherData,
-        id: teacherId,
+        teacherId: canonicalTeacherId,
+        id: teachers[idx].id || canonicalTeacherId,
+        nip: hasValidNip ? cleanNip : (teachers[idx].nip || "-"),
         password: teacherData.password || teacherData.pin || teachers[idx].password || "123456",
         pin: teacherData.pin || teacherData.password || teachers[idx].pin || "123456",
         kepegawaian: teacherData.kepegawaian || teacherData.employmentStatus || teachers[idx].kepegawaian || "Guru Tetap Kemenag",
@@ -887,7 +929,9 @@ const FirebaseService = {
     } else {
       teachers.push({
         ...teacherData,
-        id: teacherId
+        teacherId: canonicalTeacherId,
+        id: canonicalTeacherId,
+        nip: hasValidNip ? cleanNip : "-"
       });
     }
 
@@ -902,7 +946,12 @@ const FirebaseService = {
   _refreshActiveProfileFromTeachersList(teachers) {
     if (!Array.isArray(teachers) || teachers.length === 0) return;
     const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "TCH-01";
-    const activeTeacher = teachers.find((t) => t.id === activeId);
+    const activeTeacher = teachers.find((t) => 
+      t.nip === activeId || 
+      t.id === activeId || 
+      t.teacherId === activeId || 
+      (t.nip && activeId && String(t.nip).trim() === String(activeId).trim())
+    );
     if (!activeTeacher) return;
 
     let currentProfile = {};
@@ -942,7 +991,11 @@ const FirebaseService = {
     if (!Array.isArray(teachers) || teachers.length === 0) return;
     const mapById = {};
     teachers.forEach((t) => {
-      if (t && t.id) mapById[t.id] = t;
+      if (t) {
+        if (t.id) mapById[t.id] = t;
+        if (t.nip) mapById[t.nip] = t;
+        if (t.teacherId) mapById[t.teacherId] = t;
+      }
     });
 
     // 1. Update nama guru di Master Schedules
@@ -1156,18 +1209,39 @@ const FirebaseService = {
   async pushTeacherProfile(teacherId, teacherData) {
     if (!teacherId || !teacherData || this._isApplyingCloud) return { success: false };
 
+    const cleanNip = String((teacherData && teacherData.nip) || teacherId || "").trim();
+    const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+    const canonicalTeacherId = hasValidNip ? cleanNip : teacherId;
+
     const nowMs = Date.now();
-    this._setProfilePending(teacherId, true);
-    const docId = `__profile_${teacherId}__`;
+    this._setProfilePending(canonicalTeacherId, true);
+    if (teacherId !== canonicalTeacherId) this._setProfilePending(teacherId, true);
+
+    const docId = `__profile_${canonicalTeacherId}__`;
     this._lastSyncTimestamps[docId] = nowMs;
-    this._profileOverrides[teacherId] = {
+
+    const overrideObj = {
       ...teacherData,
-      id: teacherId,
+      id: canonicalTeacherId,
+      teacherId: canonicalTeacherId,
+      nip: hasValidNip ? cleanNip : (teacherData.nip || "-"),
       updatedAtMs: nowMs
     };
+
+    this._profileOverrides[canonicalTeacherId] = overrideObj;
+    if (teacherId !== canonicalTeacherId) {
+      this._profileOverrides[teacherId] = overrideObj;
+    }
+    if (teacherData.id && teacherData.id !== canonicalTeacherId) {
+      this._profileOverrides[teacherData.id] = overrideObj;
+    }
+
     try {
       localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(this._profileOverrides));
     } catch (e) {}
+
+    // Segera terapkan ke database lokal
+    this._mergeSingleTeacherIntoLocal(canonicalTeacherId, overrideObj);
 
     if (!this.isReady()) return { success: false, fallback: true };
 
@@ -1177,24 +1251,26 @@ const FirebaseService = {
 
       const payload = {
         _type: "teacher_profile",
-        teacherId: teacherId,
-        teacher: {
-          ...teacherData,
-          id: teacherId
-        },
+        teacherId: canonicalTeacherId,
+        teacher: overrideObj,
         updatedAtMs: nowMs,
         updatedByDevice: this.deviceId,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
       await this.db.collection("teaching_logs").doc(docId).set(payload, { merge: true });
-      this._setProfilePending(teacherId, false);
+      this._setProfilePending(canonicalTeacherId, false);
+      if (teacherId !== canonicalTeacherId) {
+        this._setProfilePending(teacherId, false);
+        try {
+          await this.db.collection("teaching_logs").doc(`__profile_${teacherId}__`).set(payload, { merge: true });
+        } catch (subErr) {}
+      }
 
-      // Simpan ke dokumen kanonikal `teachers/{teacherId}` (1 guru = 1 dokumen pasti)
+      // Simpan ke dokumen kanonikal `teachers/{NIP}` (1 guru = 1 dokumen pasti)
       try {
-        await this.db.collection("teachers").doc(teacherId).set({
-          ...teacherData,
-          id: teacherId,
+        await this.db.collection("teachers").doc(canonicalTeacherId).set({
+          ...overrideObj,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedAtMs: nowMs
         }, { merge: true });

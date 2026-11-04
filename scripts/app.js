@@ -7120,15 +7120,21 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = document.getElementById("inputTeacherPassword").value.trim() || "Guru@2026!";
         const phone = document.getElementById("inputTeacherPhone").value.trim();
 
-        let targetSyncId = editId;
+        const cleanNip = String(nip || "").trim();
+        const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+        let targetSyncId = hasValidNip ? cleanNip : editId;
+
         if (editId) {
-          // Edit existing
-          const idx = teachers.findIndex(t => t.id === editId);
+          // Edit existing: cari berdasarkan editId atau NIP
+          const idx = teachers.findIndex(t => t.id === editId || (hasValidNip && String(t.nip).trim() === cleanNip) || t.teacherId === editId);
           if (idx !== -1) {
+            const canonicalId = hasValidNip ? cleanNip : (teachers[idx].teacherId || teachers[idx].id);
             teachers[idx] = {
               ...teachers[idx],
               name,
-              nip,
+              nip: cleanNip,
+              teacherId: canonicalId,
+              id: teachers[idx].id || canonicalId,
               nuptk,
               dept,
               subject,
@@ -7141,14 +7147,17 @@ document.addEventListener("DOMContentLoaded", () => {
               pin: password,
               phone
             };
+            targetSyncId = canonicalId;
           }
-          if (editId === StorageService.getActiveTeacherId()) {
+          const curActive = StorageService.getActiveTeacherId();
+          if (editId === curActive || (hasValidNip && curActive === cleanNip)) {
             const currentProfile = StorageService.getProfile();
             StorageService.saveProfile({
               ...currentProfile,
-              id: editId,
+              id: targetSyncId,
+              teacherId: targetSyncId,
               name,
-              nip,
+              nip: cleanNip,
               nuptk,
               dept,
               subject,
@@ -7165,13 +7174,14 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           showToast("Data Guru Diperbarui", `Informasi dan akun ${name} berhasil disimpan & disinkronkan ke Cloud.`, "success");
         } else {
-          // Create new
-          const newId = `TCH-${String(teachers.length + 1).padStart(2, "0")}`;
+          // Create new: gunakan NIP sebagai teacherId jika ada
+          const newId = hasValidNip ? cleanNip : `TCH-${String(teachers.length + 1).padStart(2, "0")}`;
           targetSyncId = newId;
           const newTeacher = {
             id: newId,
+            teacherId: newId,
             name,
-            nip,
+            nip: cleanNip,
             nuptk,
             dept,
             subject,
@@ -7232,7 +7242,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Global Functions for direct action buttons
     window.loginDirectAsTeacher = function(teacherId) {
       const teachers = StorageService.getTeachersMaster();
-      const teacher = teachers.find(t => t.id === teacherId);
+      const teacher = teachers.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
       if (!teacher) return;
 
       // Cegah pindah mode tidak sengaja: Admin yang sedang di Command Center harus konfirmasi dulu
@@ -7282,7 +7292,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.sendTeacherWhatsApp = function(teacherId) {
       const teachers = StorageService.getTeachersMaster();
-      const teacher = teachers.find(t => t.id === teacherId);
+      const teacher = teachers.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
       if (!teacher) return;
 
       let phoneClean = cleanWaPhone(teacher.phone);
@@ -7322,7 +7332,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.handleTeacherWaClick = function(e, teacherId) {
       const teachers = StorageService.getTeachersMaster();
-      const teacher = teachers.find(t => t.id === teacherId);
+      const teacher = teachers.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
       if (!teacher) return;
 
       const phoneClean = cleanWaPhone(teacher.phone);
@@ -7349,7 +7359,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.copyTeacherCredential = function(teacherId) {
       const teachers = StorageService.getTeachersMaster();
-      const teacher = teachers.find(t => t.id === teacherId);
+      const teacher = teachers.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
       if (!teacher) return;
 
       const credText = generateTeacherWaMessage(teacher);
@@ -7372,10 +7382,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     window.openEditTeacherModal = function(teacherId) {
       const teachers = StorageService.getTeachersMaster();
-      const teacher = teachers.find(t => t.id === teacherId);
+      const teacher = teachers.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
       if (!teacher || !modalTeacherForm) return;
 
-      document.getElementById("inputTeacherEditId").value = teacher.id;
+      document.getElementById("inputTeacherEditId").value = teacher.nip || teacher.id;
       if (modalTeacherTitle) modalTeacherTitle.textContent = `Edit Data & Akun: ${teacher.name}`;
 
       document.getElementById("inputTeacherFullName").value = teacher.name;
@@ -7580,14 +7590,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const phone = document.getElementById("inputMyProfilePhone")?.value.trim() || "";
         const password = document.getElementById("inputMyProfilePassword")?.value.trim() || "123456";
 
+        const cleanNip = String(nip || "").trim();
+        const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+        const canonicalTeacherId = hasValidNip ? cleanNip : activeId;
+
         // Update active profile in localStorage & push to Cloud
         const currentProfile = StorageService.getProfile() || {};
         const newAvatarUrl = (uploadedAvatarBase64 !== null) ? uploadedAvatarBase64 : (currentProfile.avatarUrl || "");
         StorageService.saveProfile({
           ...currentProfile,
-          id: activeId,
+          id: canonicalTeacherId,
+          teacherId: canonicalTeacherId,
           name,
-          nip,
+          nip: cleanNip,
           nuptk,
           dept,
           subject,
@@ -7603,12 +7618,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Update teacher master record & sync to Cloud
         const teachers = StorageService.getTeachersMaster();
-        const idx = teachers.findIndex(t => t.id === activeId);
+        const idx = teachers.findIndex(t => 
+          (hasValidNip && String(t.nip).trim() === cleanNip) || 
+          t.id === activeId || 
+          t.teacherId === activeId || 
+          t.id === canonicalTeacherId
+        );
         if (idx !== -1) {
           teachers[idx] = {
             ...teachers[idx],
             name,
-            nip,
+            nip: cleanNip,
+            teacherId: canonicalTeacherId,
             nuptk,
             kepegawaian,
             employmentStatus: kepegawaian,
@@ -7621,7 +7642,7 @@ document.addEventListener("DOMContentLoaded", () => {
             pin: password,
             avatarUrl: newAvatarUrl
           };
-          StorageService.saveTeachersMaster(teachers, activeId);
+          StorageService.saveTeachersMaster(teachers, canonicalTeacherId);
         }
 
         // Sync teacher name to master schedules if modified
