@@ -1655,20 +1655,21 @@ const StorageService = {
   },
 
   getSchoolConfig() {
+    const baseClone = JSON.parse(JSON.stringify(SCHOOL_CONFIG));
     const stored = localStorage.getItem("hadir_guru_school_config");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
         if (parsed && typeof parsed === "object") {
           const merged = {
-            ...SCHOOL_CONFIG,
+            ...baseClone,
             ...parsed,
             schedule: {
-              ...SCHOOL_CONFIG.schedule,
+              ...baseClone.schedule,
               ...(parsed.schedule || {})
             },
             geofence: {
-              ...SCHOOL_CONFIG.geofence,
+              ...baseClone.geofence,
               ...(parsed.geofence || {})
             }
           };
@@ -1688,10 +1689,10 @@ const StorageService = {
             merged.schedule.checkOutMinggu = "12:00";
           }
           if (!merged.schedule.kbmBreaksByDay) {
-            merged.schedule.kbmBreaksByDay = { ...SCHOOL_CONFIG.schedule.kbmBreaksByDay };
+            merged.schedule.kbmBreaksByDay = { ...baseClone.schedule.kbmBreaksByDay };
           }
           if (!merged.schedule.kbmDurationByDay) {
-            merged.schedule.kbmDurationByDay = { ...SCHOOL_CONFIG.schedule.kbmDurationByDay };
+            merged.schedule.kbmDurationByDay = { ...baseClone.schedule.kbmDurationByDay };
           }
           if (merged.schedule.kbmDurationByDay.selasa_kamis_sabtu && !merged.schedule.kbmDurationByDay.selasa_kamis) {
             merged.schedule.kbmDurationByDay.selasa_kamis = merged.schedule.kbmDurationByDay.selasa_kamis_sabtu;
@@ -1703,39 +1704,140 @@ const StorageService = {
             merged.schedule.kbmDurationByDay.minggu = 40;
           }
           if (!merged.schedule.kbmPeriodsByDay) {
-            merged.schedule.kbmPeriodsByDay = { ...SCHOOL_CONFIG.schedule.kbmPeriodsByDay };
+            merged.schedule.kbmPeriodsByDay = { ...baseClone.schedule.kbmPeriodsByDay };
           }
           if (merged.schedule.kbmPeriodsByDay.selasa_kamis_sabtu && !merged.schedule.kbmPeriodsByDay.selasa_kamis) {
             merged.schedule.kbmPeriodsByDay.selasa_kamis = merged.schedule.kbmPeriodsByDay.selasa_kamis_sabtu;
           }
           if (!merged.schedule.kbmPeriodsByDay.sabtu) {
-            merged.schedule.kbmPeriodsByDay.sabtu = SCHOOL_CONFIG.schedule.kbmPeriodsByDay.sabtu;
+            merged.schedule.kbmPeriodsByDay.sabtu = baseClone.schedule.kbmPeriodsByDay.sabtu;
           }
           if (!merged.schedule.kbmPeriodsByDay.minggu) {
-            merged.schedule.kbmPeriodsByDay.minggu = SCHOOL_CONFIG.schedule.kbmPeriodsByDay.minggu;
+            merged.schedule.kbmPeriodsByDay.minggu = baseClone.schedule.kbmPeriodsByDay.minggu;
           }
           if (!merged.schedule.kbmBreaksByDay.sabtu) {
-            merged.schedule.kbmBreaksByDay.sabtu = SCHOOL_CONFIG.schedule.kbmBreaksByDay.sabtu;
+            merged.schedule.kbmBreaksByDay.sabtu = baseClone.schedule.kbmBreaksByDay.sabtu;
           }
           if (!merged.schedule.kbmBreaksByDay.minggu) {
-            merged.schedule.kbmBreaksByDay.minggu = SCHOOL_CONFIG.schedule.kbmBreaksByDay.minggu;
+            merged.schedule.kbmBreaksByDay.minggu = baseClone.schedule.kbmBreaksByDay.minggu;
           }
           if (!merged.schedule.kbmBreaksByDay.selasa_kamis) {
-            merged.schedule.kbmBreaksByDay.selasa_kamis = SCHOOL_CONFIG.schedule.kbmBreaksByDay.selasa_kamis;
+            merged.schedule.kbmBreaksByDay.selasa_kamis = baseClone.schedule.kbmBreaksByDay.selasa_kamis;
           }
           if (!Array.isArray(merged.schedule.kbmPeriods) || merged.schedule.kbmPeriods.length === 0) {
-            merged.schedule.kbmPeriods = SCHOOL_CONFIG.schedule.kbmPeriods;
+            merged.schedule.kbmPeriods = baseClone.schedule.kbmPeriods;
           }
           return merged;
         }
       } catch (e) { console.error(e); }
     }
-    return SCHOOL_CONFIG;
+    return baseClone;
   },
   saveSchoolConfig(data) {
+    if (!data || typeof data !== "object") return;
+    const nowMs = Date.now();
+    data._updatedAtMs = nowMs;
     localStorage.setItem("hadir_guru_school_config", JSON.stringify(data));
     if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
       FirebaseService.pushSyncState("school_config", data);
+    }
+  },
+  saveKbmDayGroupSettings(dayOrGroup, targetDuration, breaks, periods) {
+    const config = this.getSchoolConfig();
+    if (!config.schedule) config.schedule = {};
+    const group = this.normalizeKbmDayGroup(dayOrGroup);
+
+    if (!config.schedule.kbmDurationByDay) {
+      config.schedule.kbmDurationByDay = { ...SCHOOL_CONFIG.schedule.kbmDurationByDay };
+    }
+    if (targetDuration !== null && targetDuration !== undefined) {
+      const durVal = parseInt(targetDuration, 10) || (group === "senin" ? 30 : (group === "jumat" ? 35 : 40));
+      config.schedule.kbmDurationByDay[group] = durVal;
+      if (group === "selasa_kamis") {
+        config.schedule.kbmDurationByDay.selasa_kamis_sabtu = durVal;
+      }
+    }
+
+    if (!config.schedule.kbmBreaksByDay) {
+      config.schedule.kbmBreaksByDay = { ...SCHOOL_CONFIG.schedule.kbmBreaksByDay };
+    }
+    if (Array.isArray(breaks)) {
+      config.schedule.kbmBreaksByDay[group] = breaks;
+    }
+
+    if (!config.schedule.kbmPeriodsByDay) {
+      config.schedule.kbmPeriodsByDay = { ...SCHOOL_CONFIG.schedule.kbmPeriodsByDay };
+    }
+    if (Array.isArray(periods)) {
+      config.schedule.kbmPeriodsByDay[group] = periods;
+      if (group === "selasa_kamis") {
+        config.schedule.kbmPeriods = periods;
+        config.schedule.kbmPeriodsByDay.selasa_kamis_sabtu = periods;
+      }
+    }
+
+    this.saveSchoolConfig(config);
+    if (Array.isArray(periods) && periods.length > 0) {
+      this.syncMasterSchedulesWithKbmPeriods(group, periods);
+    }
+    return config;
+  },
+  syncMasterSchedulesWithKbmPeriods(dayOrGroup, periods) {
+    if (!Array.isArray(periods) || periods.length === 0) return;
+    try {
+      const group = this.normalizeKbmDayGroup(dayOrGroup);
+      const dayMatchMap = {
+        senin: ["Senin"],
+        selasa_kamis: ["Selasa", "Rabu", "Kamis"],
+        jumat: ["Jumat"],
+        sabtu: ["Sabtu"],
+        minggu: ["Minggu"]
+      };
+      const targetDays = dayMatchMap[group] || [];
+      if (targetDays.length === 0) return;
+
+      const periodMap = {};
+      periods.forEach(p => {
+        if (p && p.period !== undefined) {
+          periodMap[Number(p.period)] = p;
+        }
+      });
+
+      const schedules = this.getSchedulesMaster();
+      if (!Array.isArray(schedules) || schedules.length === 0) return;
+      let changed = false;
+
+      schedules.forEach(item => {
+        if (!item || !targetDays.includes(item.day)) return;
+        let pStartNum = Number(item.periodStart || item.period || 0);
+        let pEndNum = Number(item.periodEnd || pStartNum || 0);
+        if (!pStartNum && item.period) {
+          const m = String(item.period).match(/(\d+)(?:\s*-\s*(\d+))?/);
+          if (m) {
+            pStartNum = parseInt(m[1], 10);
+            pEndNum = m[2] ? parseInt(m[2], 10) : pStartNum;
+          }
+        }
+        const startObj = periodMap[pStartNum];
+        const endObj = periodMap[pEndNum] || startObj;
+        if (startObj && endObj) {
+          const newStart = startObj.start;
+          const newEnd = endObj.end;
+          const newTime = `${newStart} - ${newEnd}`;
+          if (item.startTime !== newStart || item.endTime !== newEnd || item.time !== newTime) {
+            item.startTime = newStart;
+            item.endTime = newEnd;
+            item.time = newTime;
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        this.saveSchedulesMaster(schedules);
+      }
+    } catch (err) {
+      console.warn("[StorageService] Gagal menyinkronkan waktu jadwal KBM:", err);
     }
   },
   normalizeKbmDayGroup(dayOrGroup) {

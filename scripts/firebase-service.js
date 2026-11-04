@@ -84,11 +84,15 @@ const FirebaseService = {
         // Abaikan jika firestore sudah diinisialisasi sebelumnya
       }
 
-      // Muat cache override profil lokal jika ada
+      // Muat cache override profil lokal & timestamp sinkronisasi jika ada
       try {
         const cachedOverrides = localStorage.getItem("hadir_guru_cloud_profile_overrides");
         if (cachedOverrides) {
           this._profileOverrides = JSON.parse(cachedOverrides) || {};
+        }
+        const cachedTimestamps = localStorage.getItem("hadir_guru_sync_timestamps");
+        if (cachedTimestamps) {
+          this._lastSyncTimestamps = JSON.parse(cachedTimestamps) || {};
         }
       } catch (e) {}
 
@@ -438,6 +442,20 @@ const FirebaseService = {
         if (this.applyCloudDocument(id, data)) hasChanges = true;
       });
 
+      // Jika pengaturan lokal (school_config) memiliki _updatedAtMs lebih baru daripada Cloud (atau belum ada di Cloud), dorong ke Cloud
+      try {
+        const localConfigRaw = localStorage.getItem("hadir_guru_school_config");
+        if (localConfigRaw) {
+          const localCfg = JSON.parse(localConfigRaw);
+          const localTs = Number((localCfg && localCfg._updatedAtMs) || this._lastSyncTimestamps["__sync_school_config__"] || 0);
+          const cloudSchoolDoc = syncDocs.find((d) => d.id === "__sync_school_config__");
+          const cloudTs = cloudSchoolDoc ? Number(cloudSchoolDoc.data.updatedAtMs || 0) : 0;
+          if (localCfg && (!cloudSchoolDoc || (localTs > 0 && localTs > cloudTs))) {
+            await this.pushSyncState("school_config", localCfg);
+          }
+        }
+      } catch (cfgSyncErr) {}
+
       if (hasChanges) {
         this.scheduleUIRefresh();
       }
@@ -449,6 +467,12 @@ const FirebaseService = {
     }
   },
 
+  _saveSyncTimestamps() {
+    try {
+      localStorage.setItem("hadir_guru_sync_timestamps", JSON.stringify(this._lastSyncTimestamps));
+    } catch (e) {}
+  },
+
   /**
    * Terapkan satu dokumen dari Cloud Firestore ke LocalStorage tanpa memicu loop penulisan balik
    */
@@ -456,12 +480,31 @@ const FirebaseService = {
     if (!docId || !docData) return false;
 
     const updatedAtMs = Number(docData.updatedAtMs || 0);
-    if (updatedAtMs > 0 && this._lastSyncTimestamps[docId] && updatedAtMs < this._lastSyncTimestamps[docId]) {
+    const lastLocalTs = Number(this._lastSyncTimestamps[docId] || 0);
+    if (updatedAtMs > 0 && lastLocalTs > 0 && updatedAtMs < lastLocalTs) {
       // Data lokal untuk dokumen ini lebih baru daripada snapshot yang masuk
       return false;
     }
+
+    // Proteksi khusus untuk school_config agar pengaturan Admin lokal yang lebih baru tidak pernah ditimpa data Cloud lama
+    if (docId === "__sync_school_config__") {
+      try {
+        const localRaw = localStorage.getItem("hadir_guru_school_config");
+        if (localRaw) {
+          const localParsed = JSON.parse(localRaw);
+          const localCfgTs = Number((localParsed && localParsed._updatedAtMs) || 0);
+          if (localCfgTs > 0 && (!updatedAtMs || updatedAtMs < localCfgTs)) {
+            this._lastSyncTimestamps[docId] = localCfgTs;
+            this._saveSyncTimestamps();
+            return false;
+          }
+        }
+      } catch (e) {}
+    }
+
     if (updatedAtMs > 0) {
       this._lastSyncTimestamps[docId] = updatedAtMs;
+      this._saveSyncTimestamps();
     }
 
     let applied = false;
@@ -915,11 +958,15 @@ const FirebaseService = {
    */
   async pushSyncState(key, data) {
     if (!key || data === undefined || this._isApplyingCloud) return { success: false };
-    if (!this.isReady()) return { success: false, fallback: true };
 
-    const nowMs = Date.now();
+    const nowMs = (data && typeof data === "object" && Number(data._updatedAtMs) > 0)
+      ? Number(data._updatedAtMs)
+      : Date.now();
     const docId = `__sync_${key}__`;
     this._lastSyncTimestamps[docId] = nowMs;
+    this._saveSyncTimestamps();
+
+    if (!this.isReady()) return { success: false, fallback: true };
 
     try {
       await this.ensureAuthenticated();

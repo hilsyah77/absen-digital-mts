@@ -422,11 +422,21 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalCheckInGeofenceState = document.getElementById("modalCheckInGeofenceState");
 
     function renderGeofenceUI() {
+      const cfg = StorageService.getSchoolConfig();
+      const geo = (cfg && cfg.geofence) || {};
+      const campusName = geo.campusName || "MTs Negeri 1 Teladan";
+      const lat = geo.latitude !== undefined && !isNaN(geo.latitude) ? Number(geo.latitude) : -6.208842;
+      const lng = geo.longitude !== undefined && !isNaN(geo.longitude) ? Number(geo.longitude) : 106.845612;
+      const radiusMeters = parseInt(geo.radiusMeters, 10) || 50;
+      const insideCoordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      const outsideCoordStr = `${(lat - 0.00167).toFixed(6)}, ${(lng + 0.001376).toFixed(6)}`;
+      const outsideDist = Math.max(radiusMeters + 92, 142);
+
       if (isInsideGeofence) {
-        if (btnToggleSim) btnToggleSim.textContent = "Simulasikan: Di Luar Radius (140m)";
-        if (currentCoordDisplay) currentCoordDisplay.textContent = "-6.208842, 106.845612";
+        if (btnToggleSim) btnToggleSim.textContent = `Simulasikan: Di Luar Radius (${outsideDist}m)`;
+        if (currentCoordDisplay) currentCoordDisplay.textContent = insideCoordStr;
         if (currentDistanceDisplay) {
-          currentDistanceDisplay.textContent = "18 Meter (Aman <= 50m)";
+          currentDistanceDisplay.textContent = `18 Meter (Aman <= ${radiusMeters}m)`;
           currentDistanceDisplay.style.color = "var(--emerald-600)";
         }
 
@@ -441,21 +451,21 @@ document.addEventListener("DOMContentLoaded", () => {
           focusGeofenceBadge.className = "badge-pill-status badge-hadir";
           focusGeofenceBadge.textContent = "Geofence Valid";
         }
-        if (focusLocationText) focusLocationText.textContent = "Area Gedung A MTs Negeri 1 Teladan";
+        if (focusLocationText) focusLocationText.textContent = `Area ${campusName}`;
         if (focusDistanceText) {
-          focusDistanceText.textContent = "18 Meter (Dalam Radius)";
+          focusDistanceText.textContent = `18 Meter (Dalam Radius <= ${radiusMeters}m)`;
           focusDistanceText.style.color = "var(--emerald-600)";
         }
-        if (modalCheckInCoord) modalCheckInCoord.textContent = "-6.208842, 106.845612";
+        if (modalCheckInCoord) modalCheckInCoord.textContent = insideCoordStr;
         if (modalCheckInGeofenceState) {
-          modalCheckInGeofenceState.textContent = "Di dalam radius 50m (Aman)";
+          modalCheckInGeofenceState.textContent = `Di dalam radius ${radiusMeters}m (Aman)`;
           modalCheckInGeofenceState.style.color = "var(--emerald-600)";
         }
       } else {
         if (btnToggleSim) btnToggleSim.textContent = "Kembalikan: Dalam Radius (18m)";
-        if (currentCoordDisplay) currentCoordDisplay.textContent = "-6.210512, 106.846988";
+        if (currentCoordDisplay) currentCoordDisplay.textContent = outsideCoordStr;
         if (currentDistanceDisplay) {
-          currentDistanceDisplay.textContent = "142 Meter (DI LUAR RADIUS)";
+          currentDistanceDisplay.textContent = `${outsideDist} Meter (DI LUAR RADIUS)`;
           currentDistanceDisplay.style.color = "var(--rose-600)";
         }
 
@@ -472,16 +482,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (focusLocationText) focusLocationText.textContent = "Jalan Raya Luar Area Madrasah";
         if (focusDistanceText) {
-          focusDistanceText.textContent = "142 Meter (Ditolak Sistem)";
+          focusDistanceText.textContent = `${outsideDist} Meter (Ditolak Sistem)`;
           focusDistanceText.style.color = "var(--rose-600)";
         }
-        if (modalCheckInCoord) modalCheckInCoord.textContent = "-6.210512, 106.846988";
+        if (modalCheckInCoord) modalCheckInCoord.textContent = outsideCoordStr;
         if (modalCheckInGeofenceState) {
-          modalCheckInGeofenceState.textContent = "DI LUAR RADIUS (142m > 50m)";
+          modalCheckInGeofenceState.textContent = `DI LUAR RADIUS (${outsideDist}m > ${radiusMeters}m)`;
           modalCheckInGeofenceState.style.color = "var(--rose-600)";
         }
       }
     }
+
+    window.renderGeofenceUI = renderGeofenceUI;
 
     if (btnToggleSim) {
       btnToggleSim.addEventListener("click", () => {
@@ -892,10 +904,12 @@ document.addEventListener("DOMContentLoaded", () => {
       btnConfirmCheckInSubmit.addEventListener("click", () => {
         // Business Rule FR-03: Geofence radius check
         if (!isInsideGeofence) {
+          const rad = (StorageService.getSchoolConfig()?.geofence?.radiusMeters) || 50;
+          const outDist = Math.max(rad + 92, 142);
           SoundService.playError();
           showToast(
             "Absensi Ditolak (FR-03)!",
-            "Anda terdeteksi berada di luar radius aman sekolah (142m > batas toleransi 50m). Silakan dekati area kampus madrasah.",
+            `Anda terdeteksi berada di luar radius aman sekolah (${outDist}m > batas toleransi ${rad}m). Silakan dekati area kampus madrasah.`,
             "error"
           );
           closeModal("modalCheckIn");
@@ -4149,7 +4163,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sName) sName.value = config.name || "MTs Negeri 1 Teladan";
     if (sNpsn) sNpsn.value = config.npsn || "20108741";
     if (sNsm) sNsm.value = config.nsm || "121131740001";
-    if (sLevel) sLevel.value = config.level ? `${config.level} • ${config.status || 'Negeri'}`  : "Madrasah Tsanawiyah (MTs) • Negeri";
+    if (sLevel) {
+      if (config.level && String(config.level).includes("•")) {
+        sLevel.value = config.level;
+      } else if (config.level) {
+        sLevel.value = `${config.level} • ${config.status || 'Negeri'}`;
+      } else {
+        sLevel.value = "Madrasah Tsanawiyah (MTs) • Negeri";
+      }
+    }
     if (sAccred) sAccred.value = config.accreditation || "A (Unggul)";
     if (sPrincipal) sPrincipal.value = config.principalName || "Dra. Hj. Siti Aminah, M.Pd.I.";
     if (sPrincipalNip) sPrincipalNip.value = config.principalNip || "19710814 199703 2 001";
@@ -4158,7 +4180,12 @@ document.addEventListener("DOMContentLoaded", () => {
     if (sPhone) sPhone.value = config.phone || "(021) 720-1234 / +62 811-2345-6789";
     if (sWebsite) sWebsite.value = config.website || "https://mtsn1teladan.sch.id";
 
+    const inputAdminUser = document.getElementById("settingAdminUsername");
+    if (inputAdminUser) inputAdminUser.value = config.adminUsername || "admin";
+
     syncWibPresetButtons();
+    if (typeof window.refreshAdminKbmSettingsUI === "function") window.refreshAdminKbmSettingsUI();
+    if (typeof window.renderAdminHolidaysTable === "function") window.renderAdminHolidaysTable();
     if (typeof updatePurgeCardStats === "function") updatePurgeCardStats();
   }
 
@@ -4262,25 +4289,44 @@ document.addEventListener("DOMContentLoaded", () => {
       formSchedule.addEventListener("submit", (e) => {
         e.preventDefault();
         const config = StorageService.getSchoolConfig();
-        const valInStart = document.getElementById("settingCheckInStart")?.value || "06:00";
-        const valSeninKamis = document.getElementById("settingCheckOutSeninKamis")?.value || "14:00";
-        const valJumat = document.getElementById("settingCheckOutJumat")?.value || "11:30";
-        const valSabtu = document.getElementById("settingCheckOutSabtu")?.value || "12:30";
+        const format24 = (raw, fb) => {
+          let v = (raw || "").trim().replace(".", ":");
+          if (!v) return fb;
+          if (/^\d{1,2}$/.test(v)) {
+            let h = Math.min(23, Math.max(0, parseInt(v, 10) || 0));
+            return String(h).padStart(2, "0") + ":00";
+          }
+          if (/^\d{1,2}:\d{1,2}$/.test(v)) {
+            const pts = v.split(":");
+            let h = Math.min(23, Math.max(0, parseInt(pts[0], 10) || 0));
+            let m = Math.min(59, Math.max(0, parseInt(pts[1], 10) || 0));
+            return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+          }
+          return fb;
+        };
+
+        const valInStart = format24(document.getElementById("settingCheckInStart")?.value, "06:00");
+        const valInStd = format24(document.getElementById("settingCheckInStandard")?.value, "07:00");
+        const valInLate = format24(document.getElementById("settingCheckInLateLimit")?.value, "07:15");
+        const valSeninKamis = format24(document.getElementById("settingCheckOutSeninKamis")?.value, "14:00");
+        const valJumat = format24(document.getElementById("settingCheckOutJumat")?.value, "11:30");
+        const valSabtu = format24(document.getElementById("settingCheckOutSabtu")?.value, "12:30");
 
         config.schedule.checkInStart = valInStart;
-        config.schedule.checkInStandard = document.getElementById("settingCheckInStandard").value;
-        config.schedule.checkInLateLimit = document.getElementById("settingCheckInLateLimit").value;
+        config.schedule.checkInStandard = valInStd;
+        config.schedule.checkInLateLimit = valInLate;
         config.schedule.checkOutSeninKamis = valSeninKamis;
         config.schedule.checkOutJumat = valJumat;
         config.schedule.checkOutSabtu = valSabtu;
         config.schedule.checkOutStandard = valSeninKamis; // fallback
 
         StorageService.saveSchoolConfig(config);
+        loadAdminSettingsFormValues();
         applySyncedTeacherAndSchoolData();
         if (typeof updateAttendanceUI === "function") {
           updateAttendanceUI();
         }
-        showToast("Jam Kerja Disimpan!", `Tersinkron: Buka (${valInStart}), Masuk (${config.schedule.checkInStandard}), Pulang Sen-Kam (${valSeninKamis}), Jum (${valJumat}), Sab (${valSabtu}).`, "success");
+        showToast("Jam Kerja Disimpan!", `Tersinkron: Buka (${valInStart}), Masuk (${valInStd}), Batas (${valInLate}), Pulang Sen-Kam (${valSeninKamis}), Jum (${valJumat}), Sab (${valSabtu}).`, "success");
         SoundService.playSuccess();
       });
     }
@@ -4290,13 +4336,24 @@ document.addEventListener("DOMContentLoaded", () => {
       formGeofence.addEventListener("submit", (e) => {
         e.preventDefault();
         const config = StorageService.getSchoolConfig();
-        config.geofence.campusName = document.getElementById("settingCampusName").value;
-        config.geofence.latitude = parseFloat(document.getElementById("settingLatitude").value);
-        config.geofence.longitude = parseFloat(document.getElementById("settingLongitude").value);
-        config.geofence.radiusMeters = parseInt(document.getElementById("settingRadiusMeters").value, 10);
+        const rawCampus = document.getElementById("settingCampusName")?.value.trim();
+        const rawLat = parseFloat(document.getElementById("settingLatitude")?.value);
+        const rawLng = parseFloat(document.getElementById("settingLongitude")?.value);
+        const rawRadius = parseInt(document.getElementById("settingRadiusMeters")?.value, 10);
+
+        if (rawCampus) config.geofence.campusName = rawCampus;
+        if (!isNaN(rawLat)) config.geofence.latitude = rawLat;
+        if (!isNaN(rawLng)) config.geofence.longitude = rawLng;
+        if (!isNaN(rawRadius) && rawRadius > 0) config.geofence.radiusMeters = rawRadius;
+
         StorageService.saveSchoolConfig(config);
+        loadAdminSettingsFormValues();
         applySyncedTeacherAndSchoolData();
+        if (typeof window.renderGeofenceUI === "function") {
+          window.renderGeofenceUI();
+        }
         showToast("Geofence Disimpan!", `Radius ${config.geofence.radiusMeters}m di ${config.geofence.campusName} aktif.`, "success");
+        SoundService.playSuccess();
       });
     }
 
@@ -4340,7 +4397,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (valName) config.name = valName;
         if (valNpsn) config.npsn = valNpsn;
         if (valNsm) config.nsm = valNsm;
-        if (valLevel) config.level = valLevel;
+        if (valLevel) {
+          if (valLevel.includes("•")) {
+            const parts = valLevel.split("•").map(s => s.trim()).filter(Boolean);
+            config.level = parts[0] || valLevel;
+            if (parts[1]) config.status = parts[1];
+          } else {
+            config.level = valLevel;
+          }
+        }
         if (valAccred) config.accreditation = valAccred;
         if (valPrincipal) config.principalName = valPrincipal;
         if (valPrincipalNip) config.principalNip = valPrincipalNip;
@@ -4350,6 +4415,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (valWebsite) config.website = valWebsite;
 
         StorageService.saveSchoolConfig(config);
+        loadAdminSettingsFormValues();
         applySyncedTeacherAndSchoolData();
         showToast("Identitas Madrasah Disimpan!", `Profil resmi ${config.name} berhasil diperbarui di seluruh sistem.`, "success");
         SoundService.playSuccess();
@@ -4558,15 +4624,15 @@ document.addEventListener("DOMContentLoaded", () => {
       updateKbmBreaksUI();
     }
 
-    function renderAdminKbmSettingsTable(groupKey = null) {
+    function renderAdminKbmSettingsTable(groupKey = null, customPeriods = null, customBreaks = null) {
       if (!tbodyKbm) return;
       if (groupKey) currentKbmDayGroup = groupKey;
       tbodyKbm.innerHTML = "";
       
-      const periods = StorageService.getKbmPeriods(currentKbmDayGroup);
+      const periods = Array.isArray(customPeriods) ? customPeriods : StorageService.getKbmPeriods(currentKbmDayGroup);
       const durations = StorageService.getKbmDurationByDay();
-      const targetDur = durations[currentKbmDayGroup] || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
-      const breaks = StorageService.getKbmBreaks(currentKbmDayGroup);
+      const targetDur = parseInt(inputKbmTargetDuration?.value, 10) || durations[currentKbmDayGroup] || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
+      const breaks = Array.isArray(customBreaks) ? customBreaks : StorageService.getKbmBreaks(currentKbmDayGroup);
       const activeBreaks = breaks.filter(b => b.active);
 
       periods.forEach((p, idx) => {
@@ -4714,12 +4780,67 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Tab switching listener
+    function collectPeriodsFromKbmTable() {
+      const rows = tbodyKbm ? tbodyKbm.querySelectorAll(".kbm-period-row") : [];
+      const newPeriods = [];
+      rows.forEach((r, idx) => {
+        const pNum = parseInt(r.querySelector(".kbm-period-number")?.value || (idx + 1), 10);
+        const startVal = sanitize24HrTime(r.querySelector(".kbm-time-start")?.value, "07:15");
+        const endVal = sanitize24HrTime(r.querySelector(".kbm-time-end")?.value, "07:55");
+        const noteVal = r.querySelector(".kbm-period-note")?.value.trim() || `KBM Jam Ke-${pNum}`;
+        newPeriods.push({
+          period: pNum,
+          start: startVal,
+          end: endVal,
+          note: noteVal
+        });
+      });
+      return newPeriods;
+    }
+
+    function previewRecalculatedKbmTable() {
+      const targetDur = parseInt(inputKbmTargetDuration?.value, 10) || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
+      const breaks = getBreaksFromInputs();
+      const generated = StorageService.generateKbmPeriodsForDuration(currentKbmDayGroup, targetDur, breaks);
+      renderAdminKbmSettingsTable(currentKbmDayGroup, generated, breaks);
+      const badgeMap = {
+        senin: badgeDurSenin,
+        selasa_kamis: badgeDurSelasaKamis,
+        jumat: badgeDurJumat,
+        sabtu: badgeDurSabtu,
+        minggu: document.getElementById("badgeDurMinggu")
+      };
+      const activeBadge = badgeMap[currentKbmDayGroup];
+      if (activeBadge) activeBadge.textContent = `${targetDur} Menit / JP`;
+    }
+
+    function saveCurrentKbmTabFromDOM() {
+      if (!tbodyKbm) return null;
+      const targetDur = parseInt(inputKbmTargetDuration?.value, 10) || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
+      const breaks = getBreaksFromInputs();
+      let newPeriods = collectPeriodsFromKbmTable();
+      if (!newPeriods.length) {
+        newPeriods = StorageService.generateKbmPeriodsForDuration(currentKbmDayGroup, targetDur, breaks);
+      }
+      StorageService.saveKbmDayGroupSettings(currentKbmDayGroup, targetDur, breaks, newPeriods);
+      return { targetDur, breaks, newPeriods };
+    }
+
+    function refreshDependentKbmViews() {
+      applySyncedTeacherAndSchoolData();
+      if (typeof renderTeachingSchedules === "function") renderTeachingSchedules();
+      if (typeof renderKbmTimelineAndLogs === "function") renderKbmTimelineAndLogs();
+      if (typeof renderClassroomRadar === "function") renderClassroomRadar();
+      if (typeof window.renderRoster === "function") window.renderRoster();
+    }
+
+    // Tab switching listener (auto-saves edits on previous tab before switching)
     if (kbmDayNav) {
       kbmDayNav.querySelectorAll(".btn-kbm-day-tab").forEach(tab => {
         tab.addEventListener("click", () => {
           const group = tab.dataset.dayGroup;
           if (!group || group === currentKbmDayGroup) return;
+          saveCurrentKbmTabFromDOM();
           currentKbmDayGroup = group;
           updateKbmGroupHeaderUI();
           renderAdminKbmSettingsTable(currentKbmDayGroup);
@@ -4727,9 +4848,9 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Break inputs change listeners (auto calculate break duration badges)
+    // Break inputs change listeners (auto calculate break duration badges & preview timetable)
     function setupBreakInputListeners() {
-      const updateBreakDurationBadges = () => {
+      const updateBreakDurationBadges = (recalcTable = false) => {
         if (badgeBreak1Duration && inputBreak1Start && inputBreak1End) {
           const act = checkBreak1Active ? checkBreak1Active.checked : true;
           const d1 = calcMinutesDiff(inputBreak1Start.value, inputBreak1End.value);
@@ -4748,10 +4869,13 @@ document.addEventListener("DOMContentLoaded", () => {
           badgeBreak2Duration.style.color = act ? "" : "var(--text-muted)";
           if (boxBreak2) boxBreak2.classList.toggle("is-inactive", !act);
         }
+        if (recalcTable) {
+          previewRecalculatedKbmTable();
+        }
       };
 
-      [checkBreak1Active, checkBreak2Active].forEach(chk => {
-        if (chk) chk.addEventListener("change", updateBreakDurationBadges);
+      [checkBreak1Active, checkBreak2Active, inputBreak1AfterPeriod, inputBreak2AfterPeriod].forEach(ctrl => {
+        if (ctrl) ctrl.addEventListener("change", () => updateBreakDurationBadges(true));
       });
 
       [inputBreak1Start, inputBreak1End, inputBreak2Start, inputBreak2End].forEach(inp => {
@@ -4760,11 +4884,11 @@ document.addEventListener("DOMContentLoaded", () => {
           let val = inp.value.replace(/[^0-9:]/g, "").replace(".", ":");
           if (val.length === 2 && !val.includes(":") && e.inputType !== "deleteContentBackward") val = val + ":";
           inp.value = val;
-          updateBreakDurationBadges();
+          updateBreakDurationBadges(false);
         });
         inp.addEventListener("blur", () => {
           inp.value = sanitize24HrTime(inp.value, "09:15");
-          updateBreakDurationBadges();
+          updateBreakDurationBadges(true);
         });
       });
     }
@@ -4774,17 +4898,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (btnApplyBreaksToTimetable) {
       btnApplyBreaksToTimetable.addEventListener("click", () => {
         const breaks = getBreaksFromInputs();
-        StorageService.saveKbmBreaks(breaks, currentKbmDayGroup);
-
         const targetDur = parseInt(inputKbmTargetDuration?.value, 10) || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
         const generated = StorageService.generateKbmPeriodsForDuration(currentKbmDayGroup, targetDur, breaks);
-        StorageService.saveKbmPeriods(generated, currentKbmDayGroup);
+        StorageService.saveKbmDayGroupSettings(currentKbmDayGroup, targetDur, breaks, generated);
 
         updateKbmGroupHeaderUI();
         renderAdminKbmSettingsTable(currentKbmDayGroup);
+        refreshDependentKbmViews();
 
         const meta = KBM_DAY_METADATA[currentKbmDayGroup] || KBM_DAY_METADATA.senin;
-        showToast("Istirahat Diterapkan", `Waktu istirahat khusus ${meta.label} berhasil diterapkan ke jadwal KBM.`, "success");
+        showToast("Istirahat Diterapkan", `Waktu istirahat khusus ${meta.label} berhasil diterapkan & disimpan ke jadwal KBM.`, "success");
         SoundService.playSuccess();
       });
     }
@@ -4796,6 +4919,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (inputKbmTargetDuration) inputKbmTargetDuration.value = dur;
           kbmDurationPresets.forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
+          previewRecalculatedKbmTable();
         });
       });
     }
@@ -4808,6 +4932,15 @@ document.addEventListener("DOMContentLoaded", () => {
             btn.classList.toggle("active", parseInt(btn.dataset.dur, 10) === dur);
           });
         }
+        if (dur >= 15 && dur <= 90) {
+          previewRecalculatedKbmTable();
+        }
+      });
+      inputKbmTargetDuration.addEventListener("change", () => {
+        const dur = parseInt(inputKbmTargetDuration.value, 10);
+        if (dur >= 15 && dur <= 90) {
+          previewRecalculatedKbmTable();
+        }
       });
     }
 
@@ -4816,19 +4949,13 @@ document.addEventListener("DOMContentLoaded", () => {
       btnAutoGenerateKbm.addEventListener("click", () => {
         const targetDur = parseInt(inputKbmTargetDuration?.value, 10) || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
         const meta = KBM_DAY_METADATA[currentKbmDayGroup] || KBM_DAY_METADATA.senin;
-        
-        const curDurs = StorageService.getKbmDurationByDay();
-        curDurs[currentKbmDayGroup] = targetDur;
-        StorageService.saveKbmDurationByDay(curDurs);
-
         const breaks = getBreaksFromInputs();
-        StorageService.saveKbmBreaks(breaks, currentKbmDayGroup);
-
         const generated = StorageService.generateKbmPeriodsForDuration(currentKbmDayGroup, targetDur, breaks);
-        StorageService.saveKbmPeriods(generated, currentKbmDayGroup);
-        
+
+        StorageService.saveKbmDayGroupSettings(currentKbmDayGroup, targetDur, breaks, generated);
         updateKbmGroupHeaderUI();
         renderAdminKbmSettingsTable(currentKbmDayGroup);
+        refreshDependentKbmViews();
 
         showToast(
           "Auto-Hitung Durasi & Istirahat Berhasil",
@@ -4962,22 +5089,18 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!confirm(`Muat kembali alokasi jam pelajaran dan istirahat standar untuk ${meta.label}?`)) return;
 
         const defaultPeriods = (SCHOOL_CONFIG.schedule.kbmPeriodsByDay && SCHOOL_CONFIG.schedule.kbmPeriodsByDay[currentKbmDayGroup])
-          ? SCHOOL_CONFIG.schedule.kbmPeriodsByDay[currentKbmDayGroup]
-          : SCHOOL_CONFIG.schedule.kbmPeriods;
-
-        StorageService.saveKbmPeriods(defaultPeriods, currentKbmDayGroup);
-
-        const curDurs = StorageService.getKbmDurationByDay();
-        curDurs[currentKbmDayGroup] = meta.defaultDur;
-        StorageService.saveKbmDurationByDay(curDurs);
+          ? JSON.parse(JSON.stringify(SCHOOL_CONFIG.schedule.kbmPeriodsByDay[currentKbmDayGroup]))
+          : JSON.parse(JSON.stringify(SCHOOL_CONFIG.schedule.kbmPeriods));
 
         const defaultBreaks = (SCHOOL_CONFIG.schedule.kbmBreaksByDay && SCHOOL_CONFIG.schedule.kbmBreaksByDay[currentKbmDayGroup])
-          ? SCHOOL_CONFIG.schedule.kbmBreaksByDay[currentKbmDayGroup]
+          ? JSON.parse(JSON.stringify(SCHOOL_CONFIG.schedule.kbmBreaksByDay[currentKbmDayGroup]))
           : [];
-        StorageService.saveKbmBreaks(defaultBreaks, currentKbmDayGroup);
+
+        StorageService.saveKbmDayGroupSettings(currentKbmDayGroup, meta.defaultDur, defaultBreaks, defaultPeriods);
 
         updateKbmGroupHeaderUI();
         renderAdminKbmSettingsTable(currentKbmDayGroup);
+        refreshDependentKbmViews();
         showToast("Jadwal Standar Dimuat", `Alokasi jam KBM dan istirahat standar ${meta.label} berhasil dimuat kembali.`, "success");
       });
     }
@@ -4985,39 +5108,23 @@ document.addEventListener("DOMContentLoaded", () => {
     if (formKbm) {
       formKbm.addEventListener("submit", (e) => {
         e.preventDefault();
-        const rows = tbodyKbm ? tbodyKbm.querySelectorAll(".kbm-period-row") : [];
-        const newPeriods = [];
-        rows.forEach((r, idx) => {
-          const pNum = parseInt(r.querySelector(".kbm-period-number")?.value || (idx + 1), 10);
-          const startVal = r.querySelector(".kbm-time-start")?.value.trim() || "07:15";
-          const endVal = r.querySelector(".kbm-time-end")?.value.trim() || "07:55";
-          const noteVal = r.querySelector(".kbm-period-note")?.value.trim() || `KBM Jam Ke-${pNum}`;
-          newPeriods.push({
-            period: pNum,
-            start: startVal,
-            end: endVal,
-            note: noteVal
-          });
-        });
-
-        const targetDur = parseInt(inputKbmTargetDuration?.value, 10) || (currentKbmDayGroup === "senin" ? 30 : (currentKbmDayGroup === "jumat" ? 35 : 40));
-        const curDurs = StorageService.getKbmDurationByDay();
-        curDurs[currentKbmDayGroup] = targetDur;
-        StorageService.saveKbmDurationByDay(curDurs);
-
-        // Save breaks
-        const breaks = getBreaksFromInputs();
-        StorageService.saveKbmBreaks(breaks, currentKbmDayGroup);
-
-        StorageService.saveKbmPeriods(newPeriods, currentKbmDayGroup);
+        const saved = saveCurrentKbmTabFromDOM();
         updateKbmGroupHeaderUI();
         renderAdminKbmSettingsTable(currentKbmDayGroup);
+        refreshDependentKbmViews();
 
         const meta = KBM_DAY_METADATA[currentKbmDayGroup] || KBM_DAY_METADATA.senin;
-        showToast("Pengaturan Jam KBM Disimpan!", `Berhasil menyimpan alokasi waktu ${newPeriods.length} jam pelajaran & istirahat untuk ${meta.label} (${targetDur} menit/JP - Format 24 Jam WIB).`, "success");
+        const count = saved && saved.newPeriods ? saved.newPeriods.length : 0;
+        const dur = saved ? saved.targetDur : meta.defaultDur;
+        showToast("Pengaturan Jam KBM Disimpan!", `Berhasil menyimpan alokasi waktu ${count} jam pelajaran & istirahat untuk ${meta.label} (${dur} menit/JP - Format 24 Jam WIB).`, "success");
         SoundService.playSuccess();
       });
     }
+
+    window.refreshAdminKbmSettingsUI = function () {
+      updateKbmGroupHeaderUI();
+      renderAdminKbmSettingsTable(currentKbmDayGroup);
+    };
 
     updateKbmGroupHeaderUI();
     renderAdminKbmSettingsTable(currentKbmDayGroup);
@@ -10653,11 +10760,24 @@ document.addEventListener("DOMContentLoaded", () => {
       leaveRequests = StorageService.getLeaveRequests();
       teachingLogs = StorageService.getTeachingLogs();
       classCheckIns = StorageService.getClassCheckIns();
-      roomsMonitoring = StorageService.getRoomState();
+      roomsMonitoring = StorageService.getRoomsMonitoring();
       adminActivityFeed = StorageService.getAdminActivityFeed();
 
       StorageService.syncActiveTeachingSchedules();
       applySyncedTeacherAndSchoolData();
+
+      // Perbarui tampilan form Pengaturan Admin jika pengguna tidak sedang mengetik di dalam form pengaturan
+      const activeEl = document.activeElement;
+      const settingsSection = document.getElementById("tab-admin-settings");
+      const isEditingSettings = activeEl && settingsSection && settingsSection.contains(activeEl) &&
+        ["INPUT", "TEXTAREA", "SELECT"].includes(activeEl.tagName);
+      if (!isEditingSettings && typeof loadAdminSettingsFormValues === "function") {
+        loadAdminSettingsFormValues();
+      }
+      if (typeof window.renderGeofenceUI === "function") {
+        window.renderGeofenceUI();
+      }
+
       loadActiveTeacherAttendance();
       updateAttendanceUI();
       renderDashboardRecentTable();
