@@ -3,7 +3,7 @@
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
 
-document.addEventListener("DOMContentLoaded", () => {
+function initMainApplication() {
   // Application State
   let todayAttendance = StorageService.getTodayAttendance();
   let attendanceHistory = StorageService.getHistory();
@@ -10988,6 +10988,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize All Systems safely
   const initModules = [
     ["startServerClock", startServerClock],
+    ["initLoginScreen", initLoginScreen],
     ["initTheme", initTheme],
     ["initTabNavigation", initTabNavigation],
     ["initGeofenceSimulation", initGeofenceSimulation],
@@ -11006,7 +11007,6 @@ document.addEventListener("DOMContentLoaded", () => {
     ["updateKpiCounts", updateKpiCounts],
     ["initRoleSwitcher", initRoleSwitcher],
     ["initAdminLogin", initAdminLogin],
-    ["initLoginScreen", initLoginScreen],
     ["renderClassroomRadar", renderClassroomRadar],
     ["renderAdminActivityFeed", renderAdminActivityFeed],
     ["renderAdminAllTeachersAttendance", renderAdminAllTeachersAttendance],
@@ -11037,6 +11037,13 @@ document.addEventListener("DOMContentLoaded", () => {
   window.renderAdminActivityFeed = renderAdminActivityFeed;
 
   console.log("HADIR.GURU Teacher Dashboard & Real-Time Classroom Monitoring initialized successfully.");
-});
+}
+
+// Safely boot application whether document is still loading or already ready (e.g. WebView / Fast Cache)
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initMainApplication);
+} else {
+  initMainApplication();
+}
 
 

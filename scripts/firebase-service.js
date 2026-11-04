@@ -1649,7 +1649,11 @@ const FirebaseService = {
 
 window.FirebaseService = FirebaseService;
 
-// Inisialisasi otomatis saat script selesai dimuat
-document.addEventListener("DOMContentLoaded", () => {
+// Inisialisasi otomatis saat script selesai dimuat (Aman untuk WebView APK & Browser Fast Cache)
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    FirebaseService.init();
+  });
+} else {
   FirebaseService.init();
-});
+}
