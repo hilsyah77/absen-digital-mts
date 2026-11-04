@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HADIR.GURU - Client Application Logic
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
@@ -6042,6 +6042,96 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // ==========================================================================
+  // Reusable Table Pagination Component
+  // ==========================================================================
+  function renderTablePagination(container, config) {
+    if (!container || !config) return;
+    const currentPage = config.currentPage || 1;
+    const pageSize = config.pageSize !== undefined ? config.pageSize : 15;
+    const totalItems = config.totalItems || 0;
+    const pageSizeOptions = config.pageSizeOptions || [10, 15, 25, 50, -1];
+    const itemLabel = config.itemLabel || "data";
+    const onPageChange = config.onPageChange;
+    const onPageSizeChange = config.onPageSizeChange;
+
+    const isAll = pageSize === -1;
+    const totalPages = isAll ? 1 : Math.max(1, Math.ceil(totalItems / pageSize));
+    const startIdx = totalItems === 0 ? 0 : (isAll ? 1 : (currentPage - 1) * pageSize + 1);
+    const endIdx = totalItems === 0 ? 0 : (isAll ? totalItems : Math.min(currentPage * pageSize, totalItems));
+
+    let html = 
+      <div class="table-pagination-info">
+        <span>Menampilkan <strong> + startIdx + â€“ + endIdx + </strong> dari <strong> + totalItems + </strong>  + itemLabel + </span>
+        <div style="display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem;">
+          <span style="font-size: 0.76rem; color: var(--text-muted);">Baris:</span>
+          <select class="pagination-size-select" data-role="pageSizeSelect" aria-label="Jumlah baris per halaman">
+             + pageSizeOptions.map(opt => <option value=" + opt + "  + (opt === pageSize ? 'selected' : '') + > + (opt === -1 ? 'Semua' : opt) + </option>).join('') + 
+          </select>
+        </div>
+      </div>
+      <div class="table-pagination-controls">
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="first"  + (currentPage <= 1 || isAll ? 'disabled' : '') +  title="Halaman Pertama">Â«</button>
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="prev"  + (currentPage <= 1 || isAll ? 'disabled' : '') +  title="Halaman Sebelumnya">â€¹</button>
+    ;
+
+    if (!isAll && totalPages > 1) {
+      const delta = 2;
+      const range = [];
+      for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
+        range.push(i);
+      }
+      if (currentPage - delta > 2) range.unshift("...");
+      if (currentPage + delta < totalPages - 1) range.push("...");
+      range.unshift(1);
+      if (totalPages > 1) range.push(totalPages);
+
+      range.forEach(p => {
+        if (p === "...") {
+          html += <span class="pagination-ellipsis">...</span>;
+        } else {
+          html += <button type="button" class="pagination-btn  + (p === currentPage ? 'active' : '') + " data-page=" + p + "> + p + </button>;
+        }
+      });
+    } else {
+      html += <button type="button" class="pagination-btn active" data-page="1">1</button>;
+    }
+
+    html += 
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="next"  + (currentPage >= totalPages || isAll ? 'disabled' : '') +  title="Halaman Berikutnya">â€º</button>
+        <button type="button" class="pagination-btn pagination-btn-nav" data-page="last"  + (currentPage >= totalPages || isAll ? 'disabled' : '') +  title="Halaman Terakhir">Â»</button>
+      </div>
+    ;
+
+    container.innerHTML = html;
+
+    const sizeSelect = container.querySelector('[data-role="pageSizeSelect"]');
+    if (sizeSelect) {
+      sizeSelect.addEventListener("change", (e) => {
+        const newSize = parseInt(e.target.value, 10);
+        if (onPageSizeChange) onPageSizeChange(newSize);
+      });
+    }
+
+    const btns = container.querySelectorAll('.pagination-btn[data-page]');
+    btns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (btn.disabled) return;
+        const pageAction = btn.getAttribute("data-page");
+        let targetPage = currentPage;
+        if (pageAction === "first") targetPage = 1;
+        else if (pageAction === "prev") targetPage = Math.max(1, currentPage - 1);
+        else if (pageAction === "next") targetPage = Math.min(totalPages, currentPage + 1);
+        else if (pageAction === "last") targetPage = totalPages;
+        else targetPage = parseInt(pageAction, 10);
+
+        if (targetPage !== currentPage && onPageChange) {
+          onPageChange(targetPage);
+        }
+      });
+    });
+  }
+
   // Command Center: Jadwal Mengajar & Penugasan Guru (Admin Roster Module)
   function initAdminRosterModule() {
     const tbody = document.getElementById("tbodyAdminRoster");
@@ -6049,6 +6139,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const dayFilter = document.getElementById("selectRosterFilterDay");
     const classFilter = document.getElementById("selectRosterFilterClass");
     const teacherFilter = document.getElementById("selectRosterFilterTeacher");
+    const paginationContainer = document.getElementById("rosterPaginationContainer");
+
+    let rosterCurrentPage = 1;
+    let rosterPageSize = 15;
 
     const kpiTeachers = document.getElementById("kpiRosterTotalTeachers");
     const kpiSessions = document.getElementById("kpiRosterTotalSessions");
@@ -6207,9 +6301,37 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       });
 
+      const isAll = rosterPageSize === -1;
+      const totalPages = isAll ? 1 : Math.max(1, Math.ceil(filtered.length / rosterPageSize));
+      if (rosterCurrentPage > totalPages) rosterCurrentPage = totalPages;
+      if (rosterCurrentPage < 1) rosterCurrentPage = 1;
+
+      const startIndex = isAll ? 0 : (rosterCurrentPage - 1) * rosterPageSize;
+      const endIndex = isAll ? filtered.length : Math.min(startIndex + rosterPageSize, filtered.length);
+      const pageSessions = filtered.slice(startIndex, endIndex);
+
       if (showingCountText) {
-        showingCountText.textContent = `Menampilkan ${filtered.length} dari total ${allSchedules.length} sesi jadwal`;
+        showingCountText.textContent = filtered.length === 0 
+          ? "Tidak ada sesi jadwal" 
+          : `Menampilkan ${startIndex + 1}â€“${endIndex} dari ${filtered.length} sesi jadwal (Total: ${allSchedules.length})`;
       }
+
+      renderTablePagination(paginationContainer, {
+        currentPage: rosterCurrentPage,
+        pageSize: rosterPageSize,
+        totalItems: filtered.length,
+        pageSizeOptions: [10, 15, 25, 50, -1],
+        itemLabel: "sesi jadwal",
+        onPageChange: (newPage) => {
+          rosterCurrentPage = newPage;
+          renderRoster();
+        },
+        onPageSizeChange: (newSize) => {
+          rosterPageSize = newSize;
+          rosterCurrentPage = 1;
+          renderRoster();
+        }
+      });
 
       if (!tbody) return;
       tbody.innerHTML = "";
@@ -6226,7 +6348,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      filtered.forEach(session => {
+      pageSessions.forEach(session => {
         const isClashing = clashingIds.has(session.id);
         const tr = document.createElement("tr");
         tr.className = isClashing ? "tr-clash admin-roster-row" : "admin-roster-row";
@@ -6285,10 +6407,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Event listeners for filters
-    if (searchInput) searchInput.addEventListener("input", renderRoster);
-    if (dayFilter) dayFilter.addEventListener("change", renderRoster);
-    if (classFilter) classFilter.addEventListener("change", renderRoster);
-    if (teacherFilter) teacherFilter.addEventListener("change", renderRoster);
+    if (searchInput) searchInput.addEventListener("input", () => { rosterCurrentPage = 1; renderRoster(); });
+    if (dayFilter) dayFilter.addEventListener("change", () => { rosterCurrentPage = 1; renderRoster(); });
+    if (classFilter) classFilter.addEventListener("change", () => { rosterCurrentPage = 1; renderRoster(); });
+    if (teacherFilter) teacherFilter.addEventListener("change", () => { rosterCurrentPage = 1; renderRoster(); });
 
     // Add Sesi Button
     const btnAdd = document.getElementById("btnRosterAddSession");
@@ -6664,6 +6786,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const kepegawaianFilter = document.getElementById("selectTeachersDbKepegawaian");
     const roleFilter = document.getElementById("selectTeachersDbRole");
     const showingCount = document.getElementById("teachersDbShowingCountText");
+    const paginationContainer = document.getElementById("teachersDbPaginationContainer");
+
+    let teachersDbCurrentPage = 1;
+    let teachersDbPageSize = 10;
 
     const kpiTotal = document.getElementById("kpiDbTotalTeachers");
     const kpiAccounts = document.getElementById("kpiDbTotalAccounts");
@@ -6774,13 +6900,43 @@ document.addEventListener("DOMContentLoaded", () => {
         return true;
       });
 
+      const isAll = teachersDbPageSize === -1;
+      const totalPages = isAll ? 1 : Math.max(1, Math.ceil(filtered.length / teachersDbPageSize));
+      if (teachersDbCurrentPage > totalPages) teachersDbCurrentPage = totalPages;
+      if (teachersDbCurrentPage < 1) teachersDbCurrentPage = 1;
+
+      const startIndex = isAll ? 0 : (teachersDbCurrentPage - 1) * teachersDbPageSize;
+      const endIndex = isAll ? filtered.length : Math.min(startIndex + teachersDbPageSize, filtered.length);
+      const pageTeachers = filtered.slice(startIndex, endIndex);
+
       if (showingCount) {
-        showingCount.textContent = `Menampilkan ${filtered.length} dari total ${teachers.length} guru terdaftar`;
+        showingCount.textContent = filtered.length === 0
+          ? "Tidak ada guru"
+          : `Menampilkan ${startIndex + 1}â€“${endIndex} dari ${filtered.length} guru terdaftar (Total: ${teachers.length})`;
       }
       const showingBottom = document.getElementById("teachersDbShowingCountBottom");
       if (showingBottom) {
-        showingBottom.textContent = `Menampilkan ${filtered.length} dari total ${teachers.length} guru terdaftar`;
+        showingBottom.textContent = filtered.length === 0
+          ? "Tidak ada guru"
+          : `Menampilkan ${startIndex + 1}â€“${endIndex} dari ${filtered.length} guru terdaftar`;
       }
+
+      renderTablePagination(paginationContainer, {
+        currentPage: teachersDbCurrentPage,
+        pageSize: teachersDbPageSize,
+        totalItems: filtered.length,
+        pageSizeOptions: [10, 15, 25, 50, -1],
+        itemLabel: "guru terdaftar",
+        onPageChange: (newPage) => {
+          teachersDbCurrentPage = newPage;
+          renderTeachersDb();
+        },
+        onPageSizeChange: (newSize) => {
+          teachersDbPageSize = newSize;
+          teachersDbCurrentPage = 1;
+          renderTeachersDb();
+        }
+      });
 
       if (!tbody) return;
       tbody.innerHTML = "";
@@ -6800,7 +6956,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const activeTeacherId = StorageService.getActiveTeacherId();
 
-      filtered.forEach((teacher, idx) => {
+      pageTeachers.forEach((teacher, idx) => {
         const isCurrentActive = teacher.id === activeTeacherId;
         const tr = document.createElement("tr");
         if (isCurrentActive) {
@@ -6817,7 +6973,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         tr.innerHTML = `
           <td style="text-align: center; font-weight: 700; color: var(--text-muted); font-size: 0.8rem;">
-            ${idx + 1}
+            ${startIndex + idx + 1}
           </td>
           <td>
             <div>
@@ -7054,6 +7210,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (btnClearSearch) {
           btnClearSearch.style.display = searchInput.value.trim() ? "block"  : "none";
         }
+        teachersDbCurrentPage = 1;
         renderTeachersDb();
       });
     }
@@ -7064,12 +7221,13 @@ document.addEventListener("DOMContentLoaded", () => {
           searchInput.focus();
         }
         btnClearSearch.style.display = "none";
+        teachersDbCurrentPage = 1;
         renderTeachersDb();
       });
     }
-    if (deptFilter) deptFilter.addEventListener("change", renderTeachersDb);
-    if (kepegawaianFilter) kepegawaianFilter.addEventListener("change", renderTeachersDb);
-    if (roleFilter) roleFilter.addEventListener("change", renderTeachersDb);
+    if (deptFilter) deptFilter.addEventListener("change", () => { teachersDbCurrentPage = 1; renderTeachersDb(); });
+    if (kepegawaianFilter) kepegawaianFilter.addEventListener("change", () => { teachersDbCurrentPage = 1; renderTeachersDb(); });
+    if (roleFilter) roleFilter.addEventListener("change", () => { teachersDbCurrentPage = 1; renderTeachersDb(); });
 
     // Global Functions for direct action buttons
     window.loginDirectAsTeacher = function(teacherId) {
