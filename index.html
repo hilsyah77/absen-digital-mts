@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -7,7 +7,7 @@
   <title>HADIR.GURU — Dashboard Guru MTs Negeri 1 Teladan</title>
   
   <link rel="icon" type="image/jpeg" href="assets/logo.jpg">
-  <link rel="stylesheet" href="styles/main.css?v=2.1">
+  <link rel="stylesheet" href="styles/main.css?v=2.2">
 </head>
 <body class="mode-login">
 
@@ -1006,10 +1006,10 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.75rem;">
+          <div class="profile-schedule-grid">
             
             <!-- Teacher Bio Card -->
-            <div class="card" style="text-align: center; position: relative;">
+            <div class="card profile-bio-card" style="text-align: center; position: relative;">
               <button type="button" class="btn-table-action btn-table-action-edit" id="btnEditProfileQuick" onclick="window.openEditMyProfileModal()" style="position: absolute; top: 1rem; right: 1rem; padding: 0.35rem 0.75rem; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 0.35rem; background: var(--bg-surface); border: 1px solid var(--border-medium); border-radius: var(--radius-sm);" title="Edit Profil & Pengaturan Akun">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 <span>Edit Profil</span>
@@ -1025,30 +1025,30 @@
               <h3 style="font-family: 'Outfit'; font-size: 1.35rem; font-weight: 800; margin-bottom: 0.2rem;" id="profileCardName">ABDUR ROUF</h3>
               <p style="font-size: 0.85rem; color: var(--emerald-600); font-weight: 700; margin-bottom: 1.25rem;" id="profileCardRole">Guru Pengajar & Wali Kelas VII-A</p>
 
-              <div style="display: flex; flex-direction: column; gap: 0.75rem; text-align: left; background: var(--bg-elevated); padding: 1.25rem; border-radius: var(--radius-md); font-size: 0.82rem;">
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">NIP:</span>
-                  <strong id="profileCardNip">91000074100899</strong>
+              <div class="profile-bio-list">
+                <div class="profile-bio-row">
+                  <span class="profile-bio-label">NIP:</span>
+                  <strong class="profile-bio-val" id="profileCardNip">91000074100899</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">NUPTK:</span>
-                  <strong id="profileCardNuptk">-</strong>
+                <div class="profile-bio-row">
+                  <span class="profile-bio-label">NUPTK:</span>
+                  <strong class="profile-bio-val" id="profileCardNuptk">-</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">Status Kepegawaian:</span>
-                  <span class="badge-pill-status badge-hadir" id="profileCardKepegawaian">Guru Tetap Kemenag</span>
+                <div class="profile-bio-row">
+                  <span class="profile-bio-label">Status Kepegawaian:</span>
+                  <span class="badge-pill-status badge-hadir profile-bio-badge" id="profileCardKepegawaian">Guru Tetap Kemenag</span>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">Madrasah Induk:</span>
-                  <strong id="profileCardMadrasah">MTs Negeri 1 Teladan</strong>
+                <div class="profile-bio-row">
+                  <span class="profile-bio-label">Madrasah Induk:</span>
+                  <strong class="profile-bio-val" id="profileCardMadrasah">MTs Negeri 1 Teladan</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">Email Dinas:</span>
-                  <strong id="profileCardEmail">abdur.rouf@mtsasyjtb.sch.id</strong>
+                <div class="profile-bio-row">
+                  <span class="profile-bio-label">Email Dinas:</span>
+                  <strong class="profile-bio-val" id="profileCardEmail">abdur.rouf@mtsasyjtb.sch.id</strong>
                 </div>
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: var(--text-muted);">Telepon / WA:</span>
-                  <strong id="profileCardPhone">6281548138852</strong>
+                <div class="profile-bio-row">
+                  <span class="profile-bio-label">Telepon / WA:</span>
+                  <strong class="profile-bio-val" id="profileCardPhone">6281548138852</strong>
                 </div>
               </div>
 
@@ -1061,13 +1061,13 @@
             </div>
 
             <!-- Teaching Schedule Roster -->
-            <div class="card">
-              <div class="card-header-flex" style="flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between;">
+            <div class="card profile-schedule-card">
+              <div class="card-header-flex profile-schedule-header" style="flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between;">
                 <div>
                   <h3 class="card-title" style="margin-bottom: 0.2rem;">Jadwal Mengajar Lengkap (Senin - Jumat)</h3>
                   <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Kelola alokasi jadwal KBM tatap muka per kelas & ruangan.</p>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                <div class="profile-schedule-header-actions" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
                   <span class="badge-pill-status badge-izin" id="profileTotalJtmBadge">24 Jam Tatap Muka</span>
                   <button type="button" class="btn-emerald" id="btnProfileAddSchedule" onclick="window.openTeacherScheduleModal()" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);">
                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -1076,8 +1076,8 @@
                 </div>
               </div>
 
-              <div class="table-responsive">
-                <table class="custom-table">
+              <div class="table-responsive profile-schedule-table-wrap">
+                <table class="custom-table profile-schedule-table">
                   <thead>
                     <tr>
                       <th>Hari</th>
@@ -1112,7 +1112,7 @@
           </div>
 
           <!-- JTM & KBM KPI Summary Grid -->
-          <div class="kpi-grid" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 2rem;">
+          <div class="kpi-grid kbm-kpi-grid" style="margin-bottom: 2rem;">
             
             <div class="kpi-card">
               <div class="kpi-top">
@@ -1154,13 +1154,13 @@
 
           <!-- Active & Scheduled Lessons for Today -->
           <div style="margin-bottom: 2rem;">
-            <div class="card-header-flex" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between;">
+            <div class="card-header-flex kbm-section-header" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between;">
               <div>
                 <h4 style="font-family: 'Outfit'; font-size: 1.15rem; font-weight: 700;">Jadwal Mengajar & Status Presensi Masuk Kelas</h4>
                 <p style="font-size: 0.78rem; color: var(--text-muted);">Tombol check-in masuk kelas aktif otomatis mengikuti jam realtime jadwal KBM (dibuka 10 menit sebelum bel).</p>
               </div>
               <div style="display: flex; align-items: center; gap: 0.65rem;">
-                <div class="server-clock-badge" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-full); display: flex; align-items: center; gap: 0.45rem;">
+                <div class="server-clock-badge kbm-live-clock-pill" style="padding: 0.35rem 0.85rem; font-size: 0.8rem; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-full); display: flex; align-items: center; gap: 0.45rem;">
                   <div class="status-dot-pulse" style="width: 7px; height: 7px; background: #10b981;"></div>
                   <span style="font-weight: 700; color: #047857;" id="kbmLiveClockBadge">--:-- WIB</span>
                   <span style="font-size: 0.72rem; color: #059669;">• Jam Real-Time</span>
@@ -1169,16 +1169,18 @@
             </div>
 
             <!-- Toolbar Filter Hari Mengajar Guru (Real-Time) -->
-            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.15rem; background: var(--bg-surface); padding: 0.6rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);" id="teacherKbmDayButtons">
-              <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-right: 0.25rem;">📅 Hari:</span>
-              <button class="filter-chip active" data-day="auto" id="btnKbmDayAuto">Hari Ini (Real-Time)</button>
-              <button class="filter-chip" data-day="Senin">Senin</button>
-              <button class="filter-chip" data-day="Selasa">Selasa</button>
-              <button class="filter-chip" data-day="Rabu">Rabu</button>
-              <button class="filter-chip" data-day="Kamis">Kamis</button>
-              <button class="filter-chip" data-day="Jumat">Jumat</button>
-              <button class="filter-chip" data-day="Sabtu">Sabtu</button>
-              <button type="button" class="btn-emerald" onclick="window.openTeacherScheduleModal()" style="margin-left: auto; padding: 0.35rem 0.8rem; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);" title="Tambah Sesi Jadwal KBM Baru">
+            <div class="kbm-day-filter-bar" id="teacherKbmDayButtons">
+              <div class="kbm-day-chips-group">
+                <span class="kbm-day-filter-label">📅 Hari:</span>
+                <button class="filter-chip active" data-day="auto" id="btnKbmDayAuto">Hari Ini (Real-Time)</button>
+                <button class="filter-chip" data-day="Senin">Senin</button>
+                <button class="filter-chip" data-day="Selasa">Selasa</button>
+                <button class="filter-chip" data-day="Rabu">Rabu</button>
+                <button class="filter-chip" data-day="Kamis">Kamis</button>
+                <button class="filter-chip" data-day="Jumat">Jumat</button>
+                <button class="filter-chip" data-day="Sabtu">Sabtu</button>
+              </div>
+              <button type="button" class="btn-emerald btn-add-kbm-toolbar" onclick="window.openTeacherScheduleModal()" title="Tambah Sesi Jadwal KBM Baru">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 <span>+ Tambah Jadwal KBM</span>
               </button>
@@ -2403,19 +2405,19 @@
           </div>
 
           <!-- Toolbar: Filter, Search, Action Buttons -->
-          <div class="card" style="margin-top: 1.25rem; padding: 1.25rem;">
-            <div style="display: flex; flex-wrap: wrap; gap: 0.85rem; justify-content: space-between; align-items: center;">
+          <div class="card roster-toolbar-card" style="margin-top: 1.25rem; padding: 1.25rem;">
+            <div class="roster-toolbar-wrap">
               
               <!-- Left side filters -->
-              <div style="display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; flex: 1; min-width: 320px;">
-                <div style="position: relative; flex: 1; min-width: 180px;">
+              <div class="roster-filters-group">
+                <div class="roster-search-box">
                   <input type="text" id="inputRosterSearch" class="form-control" placeholder="Cari guru, NIP, mapel, ruang..." style="padding-left: 2rem; font-size: 0.82rem;">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
                     <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
                 </div>
 
-                <select id="selectRosterFilterDay" class="form-control" style="width: auto; font-size: 0.82rem; min-width: 120px;">
+                <select id="selectRosterFilterDay" class="form-control roster-filter-select">
                   <option value="all">Semua Hari</option>
                   <option value="Senin">Senin</option>
                   <option value="Selasa">Selasa</option>
@@ -2426,19 +2428,19 @@
                   <option value="Minggu">Minggu</option>
                 </select>
 
-                <select id="selectRosterFilterClass" class="form-control" style="width: auto; font-size: 0.82rem; min-width: 130px;">
+                <select id="selectRosterFilterClass" class="form-control roster-filter-select">
                   <option value="all">Semua Kelas</option>
                   <!-- Populated via CLASSES_LIST -->
                 </select>
 
-                <select id="selectRosterFilterTeacher" class="form-control" style="width: auto; font-size: 0.82rem; max-width: 220px;">
+                <select id="selectRosterFilterTeacher" class="form-control roster-filter-select roster-filter-teacher">
                   <option value="all">Semua Guru</option>
                   <!-- Populated via JS -->
                 </select>
               </div>
 
               <!-- Right side action buttons -->
-              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <div class="roster-actions-group">
                 <button type="button" class="btn-secondary" id="btnRosterDownloadTemplate" title="Download template CSV format Simpatika/Excel">
                   📄 Template CSV
                 </button>
@@ -3463,7 +3465,7 @@
             </select>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-2">
             <div class="form-group">
               <label class="form-label" for="selectScheduleDay">Hari</label>
               <select class="form-control" id="selectScheduleDay" required>
@@ -3484,7 +3486,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-2">
             <div class="form-group">
               <label class="form-label" for="inputScheduleSubject">Mata Pelajaran</label>
               <input type="text" class="form-control" id="inputScheduleSubject" placeholder="Contoh: Matematika" required>
@@ -3497,7 +3499,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-3">
             <div class="form-group">
               <label class="form-label" for="inputSchedulePeriodStart">Jam Ke (Mulai)</label>
               <input type="number" class="form-control" id="inputSchedulePeriodStart" min="1" max="15" value="1" placeholder="1" required>
@@ -3512,7 +3514,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-2">
             <div class="form-group">
               <label class="form-label" for="inputScheduleTimeStart">Jam Mulai KBM (Format 24 Jam WIB)</label>
               <div class="wib-input-container">
@@ -3624,7 +3626,7 @@
               <input type="text" class="form-control" id="inputTeacherFullName" placeholder="Contoh: Dra. Hj. Siti Aminah, M.Pd." required>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputTeacherNip">NIP (18 Digit / Kosongkan jika Non-PNS)</label>
                 <input type="text" class="form-control" id="inputTeacherNip" placeholder="19880415 201403 1 002">
@@ -3635,7 +3637,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="selectTeacherDept">Departemen MGMP</label>
                 <select id="selectTeacherDept" class="form-control" required>
@@ -3652,7 +3654,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="selectTeacherKepegawaian">Status Kepegawaian</label>
                 <select id="selectTeacherKepegawaian" class="form-control" required>
@@ -3689,7 +3691,7 @@
               🔐 Kredensial Akun Login & Komunikasi
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputTeacherEmail">Email Resmi Madrasah</label>
                 <input type="email" class="form-control" id="inputTeacherEmail" placeholder="nama@mtsasyjtb.sch.id" required>
@@ -3700,7 +3702,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputTeacherPassword">Password Akun</label>
                 <input type="text" class="form-control" id="inputTeacherPassword" value="Guru@2026!" required>
@@ -4230,15 +4232,15 @@
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem; max-height: 72vh; overflow-y: auto;">
           
           <!-- Avatar Preview & Upload -->
-          <div style="display: flex; align-items: center; gap: 1.25rem; background: var(--bg-surface); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+          <div class="profile-avatar-upload-box">
             <div id="modalProfileAvatarPreview" style="width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05)); border: 2px solid var(--emerald-500); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; color: var(--emerald-600); overflow: hidden; flex-shrink: 0;">
               <span id="modalProfileAvatarInitials">AR</span>
               <img id="modalProfileAvatarImg" src="" alt="Avatar" style="display: none; width: 100%; height: 100%; object-fit: cover;">
             </div>
-            <div style="flex: 1;">
+            <div style="flex: 1; min-width: 180px;">
               <strong style="font-size: 0.88rem; color: var(--text-primary); display: block;" id="modalProfilePreviewDisplayName">ABDUR ROUF</strong>
               <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 0.15rem;">Format foto: JPG, PNG, atau WebP (Maks 2MB)</span>
-              <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
                 <input type="file" id="inputMyProfilePhotoFile" accept="image/*" style="display: none;">
                 <button type="button" class="btn-secondary" id="btnTriggerPhotoUpload" style="padding: 0.3rem 0.7rem; font-size: 0.74rem; display: inline-flex; align-items: center; gap: 0.35rem;">
                   📷 Unggah Foto Profil
@@ -4261,7 +4263,7 @@
               <input type="text" class="form-control" id="inputMyProfileName" required placeholder="Contoh: ABDUR ROUF, S.Pd.I.">
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputMyProfileNip">NIP (Nomor Induk Pegawai)</label>
                 <input type="text" class="form-control" id="inputMyProfileNip" placeholder="91000074100899">
@@ -4272,7 +4274,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="selectMyProfileKepegawaian">Status Kepegawaian</label>
                 <select id="selectMyProfileKepegawaian" class="form-control" required>
@@ -4289,7 +4291,7 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="selectMyProfileDept">Departemen MGMP</label>
                 <select id="selectMyProfileDept" class="form-control" required>
@@ -4348,7 +4350,7 @@
               <span>🔐 Kontak & Kredensial Akun Login</span>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputMyProfileEmail">Email Dinas Madrasah</label>
                 <input type="email" class="form-control" id="inputMyProfileEmail" required placeholder="abdur.rouf@mtsasyjtb.sch.id">
@@ -4360,7 +4362,7 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="inputMyProfilePassword" style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label" for="inputMyProfilePassword" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.25rem;">
                 <span>PIN / Password Login Digital</span>
                 <span style="font-size: 0.72rem; color: var(--emerald-600); font-weight: 600;">Untuk login akun guru</span>
               </label>
@@ -4405,7 +4407,7 @@
         
         <div class="modal-body" style="display: flex; flex-direction: column; gap: 0.85rem;">
           
-          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-size: 1.15rem;">👨‍🏫</span>
               <div>
@@ -4416,7 +4418,7 @@
             <span class="badge-pill-status badge-hadir" style="font-size: 0.7rem;">Akun Pendidik</span>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-2">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="selectTeacherScheduleDay">Hari Mengajar</label>
               <select class="form-control" id="selectTeacherScheduleDay" required>
@@ -4437,7 +4439,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-2">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="inputTeacherScheduleSubject">Mata Pelajaran</label>
               <input type="text" class="form-control" id="inputTeacherScheduleSubject" placeholder="Contoh: SKI" required>
@@ -4450,7 +4452,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-3">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="inputTeacherSchedulePeriodStart">Jam Ke (Mulai)</label>
               <input type="number" class="form-control" id="inputTeacherSchedulePeriodStart" min="1" max="15" value="1" required>
@@ -4465,7 +4467,7 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="modal-form-grid-2">
             <div class="form-group" style="margin-bottom: 0;">
               <label class="form-label" for="inputTeacherScheduleTimeStart">Jam Mulai KBM (24 Jam WIB)</label>
               <div class="wib-input-container">
@@ -4637,11 +4639,11 @@
 
   <!-- Firebase Config & Service -->
   <script src="scripts/firebase-config.js"></script>
-  <script src="scripts/firebase-service.js"></script>
+  <script src="scripts/firebase-service.js?v=2.2"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js"></script>
-  <script src="scripts/app.js"></script>
+  <script src="scripts/data.js?v=2.2"></script>
+  <script src="scripts/app.js?v=2.2"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>

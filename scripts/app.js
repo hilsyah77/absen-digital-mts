@@ -1729,6 +1729,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const timeStatus = getScheduleTimeStatus(lesson);
 
           const item = document.createElement("div");
+          item.className = "today-schedule-item";
           item.style.padding = "0.85rem";
           item.style.borderRadius = "var(--radius-md)";
           item.style.background = isDone ? "var(--bg-elevated)"  : "var(--bg-surface)";
@@ -1742,13 +1743,13 @@ document.addEventListener("DOMContentLoaded", () => {
           let actionBtn = "";
           if (isDone) {
             actionBtn = `
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              <div class="today-schedule-action">
                 <span class="badge-pill-status badge-hadir">✓ Selesai KBM</span>
               </div>
             `;
           } else if (isCurrentlyInClass) {
             actionBtn = `
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              <div class="today-schedule-action">
                 <span class="badge-pill-status badge-kbm-ongoing">🟢 Sedang di Kelas</span>
                 <button class="btn-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; background: #0284c7;" onclick="openClassCheckOutModal('${lesson.id}')">
                   Check-Out
@@ -1757,7 +1758,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
           } else if (timeStatus.state === "upcoming") {
             actionBtn = `
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              <div class="today-schedule-action">
                 <span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; font-size: 0.72rem;">Sesi Selanjutnya</span>
                 <button class="btn-secondary" disabled style="padding: 0.35rem 0.75rem; font-size: 0.75rem; opacity: 0.65; cursor: not-allowed;" title="Check-in aktif otomatis menyesuaikan jam realtime jadwal (${timeStatus.openTimeStr} WIB)">
                   🔒 pk ${timeStatus.openTimeStr}
@@ -1766,7 +1767,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
           } else if (timeStatus.state === "active") {
             actionBtn = `
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              <div class="today-schedule-action">
                 <span class="badge-pill-status badge-kbm-ongoing">🔔 Waktunya Masuk</span>
                 <button class="btn-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="openClassCheckInModal('${lesson.id}')">
                   Check-in Masuk
@@ -1775,7 +1776,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
           } else {
             actionBtn = `
-              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              <div class="today-schedule-action">
                 <span class="badge-pill-status badge-late">Lewat Jam</span>
                 <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #d97706;" onclick="openClassCheckInModal('${lesson.id}')">
                   Check-in Terlambat
@@ -1785,7 +1786,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           item.innerHTML = `
-            <div>
+            <div class="today-schedule-info">
               <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-primary);">${lesson.subject}</div>
               <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem;">
                 ${lesson.class} • ${lesson.room} • <strong style="color: var(--emerald-600);">${lesson.jtm} JTM</strong>
@@ -1817,14 +1818,15 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         TEACHING_SCHEDULES.forEach(s => {
           const tr = document.createElement("tr");
+          tr.className = "profile-schedule-row";
           tr.innerHTML = `
-            <td><strong>${s.day}</strong></td>
-            <td style="font-family: 'JetBrains Mono'; font-size: 0.8rem;">${s.time || (s.startTime + ' - ' + s.endTime + ' WIB')}</td>
-            <td><strong>${s.subject}</strong></td>
-            <td><span class="badge-pill-status badge-izin">${s.class}</span></td>
-            <td>${s.room} <span style="font-size: 0.75rem; color: var(--text-muted);">(${s.jtm} JTM)</span></td>
-            <td style="text-align: right;">
-              <div style="display: flex; justify-content: flex-end; gap: 0.35rem;">
+            <td data-label="Hari"><strong>${s.day}</strong></td>
+            <td data-label="Jam / Waktu" style="font-family: 'JetBrains Mono'; font-size: 0.8rem;">${s.time || (s.startTime + ' - ' + s.endTime + ' WIB')}</td>
+            <td data-label="Mata Pelajaran"><strong>${s.subject}</strong></td>
+            <td data-label="Kelas"><span class="badge-pill-status badge-izin">${s.class}</span></td>
+            <td data-label="Ruang & Beban">${s.room} <span style="font-size: 0.75rem; color: var(--text-muted);">(${s.jtm} JTM)</span></td>
+            <td data-label="Aksi" class="profile-schedule-actions-cell">
+              <div class="profile-schedule-actions-wrap">
                 <button type="button" class="btn-table-action btn-table-action-edit" onclick="window.openTeacherScheduleModal('${s.id}')" title="Edit Sesi Jadwal">
                   <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   <span>Edit</span>
@@ -2036,7 +2038,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "completed-session";
           statusBadge = `<span class="badge-pill-status badge-hadir">✓ KBM Selesai</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <span class="badge-pill-status badge-hadir" style="padding: 0.4rem 0.85rem; font-size: 0.78rem; font-weight: 700;">
                 ✓ Presensi KBM Selesai
               </span>
@@ -2073,7 +2075,7 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "active-session";
           statusBadge = `<span class="badge-pill-status badge-kbm-ongoing" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-600); border: 1px solid rgba(16, 185, 129, 0.3);"><span class="status-dot-pulse"></span> SEDANG MENGAJAR DI KELAS</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <button class="btn-emerald" style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);" onclick="openClassCheckOutModal('${session.id}')">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span>🏁 Selesai Mengajar (Check-Out)</span>
@@ -2102,16 +2104,16 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "waiting-session";
           statusBadge = `<span class="badge-pill-status" style="background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25);">📅 Jadwal Hari ${session.day}</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <button class="btn-secondary" disabled style="opacity: 0.65; cursor: not-allowed; background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.4); color: #64748b; font-size: 0.76rem; padding: 0.45rem 0.85rem; display: flex; align-items: center; gap: 0.45rem;" title="Presensi masuk aktif saat hari ${session.day}">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 <span>🔒 Aktif pada Hari ${session.day}</span>
               </button>
-              <span style="font-size: 0.7rem; color: #64748b;">Pratinjau jadwal hari ${session.day}</span>
+              <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #64748b;">Pratinjau jadwal hari ${session.day}</span>
             </div>
           `;
           checkInDetailsHtml = `
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+            <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
               Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Ruang ${session.room} • Alokasi ${session.jtm} JTM (${session.time}).
             </div>
           `;
@@ -2119,16 +2121,16 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "waiting-session kbm-upcoming-session";
           statusBadge = `<span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3);">⏳ Menunggu Sesi ${currentlyTeachingSession.class} Selesai</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <button class="btn-secondary" disabled style="opacity: 0.65; cursor: not-allowed; background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.4); color: #64748b; font-size: 0.76rem; padding: 0.45rem 0.8rem; display: flex; align-items: center; gap: 0.45rem;" title="Selesaikan sesi ${currentlyTeachingSession.class} terlebih dahulu">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 <span>🔒 Selesaikan ${currentlyTeachingSession.class}</span>
               </button>
-              <span style="font-size: 0.7rem; color: #94a3b8;">Sedang mengajar di ${currentlyTeachingSession.class}</span>
+              <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #94a3b8;">Sedang mengajar di ${currentlyTeachingSession.class}</span>
             </div>
           `;
           checkInDetailsHtml = `
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+            <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
               Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Selesaikan check-out di ${currentlyTeachingSession.class} sebelum memulai sesi ini.
             </div>
           `;
@@ -2137,16 +2139,16 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "waiting-session kbm-upcoming-session";
           statusBadge = `<span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3);">⏳ Sesi Selanjutnya (Mulai ${session.startTime} WIB)</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <button class="btn-secondary btn-kbm-locked" disabled style="opacity: 0.6; cursor: not-allowed; background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.4); color: #64748b; font-size: 0.76rem; padding: 0.45rem 0.85rem; display: flex; align-items: center; gap: 0.45rem;" title="Tombol check-in otomatis aktif menyesuaikan jam realtime jadwal (dibuka pukul ${timeStatus.openTimeStr} WIB)">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 <span>🔒 Dibuka pk ${timeStatus.openTimeStr} WIB</span>
               </button>
-              <span style="font-size: 0.7rem; color: #94a3b8;">Aktif otomatis saat jam jadwal tiba</span>
+              <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #94a3b8;">Aktif otomatis saat jam jadwal tiba</span>
             </div>
           `;
           checkInDetailsHtml = `
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+            <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
               Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • ⏱️ Check-in aktif otomatis pada ${timeStatus.openTimeStr} WIB (10 menit sebelum bel).
             </div>
           `;
@@ -2163,7 +2165,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
           statusBadge = `<span class="badge-pill-status badge-kbm-ongoing" style="${activeBadgeStyle}"><span class="status-dot-pulse"></span> ${activeBadgeLabel}</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <button class="btn-emerald" onclick="openClassCheckInModal('${session.id}')">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 <span>Check-in Masuk Kelas</span>
@@ -2174,7 +2176,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           `;
           checkInDetailsHtml = `
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+            <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
               Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Toleransi masuk: 5 menit setelah bel.
             </div>
           `;
@@ -2183,16 +2185,16 @@ document.addEventListener("DOMContentLoaded", () => {
           cardClass = "waiting-session passed-session";
           statusBadge = `<span class="badge-pill-status badge-late" style="background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25);">⚠️ Lewat Jam KBM (${session.endTime} WIB)</span>`;
           actionButton = `
-            <div style="display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-end;">
+            <div class="kbm-action-stack">
               <button class="btn-secondary" style="border: 1px solid #f59e0b; color: #d97706; background: rgba(245, 158, 11, 0.08); font-size: 0.75rem; padding: 0.35rem 0.75rem; display: flex; align-items: center; gap: 0.35rem;" onclick="openClassCheckInModal('${session.id}')" title="Sesi telah melewati jadwal, presensi akan dicatat terlambat">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                 <span>⚠️ Check-in Terlambat</span>
               </button>
-              <span style="font-size: 0.7rem; color: #ef4444;">Jadwal berakhir ${session.endTime} WIB</span>
+              <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #ef4444;">Jadwal berakhir ${session.endTime} WIB</span>
             </div>
           `;
           checkInDetailsHtml = `
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+            <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
               Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Sesi kelas telah berakhir pada pukul ${session.endTime} WIB.
             </div>
           `;
@@ -6212,46 +6214,46 @@ document.addEventListener("DOMContentLoaded", () => {
       filtered.forEach(session => {
         const isClashing = clashingIds.has(session.id);
         const tr = document.createElement("tr");
-        if (isClashing) tr.className = "tr-clash";
+        tr.className = isClashing ? "tr-clash admin-roster-row" : "admin-roster-row";
 
         const teacherObj = allTeachers.find(t => t.id === session.teacherId) || {};
         const pStart = session.periodStart || 1;
         const pEnd = session.periodEnd || (pStart + (session.jtm || 2) - 1);
 
         tr.innerHTML = `
-          <td>
+          <td data-label="Hari & Jam">
             <div style="font-weight: 700; color: var(--text-primary);">${session.day}</div>
             <div style="font-family: 'JetBrains Mono'; font-size: 0.72rem; color: var(--text-secondary); margin-top: 0.15rem;">
               Jam ${pStart}-${pEnd} (${session.startTime || ''} - ${session.endTime || ''})
             </div>
           </td>
-          <td>
+          <td data-label="Rombel">
             <span class="badge-tag-pill" style="font-size: 0.75rem; background: var(--bg-subtle); color: var(--text-primary);">
               ${session.class}
             </span>
           </td>
-          <td>
+          <td data-label="Mata Pelajaran">
             <strong style="color: var(--text-primary); font-size: 0.85rem;">${session.subject}</strong>
           </td>
-          <td>
+          <td data-label="Guru Pengampu">
             <div>
               <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary);">${session.teacherName || teacherObj.name || '-'}</div>
               <div style="font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono';">NIP: ${teacherObj.nip || '-'}</div>
             </div>
           </td>
-          <td>
+          <td data-label="Ruang">
             <span style="font-size: 0.78rem; color: var(--text-secondary); display: inline-flex; align-items: center; gap: 0.3rem;"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><span>${session.room}</span></span>
           </td>
-          <td style="text-align: center;">
+          <td data-label="Beban JTM" style="text-align: center;">
             <span class="badge-tag-pill" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-600); font-weight: 700;">
               ${session.jtm || 2} JTM
             </span>
           </td>
-          <td style="text-align: center;">
+          <td data-label="Status" style="text-align: center;">
             ${isClashing ? `<span class="badge-clash">⚠️ Bentrok</span>`  : `<span class="badge-clean">✓ Aman</span>`}
           </td>
-                    <td style="text-align: right;">
-            <div style="display: flex; justify-content: flex-end; gap: 0.35rem;">
+          <td data-label="Aksi" style="text-align: right;">
+            <div class="profile-schedule-actions-wrap" style="display: flex; justify-content: flex-end; gap: 0.35rem;">
               <button type="button" class="btn-table-action btn-table-action-edit" onclick="window.editScheduleSession('${session.id}')" title="Edit Sesi Jadwal">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                 <span>Edit</span>

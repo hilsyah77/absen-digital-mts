@@ -544,10 +544,18 @@ const FirebaseService = {
             });
           }
 
+          let overridesChanged = false;
           const mergedTeachers = parsedTeachers.map((t) => {
             const override = this._profileOverrides[t.id];
             // Gunakan override profil per-guru jika override tersebut lebih baru atau memiliki foto
-            const base = (override && (!updatedAtMs || (override.updatedAtMs || 0) >= updatedAtMs))
+            const overrideIsNewer = override && (!updatedAtMs || (override.updatedAtMs || 0) >= updatedAtMs);
+            if (override && !overrideIsNewer && !this._isProfilePending(t.id)) {
+              // Master dari Cloud lebih baru daripada override lokal -> buang override basi
+              // agar tidak menimpa data terbaru (penyebab perubahan di Web tidak muncul di APK)
+              delete this._profileOverrides[t.id];
+              overridesChanged = true;
+            }
+            const base = overrideIsNewer
               ? { ...t, ...override }
               : { ...t };
             if (!base.avatarUrl) {
@@ -563,6 +571,11 @@ const FirebaseService = {
             }
           });
 
+          if (overridesChanged) {
+            try {
+              localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(this._profileOverrides));
+            } catch (e) {}
+          }
           localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(mergedTeachers));
           this._refreshActiveProfileFromTeachersList(mergedTeachers);
           this._propagateTeachersToDependentStores(mergedTeachers);
@@ -894,10 +907,29 @@ const FirebaseService = {
   /**
    * Kirim Perubahan Profil 1 Guru ke Cloud Firestore (Sangat Cepat & Mendukung Foto Profil)
    */
+  _isProfilePending(teacherId) {
+    try {
+      const p = JSON.parse(localStorage.getItem("hadir_guru_pending_profiles") || "{}") || {};
+      return !!p[teacherId];
+    } catch (e) {
+      return false;
+    }
+  },
+
+  _setProfilePending(teacherId, pending) {
+    try {
+      const p = JSON.parse(localStorage.getItem("hadir_guru_pending_profiles") || "{}") || {};
+      if (pending) p[teacherId] = Date.now();
+      else delete p[teacherId];
+      localStorage.setItem("hadir_guru_pending_profiles", JSON.stringify(p));
+    } catch (e) {}
+  },
+
   async pushTeacherProfile(teacherId, teacherData) {
     if (!teacherId || !teacherData || this._isApplyingCloud) return { success: false };
 
     const nowMs = Date.now();
+    this._setProfilePending(teacherId, true);
     const docId = `__profile_${teacherId}__`;
     this._lastSyncTimestamps[docId] = nowMs;
     this._profileOverrides[teacherId] = {
@@ -928,6 +960,7 @@ const FirebaseService = {
       };
 
       await this.db.collection("teaching_logs").doc(docId).set(payload, { merge: true });
+      this._setProfilePending(teacherId, false);
 
       // Jika sedang login dengan akun sendiri di koleksi `users`, perbarui juga dokumen `users/{uid}`
       if (this.auth.currentUser) {
@@ -1019,11 +1052,12 @@ const FirebaseService = {
 
     try {
       await this.ensureAuthenticated();
-      // 1. Dorong profil guru yang sedang aktif terlebih dahulu agar perubahan di perangkat ini tercatat di Cloud
+      // 1. Dorong profil guru aktif HANYA jika ada perubahan lokal yang belum terkirim (pending).
+      //    Sebelumnya profil lokal (basi) selalu didorong sehingga menimpa hasil edit dari Web/perangkat lain.
       if (typeof StorageService !== "undefined") {
         const activeTeacher = StorageService.getActiveTeacher ? StorageService.getActiveTeacher() : null;
         const activeProfile = StorageService.getProfile ? StorageService.getProfile() : null;
-        if (activeTeacher) {
+        if (activeTeacher && this._isProfilePending(activeTeacher.id)) {
           const mergedActive = {
             ...activeTeacher,
             ...(activeProfile && activeProfile.id === activeTeacher.id ? activeProfile : {})
