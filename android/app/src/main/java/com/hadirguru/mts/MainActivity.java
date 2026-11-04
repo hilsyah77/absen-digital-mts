@@ -18,6 +18,7 @@ import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -48,7 +49,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQ_PERMISSIONS = 1001;
     private static final int FILE_CHOOSER_RESULT_CODE = 2001;
-    private static final String APP_URL = "https://appassets.androidplatform.net/assets/www/index.html";
+    private static final String LIVE_URL = "https://absen-digital-mts.vercel.app";
+    private static final String LOCAL_URL = "https://appassets.androidplatform.net/assets/www/index.html";
     private static final String FALLBACK_URL = "file:///android_asset/www/index.html";
 
     private WebView mWebView;
@@ -86,16 +88,15 @@ public class MainActivity extends AppCompatActivity {
         // Check and request runtime permissions if needed
         requestAppPermissions();
 
-        // Load the HADIR.GURU app
-        mWebView.loadUrl(APP_URL);
+        // Load the HADIR.GURU app (Online-first live sync from Vercel with automatic local offline fallback)
+        mWebView.loadUrl(LIVE_URL);
     }
 
     private void setupSwipeRefresh() {
         mSwipeRefresh.setColorSchemeResources(R.color.primary_brand);
         mSwipeRefresh.setProgressBackgroundColorSchemeResource(R.color.primary_dark);
         mSwipeRefresh.setOnRefreshListener(() -> {
-            mWebView.clearCache(true);
-            mWebView.reload();
+            mWebView.loadUrl(LIVE_URL);
             mSwipeRefresh.setRefreshing(false);
         });
 
@@ -107,10 +108,8 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView() {
-        mWebView.clearCache(true);
-
         WebSettings settings = mWebView.getSettings();
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
@@ -166,12 +165,14 @@ public class MainActivity extends AppCompatActivity {
                         host.contains("googleapis.com") ||
                         host.contains("gstatic.com") ||
                         host.contains("firebasestorage.app") ||
-                        host.contains("google.com")) {
+                        host.contains("google.com") ||
+                        host.contains("vercel.app") ||
+                        host.contains("appassets.androidplatform.net")) {
                     return false;
                 }
 
                 // If loading external HTTP/HTTPS domains (e.g. documentation, help)
-                if (!host.isEmpty() && !host.contains("appassets.androidplatform.net")) {
+                if (!host.isEmpty()) {
                     try {
                         Intent browserIntent = new Intent(Intent.ACTION_VIEW, uri);
                         startActivity(browserIntent);
@@ -196,9 +197,13 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                // If appassets host fails, fallback to standard file:/// URL
-                if (failingUrl != null && failingUrl.startsWith("https://appassets.androidplatform.net")) {
-                    mWebView.loadUrl(FALLBACK_URL);
+                handleLoadError(failingUrl);
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request != null && request.isForMainFrame()) {
+                    handleLoadError(request.getUrl() != null ? request.getUrl().toString() : "");
                 }
             }
         });
@@ -293,6 +298,15 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void handleLoadError(String failingUrl) {
+        if (failingUrl != null && failingUrl.contains("vercel.app")) {
+            Toast.makeText(MainActivity.this, "Mode Offline: Memuat data madrasah lokal.", Toast.LENGTH_SHORT).show();
+            mWebView.loadUrl(LOCAL_URL);
+        } else if (failingUrl != null && failingUrl.startsWith("https://appassets.androidplatform.net")) {
+            mWebView.loadUrl(FALLBACK_URL);
+        }
     }
 
     private File createImageFile() throws IOException {

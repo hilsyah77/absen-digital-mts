@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HADIR.GURU - Data Store & Master Database Guru Reel (51 Guru)
  * Berdasarkan PRD HADIR.GURU v1.0 (Sistem Absensi Digital Guru MTs)
  */
@@ -1617,7 +1617,9 @@ const StorageService = {
 
     const teachers = this.getTeachersMaster();
     const found = teachers.find(t => {
+      if (!t) return false;
       if (t.id && t.id.toLowerCase() === idClean) return true;
+      if (t.teacherId && t.teacherId.toLowerCase() === idClean) return true;
       if (t.nip && t.nip.replace(/\s+/g, "") === idClean.replace(/\s+/g, "")) return true;
       if (t.username && t.username.toLowerCase() === idClean) return true;
       if (t.email && t.email.toLowerCase() === idClean) return true;
@@ -2082,7 +2084,9 @@ const StorageService = {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) teachers = parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          teachers = parsed.filter(t => t && typeof t === "object");
+        }
       } catch (e) { console.error(e); }
     }
 
@@ -2093,21 +2097,33 @@ const StorageService = {
       if (ovRaw) cloudOverrides = JSON.parse(ovRaw) || {};
     } catch (e) {}
 
-    // Pastikan setiap guru memiliki data akun login, penugasan & kepegawaian
+    // Deduplikasi dan pastikan setiap guru memiliki data akun login, penugasan & kepegawaian
     let hasMissing = false;
-    const enriched = teachers.map((t, idx) => {
+    const teacherMap = new Map();
+
+    teachers.forEach((t, idx) => {
+      if (!t || typeof t !== "object") return;
       const cleanNip = String(t.nip || "").trim();
       const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
-      const canonicalTeacherId = hasValidNip ? cleanNip : (t.teacherId || t.id);
+      const canonicalTeacherId = hasValidNip ? cleanNip : (t.teacherId || t.id || `TCH-${idx + 1}`);
+
+      // Cari override profil cloud
       const ov = (hasValidNip && cloudOverrides[cleanNip]) || cloudOverrides[t.id] || cloudOverrides[canonicalTeacherId] || {};
       const mergedT = { ...t, ...ov, teacherId: canonicalTeacherId };
-      const initTeacher = INITIAL_TEACHERS_MASTER_60.find(it => it.id === mergedT.id);
+
+      // Cari data referensi awal madrasah
+      const initTeacher = INITIAL_TEACHERS_MASTER_60.find(it => 
+        (hasValidNip && it.nip && String(it.nip).trim() === cleanNip) ||
+        it.id === mergedT.id || 
+        it.id === mergedT.teacherId
+      );
+
       let classAssigned = mergedT.classAssigned || (initTeacher ? initTeacher.classAssigned : "Guru Mapel");
       if (initTeacher && initTeacher.classAssigned && initTeacher.classAssigned !== "Guru Mapel" && (!mergedT.classAssigned || mergedT.classAssigned === "Guru Mapel")) {
         classAssigned = initTeacher.classAssigned;
         hasMissing = true;
       }
-      let email = mergedT.email || "";
+      let email = mergedT.email || (initTeacher ? initTeacher.email : "");
       if (email.toLowerCase().indexOf("@mtsn.sch.id") !== -1) {
         email = email.replace(/@mtsn\.sch\.id/gi, "@mtsasyjtb.sch.id");
         hasMissing = true;
@@ -2118,8 +2134,12 @@ const StorageService = {
       const kepegawaian = mergedT.kepegawaian || mergedT.employmentStatus || (idx < 35 ? "PNS / ASN" : (idx < 45 ? "PPPK" : "GTT / Honorer"));
       const role = mergedT.role || (classAssigned?.includes("Wali") ? "Wali Kelas" : (classAssigned?.includes("Piket") ? "Guru Piket" : "Guru Pengajar"));
       if (!mergedT.username || !mergedT.password || !mergedT.kepegawaian || !mergedT.role || !mergedT.classAssigned) hasMissing = true;
-      return {
+
+      const unifiedObj = {
         ...mergedT,
+        id: mergedT.id || canonicalTeacherId,
+        teacherId: canonicalTeacherId,
+        nip: hasValidNip ? cleanNip : (mergedT.nip || "-"),
         email,
         classAssigned,
         username,
@@ -2129,7 +2149,26 @@ const StorageService = {
         employmentStatus: kepegawaian,
         role
       };
+
+      // Kunci kanonikal untuk mencegah duplikasi data profil di database
+      const mapKey = hasValidNip ? cleanNip : (unifiedObj.id || canonicalTeacherId);
+      if (teacherMap.has(mapKey)) {
+        // Jika sudah ada sebelumnya, lakukan merge agar hasil editan profil guru tetap diprioritaskan
+        const prev = teacherMap.get(mapKey);
+        teacherMap.set(mapKey, {
+          ...prev,
+          ...unifiedObj,
+          // Prioritaskan nama bergelar / editan jika salah satu lebih lengkap
+          name: (unifiedObj.name && unifiedObj.name.length >= (prev.name || "").length) ? unifiedObj.name : prev.name,
+          avatarUrl: unifiedObj.avatarUrl || prev.avatarUrl || ""
+        });
+        hasMissing = true;
+      } else {
+        teacherMap.set(mapKey, unifiedObj);
+      }
     });
+
+    const enriched = Array.from(teacherMap.values());
     if (hasMissing && stored) {
       localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(enriched));
     }

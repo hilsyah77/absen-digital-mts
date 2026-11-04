@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HADIR.GURU - Client Application Logic
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
@@ -9542,7 +9542,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const dropdownCombobox = document.getElementById("teacherComboboxDropdown");
     const btnToggleCombobox = document.getElementById("btnToggleTeacherCombobox");
     const badgeCount = document.getElementById("badgeTeacherCount");
-    const getLiveTeachers = () => StorageService.getTeachersMaster() || [];
+    const getLiveTeachers = () => {
+      try {
+        const list = StorageService.getTeachersMaster();
+        if (Array.isArray(list) && list.length > 0) return list;
+      } catch (e) {
+        console.warn("[LoginScreen] Error loading teachers master:", e);
+      }
+      return (typeof INITIAL_TEACHERS_MASTER_60 !== "undefined" ? INITIAL_TEACHERS_MASTER_60 : []);
+    };
 
     if (badgeCount) {
       badgeCount.textContent = `${getLiveTeachers().length} Pendidik Terdaftar`;
@@ -9555,7 +9563,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       const teachers = getLiveTeachers();
-      const t = teachers.find(item => item.id === teacherId);
+      const t = teachers.find(item => 
+        (item.id && item.id === teacherId) || 
+        (item.nip && item.nip === teacherId) || 
+        (item.teacherId && item.teacherId === teacherId) ||
+        (item.nip && String(item.nip).trim() === String(teacherId).trim())
+      );
       const previewName = document.getElementById("teacherPreviewName");
       const previewDetail = document.getElementById("teacherPreviewDetail");
       const previewAvatar = document.getElementById("teacherPreviewAvatar");
@@ -9564,7 +9577,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (previewName) previewName.textContent = t.name;
         if (previewDetail) previewDetail.textContent = `${t.subject || 'Guru Mapel'} • NIP ${t.nip || '-'} • ${t.classAssigned || 'MTs'}`;
         if (previewAvatar) {
-          const initials = t.name.split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase();
+          const initials = (t.name || "GR").split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase();
           previewAvatar.textContent = initials || "GR";
         }
       } else {
@@ -9572,18 +9585,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
-    function renderComboboxItems(filterText = "") {
+    function renderComboboxItems(filterText = "", showAll = false) {
       if (!dropdownCombobox) return;
       dropdownCombobox.innerHTML = "";
       const teachers = getLiveTeachers();
       if (badgeCount) {
         badgeCount.textContent = `${teachers.length} Pendidik Terdaftar`;
       }
-      const q = (filterText || "").trim().toLowerCase();
+      const q = showAll ? "" : (filterText || "").trim().toLowerCase();
       const selectedId = hiddenTeacherId ? hiddenTeacherId.value : "";
 
       const filtered = q
         ? teachers.filter(t => {
+            if (!t) return false;
             const name = (t.name || "").toLowerCase();
             const nip = (t.nip || "").replace(/\s+/g, "").toLowerCase();
             const subj = (t.subject || "").toLowerCase();
@@ -9595,18 +9609,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (filtered.length === 0) {
         dropdownCombobox.innerHTML = `
-          <div class="combobox-empty">
-            <span style="font-size: 1.4rem;">🔍</span>
-            <span style="font-weight: 600; color: #ffffff;">Tidak ada guru ditemukan</span>
-            <span style="font-size: 0.75rem;">Kata kunci: "${filterText}"</span>
+          <div class="combobox-empty" style="padding: 1.25rem 0.75rem; text-align: center; color: #94a3b8;">
+            <div style="font-size: 1.5rem; margin-bottom: 0.35rem;">🔍</div>
+            <div style="font-weight: 600; color: #ffffff; font-size: 0.88rem;">Tidak ada guru ditemukan</div>
+            <div style="font-size: 0.75rem; margin-top: 0.2rem;">Kata kunci: "${filterText}"</div>
+            <button type="button" class="btn-clear-combobox-filter" style="margin-top: 0.65rem; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.75rem; cursor: pointer;">Tampilkan Semua Pendidik</button>
           </div>
         `;
+        const btnClear = dropdownCombobox.querySelector(".btn-clear-combobox-filter");
+        if (btnClear) {
+          btnClear.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (inputTeacherSearch) inputTeacherSearch.value = "";
+            renderComboboxItems("", true);
+          });
+        }
         return;
       }
 
+      const fragment = document.createDocumentFragment();
       filtered.forEach(t => {
+        if (!t) return;
+        const canonicalId = (t.nip && t.nip.length > 3 && t.nip !== "-") ? t.nip : (t.teacherId || t.id);
+        const isSelected = selectedId && (selectedId === canonicalId || selectedId === t.id || selectedId === t.nip || selectedId === t.teacherId);
+
         const item = document.createElement("div");
-        item.className = `combobox-item ${t.id === selectedId ? 'selected' : ''}`;
+        item.className = `combobox-item ${isSelected ? 'selected' : ''}`;
+        item.dataset.teacherId = canonicalId;
+        item.dataset.legacyId = t.id || "";
+        item.dataset.nip = t.nip || "";
+        item.dataset.name = t.name || "";
+
         const initials = (t.name || "GR").split(" ").filter(Boolean).map(n => n[0]).slice(0, 2).join("").toUpperCase();
         
         item.innerHTML = `
@@ -9614,38 +9648,60 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="combobox-info">
             <div class="combobox-name">
               <span>${t.name}</span>
-              ${t.id === selectedId ? '<span class="combobox-check">✓</span>' : ''}
+              ${isSelected ? '<span class="combobox-check">✓</span>' : ''}
             </div>
             <div class="combobox-sub">${t.subject || 'Guru Mapel'} • NIP: ${t.nip || '-'}</div>
           </div>
         `;
 
-        item.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          selectTeacherAccount(t);
-        });
-
-        dropdownCombobox.appendChild(item);
+        fragment.appendChild(item);
       });
+      dropdownCombobox.appendChild(fragment);
+    }
+
+    // Event delegation on dropdown container for seamless touch and mouse interactions
+    function handleComboboxItemSelection(e) {
+      const item = e.target.closest(".combobox-item");
+      if (!item) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const tid = item.dataset.teacherId;
+      const legId = item.dataset.legacyId;
+      const nip = item.dataset.nip;
+      const teachers = getLiveTeachers();
+      const teacher = teachers.find(t => 
+        (tid && (t.nip === tid || t.id === tid || t.teacherId === tid)) ||
+        (legId && (t.id === legId || t.teacherId === legId)) ||
+        (nip && t.nip === nip)
+      );
+      if (teacher) {
+        selectTeacherAccount(teacher);
+      }
+    }
+
+    if (dropdownCombobox) {
+      dropdownCombobox.addEventListener("pointerdown", handleComboboxItemSelection);
+      dropdownCombobox.addEventListener("click", handleComboboxItemSelection);
     }
 
     function selectTeacherAccount(teacher) {
       if (!teacher) return;
-      if (hiddenTeacherId) hiddenTeacherId.value = teacher.id;
+      const canonicalId = (teacher.nip && teacher.nip.length > 3 && teacher.nip !== "-") ? teacher.nip : (teacher.teacherId || teacher.id);
+      if (hiddenTeacherId) hiddenTeacherId.value = canonicalId;
       if (inputTeacherSearch) inputTeacherSearch.value = teacher.name;
-      updateMainTeacherPreview(teacher.id);
+      updateMainTeacherPreview(canonicalId);
       closeCombobox();
       hideLoginAlert();
       const pass = document.getElementById("inputMainTeacherPassword");
       if (pass) {
         pass.value = "";
-        pass.focus();
+        setTimeout(() => pass.focus(), 80);
       }
     }
 
-    function openCombobox() {
+    function openCombobox(forceShowAll = false) {
       if (!dropdownCombobox) return;
-      renderComboboxItems(inputTeacherSearch ? inputTeacherSearch.value : "");
+      renderComboboxItems(forceShowAll ? "" : (inputTeacherSearch ? inputTeacherSearch.value : ""), forceShowAll);
       dropdownCombobox.classList.add("show");
       if (btnToggleCombobox) btnToggleCombobox.classList.add("open");
     }
@@ -9660,19 +9716,24 @@ document.addEventListener("DOMContentLoaded", () => {
       if (dropdownCombobox && dropdownCombobox.classList.contains("show")) {
         closeCombobox();
       } else {
-        openCombobox();
+        openCombobox(true); // Klik tombol panah selalu tampilkan seluruh guru
         if (inputTeacherSearch) inputTeacherSearch.focus();
       }
     }
 
     if (inputTeacherSearch) {
       inputTeacherSearch.addEventListener("focus", () => {
-        openCombobox();
+        openCombobox(true); // Buka seluruh daftar saat fokus
+      });
+
+      inputTeacherSearch.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openCombobox(true);
       });
 
       inputTeacherSearch.addEventListener("input", () => {
-        openCombobox();
         const val = inputTeacherSearch.value.trim().toLowerCase();
+        openCombobox(false);
         if (!val) {
           if (hiddenTeacherId) hiddenTeacherId.value = "";
           updateMainTeacherPreview(null);
@@ -9684,8 +9745,9 @@ document.addEventListener("DOMContentLoaded", () => {
           (t.username || "").toLowerCase() === val
         );
         if (exact) {
-          if (hiddenTeacherId) hiddenTeacherId.value = exact.id;
-          updateMainTeacherPreview(exact.id);
+          const canonicalId = (exact.nip && exact.nip.length > 3 && exact.nip !== "-") ? exact.nip : (exact.teacherId || exact.id);
+          if (hiddenTeacherId) hiddenTeacherId.value = canonicalId;
+          updateMainTeacherPreview(canonicalId);
         } else {
           if (hiddenTeacherId) hiddenTeacherId.value = "";
           updateMainTeacherPreview(null);
@@ -9699,7 +9761,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const firstItem = dropdownCombobox ? dropdownCombobox.querySelector(".combobox-item") : null;
           if (firstItem && dropdownCombobox.classList.contains("show")) {
             e.preventDefault();
-            firstItem.dispatchEvent(new MouseEvent("mousedown"));
+            firstItem.dispatchEvent(new MouseEvent("click"));
           }
         }
       });
@@ -9770,7 +9832,7 @@ document.addEventListener("DOMContentLoaded", () => {
             (t.email || "").toLowerCase() === inputVal.toLowerCase()
           );
           if (match) {
-            targetIdentifier = match.id;
+            targetIdentifier = (match.nip && match.nip.length > 3 && match.nip !== "-") ? match.nip : (match.teacherId || match.id);
           } else if (!targetIdentifier) {
             targetIdentifier = inputVal;
           }
@@ -9789,14 +9851,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (authResult.success) {
           hideLoginAlert();
           const teacher = authResult.teacher;
-          StorageService.setTeacherLoggedIn(teacher.id, remember);
-          StorageService.setActiveTeacherId(teacher.id);
+          const canonicalId = (teacher.nip && teacher.nip.length > 3 && teacher.nip !== "-") ? teacher.nip : (teacher.teacherId || teacher.id);
+          StorageService.setTeacherLoggedIn(canonicalId, remember);
+          StorageService.setActiveTeacherId(canonicalId);
           StorageService.syncActiveTeachingSchedules();
           SoundService.playSuccess();
 
           // Autentikasi Firebase Cloud Database Tertutup jika aktif
           if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-            FirebaseService.loginWithNip(teacher.nip || teacher.id, pin, "teacher", teacher)
+            FirebaseService.loginWithNip(teacher.nip || canonicalId, pin, "teacher", teacher)
               .then(res => {
                 if (res.success) {
                   console.log("[Firebase] Akun guru terautentikasi (Sesi Tertutup):", teacher.name);
