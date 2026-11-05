@@ -2774,6 +2774,8 @@
                   <span class="filter-select-label">Kepegawaian:</span>
                   <select id="selectTeachersDbKepegawaian" class="filter-select">
                     <option value="all">Semua Status</option>
+                    <option value="Yayasan">Guru Tetap Yayasan</option>
+                    <option value="Guru Tetap Kemenag">Guru Tetap Kemenag</option>
                     <option value="PNS">PNS / ASN Kemenag</option>
                     <option value="PPPK">PPPK</option>
                     <option value="GTT">GTT / Honorer</option>
@@ -3745,13 +3747,13 @@
 
             <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="selectTeacherDept">Departemen MGMP</label>
-                <select id="selectTeacherDept" class="form-control" required>
-                  <option value="PAI">MGMP PAI</option>
-                  <option value="Bahasa">MGMP Bahasa</option>
-                  <option value="MIPA">MGMP MIPA</option>
-                  <option value="IPS">MGMP IPS & PPKn</option>
-                  <option value="Mulok">Mulok & Seni</option>
+                <label class="form-label" for="selectTeacherKepegawaian">Status Kepegawaian</label>
+                <select id="selectTeacherKepegawaian" class="form-control" required>
+                  <option value="Guru Tetap Yayasan">Guru Tetap Yayasan</option>
+                  <option value="Guru Tetap Kemenag">Guru Tetap Kemenag</option>
+                  <option value="PNS / ASN">PNS / ASN Kemenag</option>
+                  <option value="PPPK">PPPK</option>
+                  <option value="GTT / Honorer">GTT / Honorer</option>
                 </select>
               </div>
               <div class="form-group" style="margin-bottom: 0;">
@@ -3760,17 +3762,8 @@
               </div>
             </div>
 
-            <div class="modal-form-grid-2">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="selectTeacherKepegawaian">Status Kepegawaian</label>
-                <select id="selectTeacherKepegawaian" class="form-control" required>
-                  <option value="PNS / ASN">PNS / ASN Kemenag</option>
-                  <option value="PPPK">PPPK</option>
-                  <option value="GTT / Honorer">GTT / Honorer</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="selectTeacherClassAssigned">Tugas Tambahan</label>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="selectTeacherClassAssigned">Tugas Tambahan</label>
                 <select id="selectTeacherClassAssigned" class="form-control" required>
                   <option value="Guru Mapel">Guru Mapel</option>
                   <option value="Wali Kelas VII-A">Wali Kelas VII-A</option>
@@ -4384,10 +4377,10 @@
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="selectMyProfileKepegawaian">Status Kepegawaian</label>
                 <select id="selectMyProfileKepegawaian" class="form-control" required>
+                  <option value="Guru Tetap Yayasan">Guru Tetap Yayasan</option>
                   <option value="Guru Tetap Kemenag">Guru Tetap Kemenag</option>
                   <option value="PNS / ASN">PNS / ASN Kemenag</option>
                   <option value="PPPK">PPPK</option>
-                  <option value="Guru Tetap Yayasan">Guru Tetap Yayasan</option>
                   <option value="GTT / Honorer">GTT / Honorer</option>
                 </select>
               </div>
@@ -4397,24 +4390,8 @@
               </div>
             </div>
 
-            <div class="modal-form-grid-2">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="selectMyProfileDept">Departemen MGMP</label>
-                <select id="selectMyProfileDept" class="form-control" required>
-                  <option value="PAI">MGMP PAI</option>
-                  <option value="Bahasa">MGMP Bahasa</option>
-                  <option value="MIPA">MGMP MIPA</option>
-                  <option value="IPS">MGMP IPS & PPKn</option>
-                  <option value="Keagamaan & Muatan Lokal">Keagamaan & Muatan Lokal</option>
-                  <option value="Teknologi & Keterampilan">Teknologi & Keterampilan</option>
-                  <option value="Olahraga & Kesehatan">Olahraga & Kesehatan</option>
-                  <option value="Seni & Budaya">Seni & Budaya</option>
-                  <option value="BK">Bimbingan Konseling (BK)</option>
-                  <option value="Umum">Umum</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" for="selectMyProfileClassAssigned">Tugas Tambahan / Wali Kelas</label>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="selectMyProfileClassAssigned">Tugas Tambahan / Wali Kelas</label>
                 <select id="selectMyProfileClassAssigned" class="form-control" required>
                   <option value="Guru Mapel">Guru Mapel</option>
                   <option value="Wali Kelas VII-A">Wali Kelas VII-A</option>

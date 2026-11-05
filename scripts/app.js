@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HADIR.GURU - Client Application Logic
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
@@ -6866,6 +6866,7 @@ function initMainApplication() {
     function getKepegawaianBadgeClass(status) {
       if (status && status.includes("PNS")) return "badge-pns";
       if (status && status.includes("PPPK")) return "badge-pppk";
+      if (status && status.includes("Yayasan")) return "badge-yayasan";
       return "badge-gtt";
     }
 
@@ -7036,9 +7037,7 @@ function initMainApplication() {
           </td>
           <td>
             <div style="font-weight: 600; font-size: 0.84rem; color: var(--text-primary);">${teacher.subject}</div>
-            <div style="margin-top: 0.25rem;">
-              <span class="${getDeptBadgeClass(teacher.dept)}">${teacher.dept}</span>
-            </div>
+            ${teacher.dept && teacher.dept !== "-" ? `<div style="margin-top: 0.25rem;"><span class="${getDeptBadgeClass(teacher.dept)}">${teacher.dept}</span></div>` : ""}
           </td>
           <td>
             <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">
@@ -7214,7 +7213,7 @@ function initMainApplication() {
         const name = document.getElementById("inputTeacherFullName").value.trim();
         const nip = document.getElementById("inputTeacherNip").value.trim() || "-";
         const nuptk = document.getElementById("inputTeacherNuptk").value.trim() || "-";
-        const dept = document.getElementById("selectTeacherDept").value;
+        const dept = document.getElementById("selectTeacherDept") ? document.getElementById("selectTeacherDept").value : (editId ? (teachers.find(t => t.id === editId || (hasValidNip && String(t.nip).trim() === cleanNip))?.dept || "") : "");
         const subject = document.getElementById("inputTeacherSubject").value.trim();
         const kepegawaian = document.getElementById("selectTeacherKepegawaian").value;
         const classAssigned = document.getElementById("selectTeacherClassAssigned").value;
@@ -7494,7 +7493,7 @@ function initMainApplication() {
       document.getElementById("inputTeacherFullName").value = teacher.name;
       document.getElementById("inputTeacherNip").value = teacher.nip || "";
       document.getElementById("inputTeacherNuptk").value = teacher.nuptk || "";
-      document.getElementById("selectTeacherDept").value = teacher.dept || "PAI";
+      if (document.getElementById("selectTeacherDept")) document.getElementById("selectTeacherDept").value = teacher.dept || "PAI";
       document.getElementById("inputTeacherSubject").value = teacher.subject || "";
       document.getElementById("selectTeacherKepegawaian").value = teacher.kepegawaian || "PNS / ASN";
       document.getElementById("selectTeacherClassAssigned").value = teacher.classAssigned || "Guru Mapel";
@@ -7687,7 +7686,7 @@ function initMainApplication() {
         const nuptk = document.getElementById("inputMyProfileNuptk")?.value.trim() || "-";
         const kepegawaian = document.getElementById("selectMyProfileKepegawaian")?.value || "Guru Tetap Kemenag";
         const subject = document.getElementById("inputMyProfileSubject")?.value.trim() || "Guru Mapel";
-        const dept = document.getElementById("selectMyProfileDept")?.value || "PAI";
+        const dept = document.getElementById("selectMyProfileDept")?.value || currentProfile?.dept || "";
         const classAssigned = document.getElementById("selectMyProfileClassAssigned")?.value || "Guru Mapel";
         const email = document.getElementById("inputMyProfileEmail")?.value.trim() || "";
         const phone = document.getElementById("inputMyProfilePhone")?.value.trim() || "";
