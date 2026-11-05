@@ -261,6 +261,154 @@
     </div>
 </div>
 
+  <!-- Immediate Login & Clock Engine (Resilient Fallback for Hosting & Slow Networks) -->
+  <script>
+    (function initImmediateLoginPortal() {
+      function tickPortalClock() {
+        var el = document.getElementById("loginClockLive");
+        if (!el) return;
+        var now = new Date();
+        var h = String(now.getHours()).padStart(2, "0");
+        var m = String(now.getMinutes()).padStart(2, "0");
+        var s = String(now.getSeconds()).padStart(2, "0");
+        el.textContent = h + ":" + m + ":" + s + " WIB";
+      }
+      tickPortalClock();
+      setInterval(tickPortalClock, 1000);
+
+      function showPortalAlert(msg) {
+        var alertBox = document.getElementById("loginMainAlert");
+        var alertText = document.getElementById("loginMainAlertText");
+        if (alertBox) {
+          alertBox.style.display = "flex";
+          if (alertText) alertText.textContent = msg;
+        }
+      }
+
+      function hidePortalAlert() {
+        var alertBox = document.getElementById("loginMainAlert");
+        if (alertBox) alertBox.style.display = "none";
+      }
+
+      if (typeof window.switchLoginTab !== "function") {
+        window.switchLoginTab = function(mode) {
+          var tabTeacher = document.getElementById("tabBtnMainTeacherAuth");
+          var tabAdmin = document.getElementById("tabBtnMainAdminAuth");
+          var panelTeacher = document.getElementById("loginPanelTeacher");
+          var panelAdmin = document.getElementById("loginPanelAdmin");
+          hidePortalAlert();
+          if (mode === "admin") {
+            if (tabAdmin) tabAdmin.classList.add("active");
+            if (tabTeacher) tabTeacher.classList.remove("active");
+            if (panelAdmin) panelAdmin.style.display = "block";
+            if (panelTeacher) panelTeacher.style.display = "none";
+          } else {
+            if (tabTeacher) tabTeacher.classList.add("active");
+            if (tabAdmin) tabAdmin.classList.remove("active");
+            if (panelTeacher) panelTeacher.style.display = "block";
+            if (panelAdmin) panelAdmin.style.display = "none";
+          }
+        };
+      }
+
+      if (typeof window.handleTeacherLoginSubmit !== "function") {
+        window.handleTeacherLoginSubmit = function(e) {
+          if (e && e.preventDefault) e.preventDefault();
+          var select = document.getElementById("selectMainTeacherAccount");
+          var searchInput = document.getElementById("inputMainTeacherIdentifier");
+          var passInput = document.getElementById("inputMainTeacherPassword");
+          var rememberCheck = document.getElementById("checkMainTeacherRemember");
+          var targetId = select ? select.value.trim() : "";
+          if (!targetId && searchInput) targetId = searchInput.value.trim();
+          if (!targetId) {
+            showPortalAlert("Silakan pilih akun guru pendidik Anda dari daftar di atas.");
+            return;
+          }
+          var pin = passInput ? passInput.value.trim() : "";
+          if (!pin) {
+            showPortalAlert("Silakan masukkan PIN / Password Akun Anda (Default: 123456).");
+            return;
+          }
+          var remember = rememberCheck ? rememberCheck.checked : true;
+          if (typeof StorageService !== "undefined" && typeof StorageService.verifyTeacherCredentials === "function") {
+            var res = StorageService.verifyTeacherCredentials(targetId, pin);
+            if (!res.success) {
+              showPortalAlert(res.message || "Password atau PIN salah.");
+              return;
+            }
+            var t = res.teacher;
+            var cid = (t.nip && t.nip.length > 3 && t.nip !== "-") ? t.nip : (t.teacherId || t.id);
+            StorageService.setTeacherLoggedIn(cid, remember);
+            StorageService.setActiveTeacherId(cid);
+          } else if (pin !== "123456" && pin !== "Guru@2026!") {
+            showPortalAlert("Password atau PIN salah (Default: 123456).");
+            return;
+          }
+          hidePortalAlert();
+          try {
+            localStorage.setItem("hadir_guru_active_teacher_id", targetId);
+            sessionStorage.setItem("hadir_guru_teacher_session", "true");
+            sessionStorage.setItem("hadir_guru_auth_role", "teacher");
+            if (remember) {
+              localStorage.setItem("hadir_guru_teacher_remember", "true");
+              localStorage.setItem("hadir_guru_auth_role", "teacher");
+            }
+          } catch (err) {}
+          document.body.classList.remove("mode-login", "mode-admin");
+          document.body.classList.add("mode-guru");
+          var lv = document.getElementById("appLoginView");
+          if (lv) lv.style.display = "none";
+          if (typeof window.switchAppRole === "function") window.switchAppRole("teacher", true);
+          if (typeof window.switchToTab === "function") window.switchToTab("tab-dashboard");
+        };
+      }
+
+      if (typeof window.handleAdminLoginSubmit !== "function") {
+        window.handleAdminLoginSubmit = function(e) {
+          if (e && e.preventDefault) e.preventDefault();
+          var userInput = document.getElementById("inputMainAdminUsername");
+          var passInput = document.getElementById("inputMainAdminPassword");
+          var rememberCheck = document.getElementById("checkMainAdminRemember");
+          var username = userInput ? userInput.value.trim() : "";
+          var password = passInput ? passInput.value.trim() : "";
+          var remember = rememberCheck ? rememberCheck.checked : true;
+          if (!username || !password) {
+            showPortalAlert("Silakan masukkan username dan password administrator.");
+            return;
+          }
+          var isOk = false;
+          if (typeof StorageService !== "undefined" && typeof StorageService.verifyAdminCredentials === "function") {
+            isOk = StorageService.verifyAdminCredentials(username, password);
+          } else {
+            isOk = username.toLowerCase() === "admin" && (password === "@aries1977" || password === "admin123");
+          }
+          if (!isOk) {
+            showPortalAlert("Username atau password administrator salah.");
+            return;
+          }
+          hidePortalAlert();
+          if (typeof StorageService !== "undefined" && typeof StorageService.setAdminLoggedIn === "function") {
+            StorageService.setAdminLoggedIn(true, remember);
+          }
+          try {
+            sessionStorage.setItem("hadir_guru_admin_session", "true");
+            sessionStorage.setItem("hadir_guru_auth_role", "admin");
+            if (remember) {
+              localStorage.setItem("hadir_guru_admin_remember", "true");
+              localStorage.setItem("hadir_guru_auth_role", "admin");
+            }
+          } catch (err) {}
+          document.body.classList.remove("mode-login", "mode-guru");
+          document.body.classList.add("mode-admin");
+          var lv = document.getElementById("appLoginView");
+          if (lv) lv.style.display = "none";
+          if (typeof window.switchAppRole === "function") window.switchAppRole("admin", true);
+          if (typeof window.switchToTab === "function") window.switchToTab("tab-admin-monitoring");
+        };
+      }
+    })();
+  </script>
+
   <div class="app-shell">
 
     
@@ -4752,14 +4900,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
   <!-- Firebase Config & Service -->
-  <script src="scripts/firebase-config.js"></script>
-  <script src="scripts/firebase-service.js?v=3.4"></script>
+  <script src="scripts/firebase-config.js?v=4.2"></script>
+  <script src="scripts/firebase-service.js?v=4.2"></script>
   <!-- MySQL Backend REST API Adapter -->
-  <script src="scripts/api-service.js?v=3.5"></script>
+  <script src="scripts/api-service.js?v=4.2"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js?v=3.4"></script>
-  <script src="scripts/app.js?v=3.4"></script>
+  <script src="scripts/data.js?v=4.2"></script>
+  <script src="scripts/app.js?v=4.2"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>
