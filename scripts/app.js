@@ -6884,7 +6884,7 @@ function initMainApplication() {
     function generateTeacherWaMessage(teacher) {
       const portalUrl = window.location.origin + window.location.pathname;
       const username = teacher.username || (teacher.email ? teacher.email.split('@')[0] : 'guru');
-      const password = teacher.password || 'Guru@2026!';
+      const password = teacher.password || '123456';
 
       return (
         `*Yth. Bapak/Ibu ${teacher.name}*\n` +
@@ -7018,7 +7018,7 @@ function initMainApplication() {
           ? `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodeURIComponent(waMsg)}`
           : `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsg)}`;
 
-        const passDisplay = isPasswordRevealed ? (teacher.password || "Guru@2026!")  : "••••••••";
+        const passDisplay = isPasswordRevealed ? (teacher.password || "123456")  : "••••••••";
 
         tr.innerHTML = `
           <td style="text-align: center; font-weight: 700; color: var(--text-muted); font-size: 0.8rem;">
@@ -7059,7 +7059,7 @@ function initMainApplication() {
                 <span style="color: var(--text-muted); width: 45px;">Pass:</span>
                 <span class="cred-pill" style="font-family: 'JetBrains Mono';">
                   <span class="teacher-pass-text">${passDisplay}</span>
-                  <button type="button" class="cred-copy-btn" onclick="copyPasswordOnly('${teacher.password || 'Guru@2026!'}')" title="Salin Password">
+                  <button type="button" class="cred-copy-btn" onclick="copyPasswordOnly('${teacher.password || '123456'}')" title="Salin Password">
                     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                   </button>
                 </span>
@@ -7183,10 +7183,10 @@ function initMainApplication() {
     // Reset default passwords
     if (btnResetPasswords) {
       btnResetPasswords.addEventListener("click", () => {
-        if (!confirm("Reset seluruh password akun guru ke default 'Guru@2026!'-")) return;
-        StorageService.resetAllTeachersPasswords("Guru@2026!");
+        if (!confirm("Reset seluruh password akun guru ke default PIN '123456'?")) return;
+        StorageService.resetAllTeachersPasswords("123456");
         renderTeachersDb();
-        showToast("Password Direset", "Seluruh akun guru berhasil diatur ulang ke default: Guru@2026!", "info");
+        showToast("Password Direset", "Seluruh akun guru berhasil diatur ulang ke default PIN: 123456", "info");
       });
     }
 
@@ -7196,7 +7196,7 @@ function initMainApplication() {
         document.getElementById("inputTeacherEditId").value = "";
         if (modalTeacherTitle) modalTeacherTitle.textContent = "Tambah Data & Akun Guru Baru";
         if (formTeacherData) formTeacherData.reset();
-        document.getElementById("inputTeacherPassword").value = "Guru@2026!";
+        document.getElementById("inputTeacherPassword").value = "123456";
         const btnModalSendWa = document.getElementById("btnModalTeacherSendWa");
         if (btnModalSendWa) btnModalSendWa.style.display = "none";
         window.openModal("modalTeacherForm");
@@ -7219,7 +7219,7 @@ function initMainApplication() {
         const classAssigned = document.getElementById("selectTeacherClassAssigned").value;
         const email = document.getElementById("inputTeacherEmail").value.trim();
         const username = document.getElementById("inputTeacherUsername").value.trim() || email.split("@")[0];
-        const password = document.getElementById("inputTeacherPassword").value.trim() || "Guru@2026!";
+        const password = document.getElementById("inputTeacherPassword").value.trim() || "123456";
         const phone = document.getElementById("inputTeacherPhone").value.trim();
 
         const cleanNip = String(nip || "").trim();
@@ -7495,11 +7495,24 @@ function initMainApplication() {
       document.getElementById("inputTeacherNuptk").value = teacher.nuptk || "";
       if (document.getElementById("selectTeacherDept")) document.getElementById("selectTeacherDept").value = teacher.dept || "PAI";
       document.getElementById("inputTeacherSubject").value = teacher.subject || "";
-      document.getElementById("selectTeacherKepegawaian").value = teacher.kepegawaian || "PNS / ASN";
-      document.getElementById("selectTeacherClassAssigned").value = teacher.classAssigned || "Guru Mapel";
+      document.getElementById("selectTeacherKepegawaian").value = teacher.kepegawaian || "Guru Tetap Yayasan";
+      const elTeacherClass = document.getElementById("selectTeacherClassAssigned");
+      if (elTeacherClass) {
+        elTeacherClass.value = teacher.classAssigned || "Guru Mapel";
+        if (!elTeacherClass.value && teacher.classAssigned) {
+          const cleanTarget = teacher.classAssigned.toLowerCase().replace(/[^a-z0-9]/g, "");
+          for (let opt of elTeacherClass.options) {
+            const cleanOpt = opt.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (cleanOpt === cleanTarget || opt.text.toLowerCase().replace(/[^a-z0-9]/g, "").includes(cleanTarget)) {
+              elTeacherClass.value = opt.value;
+              break;
+            }
+          }
+        }
+      }
       document.getElementById("inputTeacherEmail").value = teacher.email || "";
       document.getElementById("inputTeacherUsername").value = teacher.username || (teacher.email ? teacher.email.split("@")[0]  : "");
-      document.getElementById("inputTeacherPassword").value = teacher.password || "Guru@2026!";
+      document.getElementById("inputTeacherPassword").value = teacher.password || "123456";
       document.getElementById("inputTeacherPhone").value = teacher.phone || "";
 
       const btnModalSendWa = document.getElementById("btnModalTeacherSendWa");
@@ -7565,7 +7578,19 @@ function initMainApplication() {
       if (elKepegawaian) elKepegawaian.value = kepegawaian;
       if (elSubject) elSubject.value = subject;
       if (elDept) elDept.value = dept;
-      if (elClassAssigned) elClassAssigned.value = classAssigned;
+      if (elClassAssigned) {
+        elClassAssigned.value = classAssigned || "Guru Mapel";
+        if (!elClassAssigned.value && classAssigned) {
+          const cleanTarget = classAssigned.toLowerCase().replace(/[^a-z0-9]/g, "");
+          for (let opt of elClassAssigned.options) {
+            const cleanOpt = opt.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (cleanOpt === cleanTarget || opt.text.toLowerCase().replace(/[^a-z0-9]/g, "").includes(cleanTarget)) {
+              elClassAssigned.value = opt.value;
+              break;
+            }
+          }
+        }
+      }
       if (elEmail) elEmail.value = email;
       if (elPhone) elPhone.value = phone;
       if (elPassword) elPassword.value = password;

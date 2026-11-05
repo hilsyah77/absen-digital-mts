@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id" data-theme="light">
 <head>
   <meta charset="UTF-8">
@@ -2802,7 +2802,7 @@
                   </svg>
                   <span id="labelTogglePasswordText">Tampilkan Password</span>
                 </button>
-                <button type="button" class="btn-action-util btn-action-reset" id="btnResetAllDefaultPass" title="Reset password seluruh guru ke default 'Guru@2026!'">
+                <button type="button" class="btn-action-util btn-action-reset" id="btnResetAllDefaultPass" title="Reset password seluruh guru ke default PIN '123456'">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 2l-2 2m-1.5 1.5L16 7l-2-2m-4.5 4.5a5 5 0 1 0-7 7 5 5 0 0 0 7-7zm0 0L20 4"></path>
                   </svg>
@@ -3413,16 +3413,6 @@
           <div class="room-badge badge-waiting" id="modalCheckInPunctualityBadge">Evaluasi Waktu...</div>
         </div>
 
-        <!-- Simulated Camera / QR Code Scanner Viewfinder -->
-        <div class="scanner-frame-sim" id="scannerSimBox">
-          <div class="scanner-target">
-            <div class="scanner-laser"></div>
-          </div>
-          <div style="position: absolute; bottom: 12px; font-size: 0.75rem; color: #a7f3d0; background: rgba(0,0,0,0.65); padding: 0.25rem 0.75rem; border-radius: var(--radius-full); border: 1px solid rgba(16, 185, 129, 0.4);">
-            Arahkan kamera ke QR Code Pintu Kelas (<span id="modalCheckInQrCode">KLS-IXA-MTK</span>)
-          </div>
-        </div>
-
         <!-- GPS & Verification Checklist -->
         <div style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.75rem 1rem; font-size: 0.8rem;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -3763,24 +3753,52 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="selectTeacherClassAssigned">Tugas Tambahan</label>
+              <label class="form-label" for="selectTeacherClassAssigned">Tugas Tambahan / Penugasan Wali Kelas</label>
                 <select id="selectTeacherClassAssigned" class="form-control" required>
-                  <option value="Guru Mapel">Guru Mapel</option>
-                  <option value="Wali Kelas VII-A">Wali Kelas VII-A</option>
-                  <option value="Wali Kelas VII-B">Wali Kelas VII-B</option>
-                  <option value="Wali Kelas VII-C">Wali Kelas VII-C</option>
-                  <option value="Wali Kelas VII-D">Wali Kelas VII-D</option>
-                  <option value="Wali Kelas VIII-A">Wali Kelas VIII-A</option>
-                  <option value="Wali Kelas VIII-B">Wali Kelas VIII-B</option>
-                  <option value="Wali Kelas VIII-C">Wali Kelas VIII-C</option>
-                  <option value="Wali Kelas VIII-D">Wali Kelas VIII-D</option>
-                  <option value="Wali Kelas IX-A">Wali Kelas IX-A</option>
-                  <option value="Wali Kelas IX-B">Wali Kelas IX-B</option>
-                  <option value="Wali Kelas IX-C">Wali Kelas IX-C</option>
-                  <option value="Wali Kelas IX-D">Wali Kelas IX-D</option>
-                  <option value="Guru Piket Standby">Guru Piket Standby</option>
+                  <option value="Guru Mapel">Guru Mapel (Pengajar)</option>
+                  
+                  <optgroup label="â”€â”€â”€ Wali Kelas VII (Kelas 7) â”€â”€â”€">
+                    <option value="Wali Kelas VII-A">Wali Kelas VII-A (7A)</option>
+                    <option value="Wali Kelas VII-B">Wali Kelas VII-B (7B)</option>
+                    <option value="Wali Kelas VII-C">Wali Kelas VII-C (7C)</option>
+                    <option value="Wali Kelas VII-D">Wali Kelas VII-D (7D)</option>
+                    <option value="Wali Kelas VII-E">Wali Kelas VII-E (7E)</option>
+                    <option value="Wali Kelas VII-F">Wali Kelas VII-F (7F)</option>
+                    <option value="Wali Kelas VII-G">Wali Kelas VII-G (7G)</option>
+                    <option value="Wali Kelas VII-H">Wali Kelas VII-H (7H)</option>
+                  </optgroup>
+
+                  <optgroup label="â”€â”€â”€ Wali Kelas VIII (Kelas 8) â”€â”€â”€">
+                    <option value="Wali Kelas VIII-A">Wali Kelas VIII-A (8A)</option>
+                    <option value="Wali Kelas VIII-B">Wali Kelas VIII-B (8B)</option>
+                    <option value="Wali Kelas VIII-C">Wali Kelas VIII-C (8C)</option>
+                    <option value="Wali Kelas VIII-D">Wali Kelas VIII-D (8D)</option>
+                    <option value="Wali Kelas VIII-E">Wali Kelas VIII-E (8E)</option>
+                    <option value="Wali Kelas VIII-F">Wali Kelas VIII-F (8F)</option>
+                    <option value="Wali Kelas VIII-G">Wali Kelas VIII-G (8G)</option>
+                    <option value="Wali Kelas VIII-H">Wali Kelas VIII-H (8H)</option>
+                  </optgroup>
+
+                  <optgroup label="â”€â”€â”€ Wali Kelas IX (Kelas 9) â”€â”€â”€">
+                    <option value="Wali Kelas IX-A">Wali Kelas IX-A (9A)</option>
+                    <option value="Wali Kelas IX-B">Wali Kelas IX-B (9B)</option>
+                    <option value="Wali Kelas IX-C">Wali Kelas IX-C (9C)</option>
+                    <option value="Wali Kelas IX-D">Wali Kelas IX-D (9D)</option>
+                    <option value="Wali Kelas IX-E">Wali Kelas IX-E (9E)</option>
+                    <option value="Wali Kelas IX-F">Wali Kelas IX-F (9F)</option>
+                    <option value="Wali Kelas IX-G">Wali Kelas IX-G (9G)</option>
+                    <option value="Wali Kelas IX-H">Wali Kelas IX-H (9H)</option>
+                    <option value="Wali Kelas IX-I">Wali Kelas IX-I (9I)</option>
+                    <option value="Wali Kelas IX-J">Wali Kelas IX-J (9J)</option>
+                  </optgroup>
+
+                  <optgroup label="â”€â”€â”€ Tugas Tambahan Lainnya â”€â”€â”€">
+                    <option value="Guru BK">Guru BK (Bimbingan Konseling)</option>
+                    <option value="Guru Piket Standby">Guru Piket Standby</option>
+                    <option value="Guru Pembina">Guru Pembina OSIS / Ekstrakurikuler</option>
+                    <option value="Kepala Madrasah">Kepala Madrasah / Manajemen</option>
+                  </optgroup>
                 </select>
-              </div>
             </div>
           </div>
 
@@ -3804,7 +3822,7 @@
             <div class="modal-form-grid-2">
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputTeacherPassword">Password Akun</label>
-                <input type="text" class="form-control" id="inputTeacherPassword" value="Guru@2026!" required>
+                <input type="text" class="form-control" id="inputTeacherPassword" value="123456" required>
               </div>
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" for="inputTeacherPhone">Nomor WhatsApp / HP</label>
@@ -4391,39 +4409,52 @@
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
-              <label class="form-label" for="selectMyProfileClassAssigned">Tugas Tambahan / Wali Kelas</label>
+              <label class="form-label" for="selectMyProfileClassAssigned">Tugas Tambahan / Penugasan Wali Kelas</label>
                 <select id="selectMyProfileClassAssigned" class="form-control" required>
-                  <option value="Guru Mapel">Guru Mapel</option>
-                  <option value="Wali Kelas VII-A">Wali Kelas VII-A</option>
-                  <option value="Wali Kelas VII-B">Wali Kelas VII-B</option>
-                  <option value="Wali Kelas VII-C">Wali Kelas VII-C</option>
-                  <option value="Wali Kelas VII-D">Wali Kelas VII-D</option>
-                  <option value="Wali Kelas VII-E">Wali Kelas VII-E</option>
-                  <option value="Wali Kelas VII-F">Wali Kelas VII-F</option>
-                  <option value="Wali Kelas VII-G">Wali Kelas VII-G</option>
-                  <option value="Wali Kelas VII-H">Wali Kelas VII-H</option>
-                  <option value="Wali Kelas VIII-A">Wali Kelas VIII-A</option>
-                  <option value="Wali Kelas VIII-B">Wali Kelas VIII-B</option>
-                  <option value="Wali Kelas VIII-C">Wali Kelas VIII-C</option>
-                  <option value="Wali Kelas VIII-D">Wali Kelas VIII-D</option>
-                  <option value="Wali Kelas VIII-E">Wali Kelas VIII-E</option>
-                  <option value="Wali Kelas VIII-F">Wali Kelas VIII-F</option>
-                  <option value="Wali Kelas VIII-G">Wali Kelas VIII-G</option>
-                  <option value="Wali Kelas VIII-H">Wali Kelas VIII-H</option>
-                  <option value="Wali Kelas IX-A">Wali Kelas IX-A</option>
-                  <option value="Wali Kelas IX-B">Wali Kelas IX-B</option>
-                  <option value="Wali Kelas IX-C">Wali Kelas IX-C</option>
-                  <option value="Wali Kelas IX-D">Wali Kelas IX-D</option>
-                  <option value="Wali Kelas IX-E">Wali Kelas IX-E</option>
-                  <option value="Wali Kelas IX-F">Wali Kelas IX-F</option>
-                  <option value="Wali Kelas IX-G">Wali Kelas IX-G</option>
-                  <option value="Wali Kelas IX-H">Wali Kelas IX-H</option>
-                  <option value="Wali Kelas IX-I">Wali Kelas IX-I</option>
-                  <option value="Wali Kelas IX-J">Wali Kelas IX-J</option>
-                  <option value="Guru Piket Standby">Guru Piket Standby</option>
-                  <option value="Guru Pembina">Guru Pembina</option>
+                  <option value="Guru Mapel">Guru Mapel (Pengajar)</option>
+                  
+                  <optgroup label="â”€â”€â”€ Wali Kelas VII (Kelas 7) â”€â”€â”€">
+                    <option value="Wali Kelas VII-A">Wali Kelas VII-A (7A)</option>
+                    <option value="Wali Kelas VII-B">Wali Kelas VII-B (7B)</option>
+                    <option value="Wali Kelas VII-C">Wali Kelas VII-C (7C)</option>
+                    <option value="Wali Kelas VII-D">Wali Kelas VII-D (7D)</option>
+                    <option value="Wali Kelas VII-E">Wali Kelas VII-E (7E)</option>
+                    <option value="Wali Kelas VII-F">Wali Kelas VII-F (7F)</option>
+                    <option value="Wali Kelas VII-G">Wali Kelas VII-G (7G)</option>
+                    <option value="Wali Kelas VII-H">Wali Kelas VII-H (7H)</option>
+                  </optgroup>
+
+                  <optgroup label="â”€â”€â”€ Wali Kelas VIII (Kelas 8) â”€â”€â”€">
+                    <option value="Wali Kelas VIII-A">Wali Kelas VIII-A (8A)</option>
+                    <option value="Wali Kelas VIII-B">Wali Kelas VIII-B (8B)</option>
+                    <option value="Wali Kelas VIII-C">Wali Kelas VIII-C (8C)</option>
+                    <option value="Wali Kelas VIII-D">Wali Kelas VIII-D (8D)</option>
+                    <option value="Wali Kelas VIII-E">Wali Kelas VIII-E (8E)</option>
+                    <option value="Wali Kelas VIII-F">Wali Kelas VIII-F (8F)</option>
+                    <option value="Wali Kelas VIII-G">Wali Kelas VIII-G (8G)</option>
+                    <option value="Wali Kelas VIII-H">Wali Kelas VIII-H (8H)</option>
+                  </optgroup>
+
+                  <optgroup label="â”€â”€â”€ Wali Kelas IX (Kelas 9) â”€â”€â”€">
+                    <option value="Wali Kelas IX-A">Wali Kelas IX-A (9A)</option>
+                    <option value="Wali Kelas IX-B">Wali Kelas IX-B (9B)</option>
+                    <option value="Wali Kelas IX-C">Wali Kelas IX-C (9C)</option>
+                    <option value="Wali Kelas IX-D">Wali Kelas IX-D (9D)</option>
+                    <option value="Wali Kelas IX-E">Wali Kelas IX-E (9E)</option>
+                    <option value="Wali Kelas IX-F">Wali Kelas IX-F (9F)</option>
+                    <option value="Wali Kelas IX-G">Wali Kelas IX-G (9G)</option>
+                    <option value="Wali Kelas IX-H">Wali Kelas IX-H (9H)</option>
+                    <option value="Wali Kelas IX-I">Wali Kelas IX-I (9I)</option>
+                    <option value="Wali Kelas IX-J">Wali Kelas IX-J (9J)</option>
+                  </optgroup>
+
+                  <optgroup label="â”€â”€â”€ Tugas Tambahan Lainnya â”€â”€â”€">
+                    <option value="Guru BK">Guru BK (Bimbingan Konseling)</option>
+                    <option value="Guru Piket Standby">Guru Piket Standby</option>
+                    <option value="Guru Pembina">Guru Pembina OSIS / Ekstrakurikuler</option>
+                    <option value="Kepala Madrasah">Kepala Madrasah / Manajemen</option>
+                  </optgroup>
                 </select>
-              </div>
             </div>
           </div>
 
