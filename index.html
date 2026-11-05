@@ -1517,23 +1517,42 @@
               </div>
             </div>
 
-            <div class="table-responsive">
-              <table class="custom-table">
+            <!-- Table Scroll Hint Bar -->
+            <div class="table-scroll-hint">
+              <span id="rekapShowingCountText">Menampilkan daftar presensi guru</span>
+              <span class="table-scroll-hint-pill">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16l-4-4 4-4m10 0l4 4-4 4M3 12h18"></path></svg>
+                <span>Geser tabel ke samping</span>
+              </span>
+            </div>
+
+            <div class="table-responsive table-scroll-container">
+              <table class="custom-table" style="margin-bottom: 0; min-width: 900px;">
                 <thead>
                   <tr>
+                    <th style="width: 50px; text-align: center;">No</th>
                     <th>Guru & NIP</th>
                     <th>Mata Pelajaran</th>
                     <th>Status Presensi</th>
                     <th>Jam Masuk</th>
                     <th>Jam Pulang</th>
                     <th>Keterangan</th>
-                    <th>Aksi</th>
+                    <th style="width: 100px; text-align: center;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody id="allTeachersAttendanceTableBody">
                   <!-- Populated via JS -->
                 </tbody>
               </table>
+            </div>
+
+            <!-- Table Pagination & Footer Controls -->
+            <div id="rekapAttendancePaginationContainer" class="table-pagination-bar">
+              <!-- Populated via JS -->
+            </div>
+            <div style="margin-top: 0.5rem; font-size: 0.76rem; color: var(--emerald-600); display: flex; align-items: center; gap: 0.35rem;">
+              <span>ðŸ’¡</span>
+              <span>Tip: Gunakan tombol <strong>WhatsApp</strong> untuk langsung mengonfirmasi status presensi ke kontak guru madrasah.</span>
             </div>
           </div>
         </section>
@@ -4718,13 +4737,14 @@
 
   <!-- Firebase Config & Service -->
   <script src="scripts/firebase-config.js"></script>
-  <script src="scripts/firebase-service.js?v=3.1"></script>
+  <script src="scripts/firebase-service.js?v=3.2"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js?v=3.1"></script>
-  <script src="scripts/app.js?v=3.1"></script>
+  <script src="scripts/data.js?v=3.2"></script>
+  <script src="scripts/app.js?v=3.2"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>
+
 
 

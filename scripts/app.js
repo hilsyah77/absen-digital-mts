@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HADIR.GURU - Client Application Logic
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
@@ -3869,9 +3869,14 @@ function initMainApplication() {
   // 2. Render Rekapitulasi Presensi Seluruh Guru (Admin)
   let currentRekapFilter = "all";
   let currentRekapSearchQuery = "";
+  let rekapCurrentPage = 1;
+  let rekapPageSize = 15;
 
   function renderAdminAllTeachersAttendance(filter) {
-    if (filter !== undefined) currentRekapFilter = filter;
+    if (filter !== undefined && filter !== currentRekapFilter) {
+      currentRekapFilter = filter;
+      rekapCurrentPage = 1;
+    }
     const tbody = document.getElementById("allTeachersAttendanceTableBody");
     if (!tbody) return;
     tbody.innerHTML = "";
@@ -3933,41 +3938,79 @@ function initMainApplication() {
       return true;
     });
 
+    const isAll = rekapPageSize === -1;
+    const totalPages = isAll ? 1 : Math.max(1, Math.ceil(filtered.length / rekapPageSize));
+    if (rekapCurrentPage > totalPages) rekapCurrentPage = totalPages;
+    if (rekapCurrentPage < 1) rekapCurrentPage = 1;
+
+    const startIndex = isAll ? 0 : (rekapCurrentPage - 1) * rekapPageSize;
+    const endIndex = isAll ? filtered.length : Math.min(startIndex + rekapPageSize, filtered.length);
+    const pageItems = filtered.slice(startIndex, endIndex);
+
+    const showingCountText = document.getElementById("rekapShowingCountText");
+    if (showingCountText) {
+      showingCountText.textContent = filtered.length === 0
+        ? "Tidak ada data presensi guru"
+        : `Menampilkan ${startIndex + 1}â€“${endIndex} dari ${filtered.length} guru (Total: ${allTeachers.length})`;
+    }
+
+    const paginationContainer = document.getElementById("rekapAttendancePaginationContainer");
+    if (paginationContainer) {
+      renderTablePagination(paginationContainer, {
+        currentPage: rekapCurrentPage,
+        pageSize: rekapPageSize,
+        totalItems: filtered.length,
+        pageSizeOptions: [10, 15, 25, 50, -1],
+        itemLabel: "guru",
+        onPageChange: (newPage) => {
+          rekapCurrentPage = newPage;
+          renderAdminAllTeachersAttendance();
+        },
+        onPageSizeChange: (newSize) => {
+          rekapPageSize = newSize;
+          rekapCurrentPage = 1;
+          renderAdminAllTeachersAttendance();
+        }
+      });
+    }
+
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Tidak ditemukan data guru dengan kata kunci atau filter ini.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2.5rem;"><div style="margin-bottom: 0.5rem;"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" style="color: var(--text-muted);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div><strong style="font-size: 0.92rem; color: var(--text-primary); display: block;">Data Presensi Tidak Ditemukan</strong><span>Tidak ditemukan data guru dengan kata kunci atau filter ini.</span></td></tr>`;
       return;
     }
 
-    filtered.forEach(t => {
+    pageItems.forEach((t, idx) => {
+      const rowNum = startIndex + idx + 1;
       const tr = document.createElement("tr");
       let badgeClass = "badge-hadir";
       if (t.status === "Terlambat" || t.isLate) badgeClass = "badge-terlambat";
       if (t.status === "Izin") badgeClass = "badge-izin";
       if (t.status === "Belum Absen") badgeClass = "badge-belum";
 
-      const phoneClean = t.phone ? t.phone.replace(/[^0-9]/g, "")  : "";
+      const phoneClean = t.phone ? t.phone.replace(/[^0-9]/g, "") : "";
       const waMsg = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Bapak/Ibu ${t.name}, konfirmasi presensi digital MTs Negeri 1 Teladan hari ini.`);
 
       tr.innerHTML = `
+        <td style="text-align: center; font-weight: 600; color: var(--text-muted); font-size: 0.82rem;">${rowNum}</td>
         <td>
           <div style="display: flex; align-items: center; gap: 0.65rem;">
             <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; box-shadow: 0 2px 6px rgba(16,185,129,0.3); flex-shrink: 0;">
-              ${t.name.charAt(0)}
+              ${(t.name || '?').charAt(0)}
             </div>
             <div>
-              <strong>${t.name}</strong>
+              <strong>${t.name || '-'}</strong>
               <div style="font-size: 0.72rem; color: var(--text-muted); font-family: 'JetBrains Mono';">NIP: ${t.nip || '-'}</div>
             </div>
           </div>
         </td>
         <td><span style="font-weight: 600;">${t.subject || '-'}</span></td>
-        <td><span class="badge-pill-status ${badgeClass}">${t.status}</span></td>
+        <td><span class="badge-pill-status ${badgeClass}">${t.status || 'Belum Absen'}</span></td>
         <td style="font-family: 'JetBrains Mono'; font-weight: 700;">${t.checkIn || '-'}</td>
         <td style="font-family: 'JetBrains Mono';">${t.checkOut || '-'}</td>
         <td style="font-size: 0.78rem; color: var(--text-secondary);">${t.statusDetail || '-'}</td>
-        <td>
+        <td style="text-align: center;">
           <a class="btn-secondary" style="font-size: 0.72rem; padding: 0.3rem 0.65rem; display: inline-flex; align-items: center; gap: 0.35rem;" href="https://wa.me/${phoneClean}?text=${waMsg}" target="_blank" title="Kirim Pesan WhatsApp">
-            <span>?? WA</span>
+            <span>ðŸ“² WA</span>
           </a>
         </td>
       `;
@@ -3980,6 +4023,7 @@ function initMainApplication() {
       searchInput.dataset.bound = "true";
       searchInput.addEventListener("input", (e) => {
         currentRekapSearchQuery = e.target.value;
+        rekapCurrentPage = 1;
         renderAdminAllTeachersAttendance();
       });
     }
@@ -11057,6 +11101,7 @@ function initMainApplication() {
   window.renderClassroomRadar = renderClassroomRadar;
   window.updateRadarKpis = updateRadarKpis;
   window.renderAdminActivityFeed = renderAdminActivityFeed;
+  window.renderAdminAllTeachersAttendance = renderAdminAllTeachersAttendance;
 
   console.log("HADIR.GURU Teacher Dashboard & Real-Time Classroom Monitoring initialized successfully.");
 }
