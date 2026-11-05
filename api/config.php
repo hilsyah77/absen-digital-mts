@@ -71,3 +71,4 @@ function sendResponse($success, $data = null, $message = "", $httpCode = 200) {
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit();
 }
+

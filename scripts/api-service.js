@@ -181,6 +181,38 @@ const ApiService = {
   },
 
   /**
+   * 9. Simpan / Update Data Guru atau Profil Guru ke MySQL
+   */
+  async saveTeacher(teacherData) {
+    try {
+      const res = await fetch(`${this.baseUrl}/teachers.php?action=save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(teacherData || {})
+      });
+      return await res.json();
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * 10. Simpan Jadwal Piket Sambut 5S / Pengaturan Sistem ke MySQL
+   */
+  async savePicketRoster(rosterData) {
+    try {
+      const res = await fetch(`${this.baseUrl}/settings.php`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ welcoming_picket_roster: rosterData })
+      });
+      return await res.json();
+    } catch (error) {
+      return { success: false, message: error.message };
+    }
+  },
+
+  /**
    * Inisialisasi Otomatis Saat Web Dimuat
    */
   async init() {
@@ -198,3 +230,4 @@ if (typeof window !== "undefined") {
     ApiService.init().catch(() => {});
   });
 }
+

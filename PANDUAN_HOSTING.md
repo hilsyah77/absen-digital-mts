@@ -113,3 +113,4 @@ define('DB_CHARSET', 'utf8mb4');
 * **ID / Username**: Gunakan **NIP resmi** masing-masing guru (contoh: `91000074100899` untuk Abdur Rouf)
 * **PIN & Password Default**: `123456`
 * Guru dapat mengganti password dan PIN secara mandiri melalui menu Pengaturan Profil di aplikasi.
+

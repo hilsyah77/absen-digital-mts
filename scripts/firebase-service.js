@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HADIR.GURU MTs — Firebase Cloud Database & Real-Time Synchronization Service
  * 
  * Mengelola autentikasi berbasis NIP + Password, sinkronisasi real-time dua arah
@@ -714,7 +714,7 @@ const FirebaseService = {
         if (this.applyCloudDocument(id, data)) hasChanges = true;
       });
 
-      // Jika pengaturan lokal (school_config) memiliki _updatedAtMs lebih baru daripada Cloud (atau belum ada di Cloud), dorong ke Cloud
+      // Jika pengaturan lokal (school_config, picket, teachers_master) memiliki timestamp lebih baru daripada Cloud, dorong ke Cloud
       try {
         const localConfigRaw = localStorage.getItem("hadir_guru_school_config");
         if (localConfigRaw) {
@@ -724,6 +724,32 @@ const FirebaseService = {
           const cloudTs = cloudSchoolDoc ? Number(cloudSchoolDoc.data.updatedAtMs || 0) : 0;
           if (localCfg && (!cloudSchoolDoc || (localTs > 0 && localTs > cloudTs))) {
             await this.pushSyncState("school_config", localCfg);
+          }
+        }
+
+        const localPicketRaw = localStorage.getItem("hadir_guru_welcoming_picket_v2");
+        const localPicketTs = Number(localStorage.getItem("hadir_guru_welcoming_picket_updated_ms") || this._lastSyncTimestamps["__sync_picket__"] || 0);
+        if (localPicketRaw && localPicketTs > 0) {
+          const cloudPicketDoc = syncDocs.find((d) => d.id === "__sync_picket__");
+          const cloudPicketTs = cloudPicketDoc ? Number(cloudPicketDoc.data.updatedAtMs || 0) : 0;
+          if (!cloudPicketDoc || localPicketTs > cloudPicketTs) {
+            const parsedPicket = JSON.parse(localPicketRaw);
+            if (Array.isArray(parsedPicket)) {
+              await this.pushSyncState("picket", parsedPicket);
+            }
+          }
+        }
+
+        const localTeachersRaw = localStorage.getItem("hadir_guru_teachers_60");
+        const localTeachersTs = Number(localStorage.getItem("hadir_guru_teachers_updated_ms") || this._lastSyncTimestamps["__sync_teachers_master__"] || 0);
+        if (localTeachersRaw && localTeachersTs > 0) {
+          const cloudTeachersDoc = syncDocs.find((d) => d.id === "__sync_teachers_master__");
+          const cloudTeachersTs = cloudTeachersDoc ? Number(cloudTeachersDoc.data.updatedAtMs || 0) : 0;
+          if (!cloudTeachersDoc || localTeachersTs > cloudTeachersTs) {
+            const parsedTeachers = JSON.parse(localTeachersRaw);
+            if (Array.isArray(parsedTeachers)) {
+              await this.pushSyncState("teachers_master", parsedTeachers);
+            }
           }
         }
       } catch (cfgSyncErr) {}
@@ -774,6 +800,25 @@ const FirebaseService = {
       } catch (e) {}
     }
 
+    // Proteksi khusus untuk jadwal piket (__sync_picket__) & database guru (__sync_teachers_master__)
+    if (docId === "__sync_picket__") {
+      const localPicketTs = Number(localStorage.getItem("hadir_guru_welcoming_picket_updated_ms") || 0);
+      if (localPicketTs > 0 && (!updatedAtMs || updatedAtMs < localPicketTs)) {
+        this._lastSyncTimestamps[docId] = localPicketTs;
+        this._saveSyncTimestamps();
+        return false;
+      }
+    }
+
+    if (docId === "__sync_teachers_master__") {
+      const localTeachersTs = Number(localStorage.getItem("hadir_guru_teachers_updated_ms") || 0);
+      if (localTeachersTs > 0 && (!updatedAtMs || updatedAtMs < localTeachersTs)) {
+        this._lastSyncTimestamps[docId] = localTeachersTs;
+        this._saveSyncTimestamps();
+        return false;
+      }
+    }
+
     if (updatedAtMs > 0) {
       this._lastSyncTimestamps[docId] = updatedAtMs;
       this._saveSyncTimestamps();
@@ -790,6 +835,11 @@ const FirebaseService = {
         const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
         const canonicalTeacherId = hasValidNip ? cleanNip : (docData.teacherId || t.id);
         if (canonicalTeacherId) {
+          const existingOv = this._profileOverrides[canonicalTeacherId];
+          const existingOvTs = Number((existingOv && existingOv.updatedAtMs) || 0);
+          if (existingOvTs > 0 && updatedAtMs > 0 && updatedAtMs < existingOvTs) {
+            return false;
+          }
           const overrideObj = {
             ...t,
             id: canonicalTeacherId,

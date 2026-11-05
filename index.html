@@ -330,6 +330,7 @@
             return;
           }
           var remember = rememberCheck ? rememberCheck.checked : true;
+          var resolvedTeacherId = targetId;
           if (typeof StorageService !== "undefined" && typeof StorageService.verifyTeacherCredentials === "function") {
             var res = StorageService.verifyTeacherCredentials(targetId, pin);
             if (!res.success) {
@@ -337,16 +338,16 @@
               return;
             }
             var t = res.teacher;
-            var cid = (t.nip && t.nip.length > 3 && t.nip !== "-") ? t.nip : (t.teacherId || t.id);
-            StorageService.setTeacherLoggedIn(cid, remember);
-            StorageService.setActiveTeacherId(cid);
+            resolvedTeacherId = (t.nip && t.nip.length > 3 && t.nip !== "-") ? t.nip : (t.teacherId || t.id);
+            StorageService.setTeacherLoggedIn(resolvedTeacherId, remember);
+            StorageService.setActiveTeacherId(resolvedTeacherId);
           } else if (pin !== "123456" && pin !== "Guru@2026!") {
             showPortalAlert("Password atau PIN salah (Default: 123456).");
             return;
           }
           hidePortalAlert();
           try {
-            localStorage.setItem("hadir_guru_active_teacher_id", targetId);
+            localStorage.setItem("hadir_guru_active_teacher_id", resolvedTeacherId);
             sessionStorage.setItem("hadir_guru_teacher_session", "true");
             sessionStorage.setItem("hadir_guru_auth_role", "teacher");
             if (remember) {
@@ -3047,7 +3048,7 @@
 
             <!-- Picket Banner Actions: Presisi & Elegan untuk Guru & Admin -->
             <div class="picket-banner-actions-unified" id="picketBannerActionsUnified">
-              <button type="button" class="btn-input-guru-piket" id="btnOpenAddPicketModal" onclick="window.openAddPicketMemberForDay ? window.openAddPicketMemberForDay() : null">
+              <button type="button" class="btn-input-guru-piket" id="btnOpenAddPicketModal">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink: 0;">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                   <circle cx="9" cy="7" r="4"></circle>
@@ -4900,14 +4901,14 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 
   <!-- Firebase Config & Service -->
-  <script src="scripts/firebase-config.js?v=4.2"></script>
-  <script src="scripts/firebase-service.js?v=4.2"></script>
+  <script src="scripts/firebase-config.js?v=4.3"></script>
+  <script src="scripts/firebase-service.js?v=4.3"></script>
   <!-- MySQL Backend REST API Adapter -->
-  <script src="scripts/api-service.js?v=4.2"></script>
+  <script src="scripts/api-service.js?v=4.3"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js?v=4.2"></script>
-  <script src="scripts/app.js?v=4.2"></script>
+  <script src="scripts/data.js?v=4.3"></script>
+  <script src="scripts/app.js?v=4.3"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>

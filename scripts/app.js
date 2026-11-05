@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HADIR.GURU - Client Application Logic
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
@@ -7213,28 +7213,46 @@ function initMainApplication() {
     if (formTeacherData) {
       formTeacherData.addEventListener("submit", (e) => {
         e.preventDefault();
-        const editId = document.getElementById("inputTeacherEditId").value;
+        const editId = (document.getElementById("inputTeacherEditId")?.value || "").trim();
         const teachers = StorageService.getTeachersMaster();
 
-        const name = document.getElementById("inputTeacherFullName").value.trim();
-        const nip = document.getElementById("inputTeacherNip").value.trim() || "-";
-        const nuptk = document.getElementById("inputTeacherNuptk").value.trim() || "-";
-        const dept = document.getElementById("selectTeacherDept") ? document.getElementById("selectTeacherDept").value : (editId ? (teachers.find(t => t.id === editId || (hasValidNip && String(t.nip).trim() === cleanNip))?.dept || "") : "");
-        const subject = document.getElementById("inputTeacherSubject").value.trim();
-        const kepegawaian = document.getElementById("selectTeacherKepegawaian").value;
-        const classAssigned = document.getElementById("selectTeacherClassAssigned").value;
-        const email = document.getElementById("inputTeacherEmail").value.trim();
-        const username = document.getElementById("inputTeacherUsername").value.trim() || email.split("@")[0];
-        const password = document.getElementById("inputTeacherPassword").value.trim() || "123456";
-        const phone = document.getElementById("inputTeacherPhone").value.trim();
-
+        const name = (document.getElementById("inputTeacherFullName")?.value || "").trim();
+        const nip = (document.getElementById("inputTeacherNip")?.value || "").trim() || "-";
+        const nuptk = (document.getElementById("inputTeacherNuptk")?.value || "").trim() || "-";
         const cleanNip = String(nip || "").trim();
-        const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+        const hasValidNip = Boolean(cleanNip && cleanNip.length > 3 && cleanNip !== "-");
+
+        const existingTeacherForDept = editId
+          ? teachers.find(t =>
+              t.id === editId ||
+              t.teacherId === editId ||
+              t.nip === editId ||
+              t.legacyId === editId ||
+              (hasValidNip && String(t.nip).trim() === cleanNip)
+            )
+          : null;
+        const deptEl = document.getElementById("selectTeacherDept");
+        const dept = deptEl ? deptEl.value : (existingTeacherForDept?.dept || "UMUM");
+        const subject = (document.getElementById("inputTeacherSubject")?.value || "").trim();
+        const kepegawaian = document.getElementById("selectTeacherKepegawaian")?.value || "Guru Tetap Yayasan (GTY)";
+        const classAssigned = document.getElementById("selectTeacherClassAssigned")?.value || "Guru Mapel";
+        const email = (document.getElementById("inputTeacherEmail")?.value || "").trim();
+        const username = (document.getElementById("inputTeacherUsername")?.value || "").trim() || (email ? email.split("@")[0] : cleanNip);
+        const password = (document.getElementById("inputTeacherPassword")?.value || "").trim() || "123456";
+        const phone = (document.getElementById("inputTeacherPhone")?.value || "").trim();
+
         let targetSyncId = hasValidNip ? cleanNip : editId;
+        let savedTeacherRecord = null;
 
         if (editId) {
-          // Edit existing: cari berdasarkan editId atau NIP
-          const idx = teachers.findIndex(t => t.id === editId || (hasValidNip && String(t.nip).trim() === cleanNip) || t.teacherId === editId);
+          // Edit existing: cari berdasarkan editId, teacherId, legacyId, atau NIP
+          const idx = teachers.findIndex(t =>
+            t.id === editId ||
+            t.teacherId === editId ||
+            t.nip === editId ||
+            t.legacyId === editId ||
+            (hasValidNip && String(t.nip).trim() === cleanNip)
+          );
           if (idx !== -1) {
             const canonicalId = hasValidNip ? cleanNip : (teachers[idx].teacherId || teachers[idx].id);
             teachers[idx] = {
@@ -7256,10 +7274,16 @@ function initMainApplication() {
               phone
             };
             targetSyncId = canonicalId;
+            savedTeacherRecord = teachers[idx];
           }
           const curActive = StorageService.getActiveTeacherId();
-          if (editId === curActive || (hasValidNip && curActive === cleanNip)) {
-            const currentProfile = StorageService.getProfile();
+          const curActiveTeacher = StorageService.getActiveTeacher();
+          if (
+            editId === curActive ||
+            (hasValidNip && curActive === cleanNip) ||
+            (curActiveTeacher && (curActiveTeacher.id === editId || curActiveTeacher.nip === editId || curActiveTeacher.teacherId === editId))
+          ) {
+            const currentProfile = StorageService.getProfile() || {};
             StorageService.saveProfile({
               ...currentProfile,
               id: targetSyncId,
@@ -7307,10 +7331,14 @@ function initMainApplication() {
             targetJtm: 24
           };
           teachers.push(newTeacher);
+          savedTeacherRecord = newTeacher;
           showToast("Guru Baru Ditambahkan", `Pendidik ${name} dan akun loginnya berhasil didaftarkan.`, "success");
         }
 
         StorageService.saveTeachersMaster(teachers, targetSyncId);
+        if (savedTeacherRecord && typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveTeacher === "function") {
+          ApiService.saveTeacher(savedTeacherRecord).catch(() => {});
+        }
         window.closeModal("modalTeacherForm");
 
         renderTeachersDb();
@@ -7712,23 +7740,23 @@ function initMainApplication() {
       formProfile.addEventListener("submit", (e) => {
         e.preventDefault();
         const activeId = StorageService.getActiveTeacherId();
-        const name = document.getElementById("inputMyProfileName")?.value.trim() || "Guru MTs";
-        const nip = document.getElementById("inputMyProfileNip")?.value.trim() || "-";
-        const nuptk = document.getElementById("inputMyProfileNuptk")?.value.trim() || "-";
-        const kepegawaian = document.getElementById("selectMyProfileKepegawaian")?.value || "Guru Tetap Kemenag";
-        const subject = document.getElementById("inputMyProfileSubject")?.value.trim() || "Guru Mapel";
-        const dept = document.getElementById("selectMyProfileDept")?.value || currentProfile?.dept || "";
-        const classAssigned = document.getElementById("selectMyProfileClassAssigned")?.value || "Guru Mapel";
+        const currentProfile = StorageService.getProfile() || {};
+        const name = document.getElementById("inputMyProfileName")?.value.trim() || currentProfile.name || "Guru MTs";
+        const nip = document.getElementById("inputMyProfileNip")?.value.trim() || currentProfile.nip || "-";
+        const nuptk = document.getElementById("inputMyProfileNuptk")?.value.trim() || currentProfile.nuptk || "-";
+        const kepegawaian = document.getElementById("selectMyProfileKepegawaian")?.value || currentProfile.kepegawaian || "Guru Tetap Yayasan (GTY)";
+        const subject = document.getElementById("inputMyProfileSubject")?.value.trim() || currentProfile.subject || "Guru Mapel";
+        const dept = document.getElementById("selectMyProfileDept")?.value || currentProfile?.dept || "UMUM";
+        const classAssigned = document.getElementById("selectMyProfileClassAssigned")?.value || currentProfile.classAssigned || "Guru Mapel";
         const email = document.getElementById("inputMyProfileEmail")?.value.trim() || "";
         const phone = document.getElementById("inputMyProfilePhone")?.value.trim() || "";
-        const password = document.getElementById("inputMyProfilePassword")?.value.trim() || "123456";
+        const password = document.getElementById("inputMyProfilePassword")?.value.trim() || currentProfile.password || "123456";
 
         const cleanNip = String(nip || "").trim();
         const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
         const canonicalTeacherId = hasValidNip ? cleanNip : activeId;
 
         // Update active profile in localStorage & push to Cloud
-        const currentProfile = StorageService.getProfile() || {};
         const newAvatarUrl = (uploadedAvatarBase64 !== null) ? uploadedAvatarBase64 : (currentProfile.avatarUrl || "");
         StorageService.saveProfile({
           ...currentProfile,
@@ -7755,6 +7783,8 @@ function initMainApplication() {
           (hasValidNip && String(t.nip).trim() === cleanNip) || 
           t.id === activeId || 
           t.teacherId === activeId || 
+          t.nip === activeId ||
+          t.legacyId === activeId ||
           t.id === canonicalTeacherId
         );
         if (idx !== -1) {
@@ -7782,7 +7812,7 @@ function initMainApplication() {
         const allSchedules = StorageService.getMasterSchedules();
         let schedUpdated = false;
         allSchedules.forEach(s => {
-          if (s.teacherId === activeId && s.teacherName !== name) {
+          if ((s.teacherId === activeId || s.teacherId === canonicalTeacherId) && s.teacherName !== name) {
             s.teacherName = name;
             schedUpdated = true;
           }
@@ -7795,20 +7825,22 @@ function initMainApplication() {
         try {
           const picketRoster = StorageService.getWelcomingPicketRoster();
           let picketUpdated = false;
-          Object.keys(picketRoster || {}).forEach(dayKey => {
-            if (Array.isArray(picketRoster[dayKey])) {
-              picketRoster[dayKey].forEach(member => {
-                if (member && member.teacherId === activeId) {
-                  if (member.name !== name || member.subject !== subject || member.phone !== phone) {
-                    member.name = name;
-                    member.subject = subject;
-                    member.phone = phone;
-                    picketUpdated = true;
+          if (Array.isArray(picketRoster)) {
+            picketRoster.forEach(daySquad => {
+              if (daySquad && Array.isArray(daySquad.members)) {
+                daySquad.members.forEach(member => {
+                  if (member && (member.teacherId === activeId || member.teacherId === canonicalTeacherId || (idx !== -1 && member.teacherId === teachers[idx].id))) {
+                    if (member.teacherName !== name || member.subject !== subject || member.phone !== phone) {
+                      member.teacherName = name;
+                      member.subject = subject;
+                      member.phone = phone;
+                      picketUpdated = true;
+                    }
                   }
-                }
-              });
-            }
-          });
+                });
+              }
+            });
+          }
           if (picketUpdated) {
             StorageService.saveWelcomingPicketRoster(picketRoster);
           }
@@ -8225,7 +8257,7 @@ function initMainApplication() {
     const adminBadge = document.getElementById("picketAdminBadge");
     const btnQuickCheckIn = document.getElementById("btnQuickPicketCheckIn");
     const btnOpenAdd = document.getElementById("btnOpenAddPicketModal");
-    const isAdmin = currentActiveRole === "admin";
+    const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
 
     if (btnOpenAdd) {
       btnOpenAdd.style.display = "inline-flex";
@@ -8269,11 +8301,15 @@ function initMainApplication() {
     const todayDay = getTodayPicketDay();
     const activeTeacherId = StorageService.getActiveTeacherId();
     const teachersMaster = StorageService.getTeachersMaster ? StorageService.getTeachersMaster() : [];
-    const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher();
+    const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId || t.nip === activeTeacherId || t.teacherId === activeTeacherId) || StorageService.getActiveTeacher();
     const teacherName = activeTeacher ? activeTeacher.name : "Guru";
 
     const todaySquad = StorageService.getTodayWelcomingPicket(todayDay);
-    const memberToday = todaySquad ? todaySquad.members.find(m => m.teacherId === activeTeacherId) : null;
+    const memberToday = todaySquad ? todaySquad.members.find(m =>
+      StorageService._matchPicketMember
+        ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+        : (m.teacherId === activeTeacherId)
+    ) : null;
 
     if (memberToday) {
       const isCheckedIn = memberToday.standbyStatus === "standby";
@@ -8324,8 +8360,8 @@ function initMainApplication() {
     const squad = roster.find(r => r.day === targetDay) || roster[0];
     const teachersMaster = StorageService.getTeachersMaster();
     const activeTeacherId = StorageService.getActiveTeacherId();
-    const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher();
-    const isAdmin = currentActiveRole === "admin";
+    const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId || t.nip === activeTeacherId || t.teacherId === activeTeacherId) || StorageService.getActiveTeacher();
+    const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
     const isScheduleDay = squad.day === todayDay;
 
     // 1. Update Day Nav buttons
@@ -8649,9 +8685,10 @@ function initMainApplication() {
 
     const teachersMaster = StorageService.getTeachersMaster();
     const activeTeacherId = StorageService.getActiveTeacherId();
+    const activeTeacher = StorageService.getActiveTeacher();
     const todayDay = getTodayPicketDay();
     const isScheduleDay = squad.day === todayDay;
-    const isAdmin = currentActiveRole === "admin";
+    const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
 
     if (squad.members.length === 0) {
       tbody.innerHTML = `
@@ -8667,9 +8704,11 @@ function initMainApplication() {
     }
 
     squad.members.forEach((m) => {
-      const teacherInfo = teachersMaster.find(t => t.id === m.teacherId) || {};
+      const teacherInfo = teachersMaster.find(t => t.id === m.teacherId || t.nip === m.teacherId || t.teacherId === m.teacherId) || {};
       const isCheckedIn = m.standbyStatus === "standby";
-      const isMyAccount = m.teacherId === activeTeacherId;
+      const isMyAccount = StorageService._matchPicketMember
+        ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+        : (m.teacherId === activeTeacherId);
       const canCheckIn = isScheduleDay && (isMyAccount || isAdmin);
       const canReset = (isScheduleDay && isMyAccount) || isAdmin;
 
@@ -8780,9 +8819,9 @@ function initMainApplication() {
     const targetDay = day || currentSelectedPicketDay || todayDay;
     modal.dataset.picketDay = targetDay;
     const activeTeacherId = StorageService.getActiveTeacherId();
-    const isAdmin = currentActiveRole === "admin";
+    const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
     const teachersMaster = StorageService.getTeachersMaster();
-    const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher();
+    const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId || t.nip === activeTeacherId || t.teacherId === activeTeacherId) || StorageService.getActiveTeacher();
 
     // 1. Enforce Schedule Day
     if (targetDay !== todayDay && !isAdmin) {
@@ -8796,8 +8835,9 @@ function initMainApplication() {
 
     // 2. Enforce Teacher Account
     const targetId = teacherId || activeTeacherId;
-    if (!isAdmin && targetId !== activeTeacherId) {
-      const targetTeacher = teachersMaster.find(t => t.id === targetId);
+    const isTargetMine = targetId === activeTeacherId || (activeTeacher && (targetId === activeTeacher.id || targetId === activeTeacher.nip || targetId === activeTeacher.teacherId));
+    if (!isAdmin && !isTargetMine) {
+      const targetTeacher = teachersMaster.find(t => t.id === targetId || t.nip === targetId);
       showToast(
         "Akses Terkunci",
         `Presensi piket hanya dapat diisi oleh akun guru yang bersangkutan (${targetTeacher ? targetTeacher.name  : targetId}). Akun aktif saat ini: ${activeTeacher.name}.`,
@@ -8828,7 +8868,11 @@ function initMainApplication() {
         });
         selectTeacher.disabled = false;
       } else {
-        const member = squad.members.find(m => m.teacherId === activeTeacherId);
+        const member = squad.members.find(m =>
+          StorageService._matchPicketMember
+            ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+            : (m.teacherId === activeTeacherId)
+        );
         if (!member) {
           showToast(
             "Tidak Terdaftar",
@@ -8897,7 +8941,8 @@ function initMainApplication() {
 
   window.resetPicketCheckInAction = function(day, teacherId) {
     const activeTeacherId = StorageService.getActiveTeacherId();
-    const isAdmin = currentActiveRole === "admin";
+    const activeTeacher = StorageService.getActiveTeacher();
+    const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
     const todayDay = getTodayPicketDay();
 
     if (!isAdmin && day !== todayDay) {
@@ -8905,7 +8950,8 @@ function initMainApplication() {
       return;
     }
 
-    if (!isAdmin && teacherId !== activeTeacherId) {
+    const isMine = teacherId === activeTeacherId || (activeTeacher && (teacherId === activeTeacher.id || teacherId === activeTeacher.nip || teacherId === activeTeacher.teacherId));
+    if (!isAdmin && !isMine) {
       showToast("Akses Ditolak", "Anda hanya dapat mereset status presensi akun Anda sendiri.", "warning");
       return;
     }
@@ -9066,7 +9112,7 @@ function initMainApplication() {
         const todayDay = getTodayPicketDay();
         const targetPicketDay = (modal && modal.dataset.picketDay) ? modal.dataset.picketDay : (currentSelectedPicketDay || todayDay);
         const activeTeacherId = StorageService.getActiveTeacherId();
-        const isAdmin = currentActiveRole === "admin";
+        const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
         const teacherId = document.getElementById("selectPicketTeacherCheckIn")?.value || activeTeacherId;
 
         if (targetPicketDay !== todayDay && !isAdmin) {
@@ -9222,10 +9268,15 @@ function initMainApplication() {
 
       form.reset();
 
-      const isAdmin = currentActiveRole === "admin";
+      const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
       const activeTeacherId = StorageService.getActiveTeacherId();
       const teachersMaster = StorageService.getTeachersMaster ? StorageService.getTeachersMaster() : [];
-      const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher() || { id: activeTeacherId, name: "Guru", subject: "Guru Mapel" };
+      const activeTeacher = teachersMaster.find(t =>
+        t.id === activeTeacherId ||
+        t.nip === activeTeacherId ||
+        t.teacherId === activeTeacherId ||
+        t.legacyId === activeTeacherId
+      ) || StorageService.getActiveTeacher() || { id: activeTeacherId, name: "Guru", subject: "Guru Mapel" };
       const roster = StorageService.getWelcomingPicketRoster ? StorageService.getWelcomingPicketRoster() : [];
       const todayDay = typeof getTodayPicketDay === "function" ? getTodayPicketDay() : "Jumat";
 
@@ -9272,6 +9323,8 @@ function initMainApplication() {
         labelTeacherEl.textContent = isAdmin ? "Pilih Guru Pendidik" : "Akun Guru Anda (Terkunci)";
       }
 
+      let candidateDay = day || currentSelectedPicketDay || todayDay;
+
       // 2. Setup Dropdown Guru (selectAddPicketTeacher)
       const selectTeacher = document.getElementById("selectAddPicketTeacher");
       if (selectTeacher) {
@@ -9279,7 +9332,7 @@ function initMainApplication() {
         if (!isAdmin) {
           // MODE GURU: HANYA MENAMPILKAN DIRI SENDIRI DAN DIKUNCI
           const opt = document.createElement("option");
-          opt.value = activeTeacherId;
+          opt.value = activeTeacher.id || activeTeacherId;
           opt.textContent = `👤 ${activeTeacher.name} • ${activeTeacher.subject || 'Guru Mapel'} (${activeTeacher.nip || activeTeacher.id}) — [Akun Anda]`;
           opt.selected = true;
           selectTeacher.appendChild(opt);
@@ -9301,19 +9354,31 @@ function initMainApplication() {
           selectTeacher.style.color = "";
           if (helperTeacherEl) helperTeacherEl.innerHTML = "";
 
-          const defaultOpt = document.createElement("option");
-          defaultOpt.value = "";
-          defaultOpt.disabled = true;
-          defaultOpt.selected = true;
-          defaultOpt.textContent = "-- Pilih Guru Pendidik --";
-          selectTeacher.appendChild(defaultOpt);
+          const targetSquadForDefault = roster.find(r => r.day === candidateDay);
+          const existingMembersInDay = targetSquadForDefault ? (targetSquadForDefault.members || []) : [];
+          let firstUnassignedId = "";
 
-          teachersMaster.forEach(t => {
+          teachersMaster.forEach((t, idx) => {
             const opt = document.createElement("option");
             opt.value = t.id;
-            opt.textContent = `${t.name} • ${t.subject || 'Guru Mapel'} (${t.nip || t.id})`;
+            const alreadyAssigned = existingMembersInDay.some(m =>
+              StorageService._matchPicketMember
+                ? StorageService._matchPicketMember(m, t.id, t)
+                : (m.teacherId === t.id || m.teacherId === t.nip)
+            );
+            opt.textContent = `${t.name} • ${t.subject || 'Guru Mapel'} (${t.nip || t.id})${alreadyAssigned ? ' [Sudah Terjadwal]' : ''}`;
+            if (!alreadyAssigned && !firstUnassignedId) {
+              firstUnassignedId = t.id;
+            }
+            if (idx === 0 && !firstUnassignedId) {
+              firstUnassignedId = t.id;
+            }
             selectTeacher.appendChild(opt);
           });
+
+          if (firstUnassignedId) {
+            selectTeacher.value = firstUnassignedId;
+          }
         }
       }
 
@@ -9329,7 +9394,6 @@ function initMainApplication() {
         { day: "Minggu", name: "Regu Khusus Ahad" }
       ];
 
-      let candidateDay = day || currentSelectedPicketDay || todayDay;
       let firstAvailableDay = null;
 
       if (selectDay) {
@@ -9338,7 +9402,11 @@ function initMainApplication() {
           const squad = roster.find(r => r.day === item.day) || { day: item.day, squadName: item.name, members: [] };
           const members = squad.members || [];
           const count = members.length;
-          const isUserAlreadyInSquad = members.some(m => m.teacherId === activeTeacherId);
+          const isUserAlreadyInSquad = members.some(m =>
+            StorageService._matchPicketMember
+              ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+              : (m.teacherId === activeTeacherId)
+          );
           const isFull = count >= 4;
           const isKosong = count === 0;
 
@@ -9482,14 +9550,16 @@ function initMainApplication() {
     if (formAddPicket) {
       formAddPicket.addEventListener("submit", (e) => {
         e.preventDefault();
-        const isAdmin = currentActiveRole === "admin";
-        const day = document.getElementById("selectAddPicketDay")?.value || currentSelectedPicketDay;
+        const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
+        const day = document.getElementById("selectAddPicketDay")?.value || currentSelectedPicketDay || getTodayPicketDay();
         const activeTeacherId = StorageService.getActiveTeacherId();
+        const activeTeacher = StorageService.getActiveTeacher();
+        const selectTeacherEl = document.getElementById("selectAddPicketTeacher");
 
         // PENTING: Untuk akun Guru, identitas dipaksa selalu menggunakan ID akun yang sedang login
         const teacherId = isAdmin
-          ? (document.getElementById("selectAddPicketTeacher")?.value)
-          : activeTeacherId;
+          ? (selectTeacherEl?.value || activeTeacherId)
+          : (activeTeacher ? activeTeacher.id : activeTeacherId);
 
         const location = document.getElementById("selectAddPicketLocation")?.value || "Gerbang Utama (Gedung A)";
         const role = document.getElementById("selectAddPicketRole")?.value || "Petugas 5S Salam Siswa";
@@ -9498,7 +9568,7 @@ function initMainApplication() {
         const notes = document.getElementById("inputAddPicketNotes")?.value || "";
 
         if (!teacherId) {
-          showToast("Peringatan", "Identitas guru tidak terdeteksi. Silakan coba kembali.", "warning");
+          showToast("Peringatan", "Silakan pilih nama guru pendidik terlebih dahulu.", "warning");
           return;
         }
 
@@ -9507,7 +9577,11 @@ function initMainApplication() {
           const roster = StorageService.getWelcomingPicketRoster();
           const targetSquad = roster.find(r => r.day === day);
           if (targetSquad) {
-            const alreadyIn = (targetSquad.members || []).some(m => m.teacherId === activeTeacherId);
+            const alreadyIn = (targetSquad.members || []).some(m =>
+              StorageService._matchPicketMember
+                ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+                : (m.teacherId === activeTeacherId)
+            );
             if (alreadyIn) {
               showToast("Peringatan", `Anda sudah terdaftar dalam jadwal piket hari ${day}.`, "warning");
               return;
@@ -9566,19 +9640,31 @@ function initMainApplication() {
     window.removePicketTeacherAction = function(day, teacherId) {
       const roster = StorageService.getWelcomingPicketRoster();
       const dayPicket = roster.find(r => r.day === day);
-      const member = dayPicket ? dayPicket.members.find(m => m.id === teacherId || m.teacherId === teacherId) : null;
+      const teachersMaster = StorageService.getTeachersMaster();
+      const targetTeacherObj = teachersMaster.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+      const member = dayPicket ? dayPicket.members.find(m =>
+        StorageService._matchPicketMember
+          ? StorageService._matchPicketMember(m, teacherId, targetTeacherObj)
+          : (m.id === teacherId || m.teacherId === teacherId)
+      ) : null;
       const teacherName = member ? member.teacherName : "Guru Piket";
 
-      const isAdmin = currentActiveRole === "admin";
+      const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
       const activeTeacherId = StorageService.getActiveTeacherId();
+      const activeTeacher = StorageService.getActiveTeacher();
+      const isMySchedule = member && (
+        StorageService._matchPicketMember
+          ? StorageService._matchPicketMember(member, activeTeacherId, activeTeacher)
+          : (member.teacherId === activeTeacherId)
+      );
 
       // Pembatasan Keamanan: Guru hanya bisa membatalkan jadwal milik dirinya sendiri
-      if (!isAdmin && member && member.teacherId !== activeTeacherId) {
+      if (!isAdmin && member && !isMySchedule) {
         showToast("Akses Terbatas", "Anda hanya dapat membatalkan jadwal piket milik Anda sendiri.", "warning");
         return;
       }
 
-      const confirmMsg = (!isAdmin && member && member.teacherId === activeTeacherId)
+      const confirmMsg = (!isAdmin && isMySchedule)
         ? `Apakah Anda yakin ingin membatalkan jadwal piket Anda pada hari ${day}?`
         : `Apakah Anda yakin ingin menghapus ${teacherName} dari roster piket gerbang hari ${day}?`;
 

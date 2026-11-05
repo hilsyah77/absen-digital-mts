@@ -55,15 +55,8 @@
         this.assert("1.4 Klik Tab Login Guru mengaktifkan panel Guru", panelTeacher && panelTeacher.style.display !== "none");
       }
 
-      const btnToggleCombobox = document.getElementById("btnToggleTeacherCombobox");
-      const dropdownCombobox = document.getElementById("teacherComboboxDropdown");
-      this.assert("1.5 Tombol Toggle Dropdown Akun Guru", !!btnToggleCombobox);
-      if (btnToggleCombobox && dropdownCombobox) {
-        btnToggleCombobox.click();
-        const isOpen = dropdownCombobox.classList.contains("show") || dropdownCombobox.style.display === "block";
-        this.assert("1.6 Buka/Tutup Combobox Akun Guru", isOpen);
-        btnToggleCombobox.click(); // close
-      }
+      const selectMainTeacher = document.getElementById("selectMainTeacherAccount");
+      this.assert("1.5 Dropdown Pilih Akun Guru", !!selectMainTeacher);
 
       const btnToggleTeacherPass = document.getElementById("btnToggleMainTeacherPass");
       const inputTeacherPass = document.getElementById("inputMainTeacherPassword");
@@ -402,6 +395,56 @@
       this.assert("15.8 Tombol Unduh Cadangan Presensi (Backup CSV)", !!document.getElementById("btnDownloadAttendanceBackup"));
       this.assert("15.9 Tombol Hapus Riwayat Presensi", !!document.getElementById("btnOpenPurgeModal"));
       this.assert("15.10 Modal Konfirmasi Hapus Riwayat Presensi", !!document.getElementById("modalConfirmPurgeAttendance"));
+
+      // -----------------------------------------------------------------------
+      // 16. PENGUJIAN SIMPAN EDIT PROFIL GURU, DATABASE GURU, & JADWAL PIKET
+      // -----------------------------------------------------------------------
+      // 16.1 Uji Simpan Edit Profil Guru (#formEditMyProfile)
+      const formEditMyProfile = document.getElementById("formEditMyProfile");
+      if (typeof window.openEditMyProfileModal === "function" && formEditMyProfile) {
+        window.openEditMyProfileModal();
+        const origPhone = document.getElementById("inputMyProfilePhone").value;
+        document.getElementById("inputMyProfilePhone").value = "081299998888";
+        formEditMyProfile.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+        const savedProf = StorageService.getProfile();
+        this.assert("16.1 Simpan Edit Profil di Akun Guru Berhasil", savedProf && savedProf.phone === "081299998888", `Phone: ${savedProf ? savedProf.phone : 'null'}`);
+        // Kembalikan nilai telepon semula
+        window.openEditMyProfileModal();
+        document.getElementById("inputMyProfilePhone").value = origPhone;
+        formEditMyProfile.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+      }
+
+      // 16.2 Uji Simpan Edit Database Guru (#formTeacherDataAccount)
+      const formTeacherData = document.getElementById("formTeacherDataAccount");
+      if (typeof window.openEditTeacherModal === "function" && formTeacherData) {
+        const firstT = StorageService.getTeachersMaster()[0];
+        window.openEditTeacherModal(firstT.id);
+        const origTPhone = document.getElementById("inputTeacherPhone").value;
+        document.getElementById("inputTeacherPhone").value = "085711112222";
+        formTeacherData.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+        const updatedT = StorageService.getTeachersMaster().find(t => t.id === firstT.id || t.nip === firstT.nip);
+        this.assert("16.2 Simpan Edit Data di Database Guru Berhasil", updatedT && updatedT.phone === "085711112222", `Phone: ${updatedT ? updatedT.phone : 'null'}`);
+        // Kembalikan nilai telepon semula
+        window.openEditTeacherModal(firstT.id);
+        document.getElementById("inputTeacherPhone").value = origTPhone;
+        formTeacherData.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+      }
+
+      // 16.3 Uji Simpan Setting Jadwal Piket (#formAddPicketTeacher)
+      const formAddPicket = document.getElementById("formAddPicketTeacher");
+      if (typeof window.openAddPicketMemberForDay === "function" && formAddPicket) {
+        window.openAddPicketMemberForDay("Sabtu");
+        const selTeacher = document.getElementById("selectAddPicketTeacher");
+        const selDay = document.getElementById("selectAddPicketDay");
+        if (selDay) selDay.value = "Sabtu";
+        const testTeacherId = selTeacher ? selTeacher.value : StorageService.getActiveTeacherId();
+        formAddPicket.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+        const sabtuSquad = StorageService.getWelcomingPicketRoster().find(r => r.day === "Sabtu");
+        const hasAdded = sabtuSquad && sabtuSquad.members.some(m => m.teacherId === testTeacherId);
+        this.assert("16.3 Simpan Setting Jadwal Piket Berhasil", Boolean(hasAdded), `TeacherId: ${testTeacherId}`);
+        // Bersihkan kembali data uji piket Sabtu
+        StorageService.deletePicketTeacher("Sabtu", testTeacherId);
+      }
 
       // Kembalikan ke tab utama
       if (typeof window.switchToTab === "function") window.switchToTab("tab-admin-monitoring");

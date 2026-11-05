@@ -2139,7 +2139,7 @@ const StorageService = {
       );
 
       let classAssigned = mergedT.classAssigned || (initTeacher ? initTeacher.classAssigned : "Guru Mapel");
-      if (initTeacher && initTeacher.classAssigned && initTeacher.classAssigned !== "Guru Mapel" && (!mergedT.classAssigned || mergedT.classAssigned === "Guru Mapel")) {
+      if (initTeacher && initTeacher.classAssigned && initTeacher.classAssigned !== "Guru Mapel" && !mergedT.classAssigned) {
         classAssigned = initTeacher.classAssigned;
         hasMissing = true;
       }
@@ -2195,11 +2195,40 @@ const StorageService = {
     return enriched;
   },
   saveTeachersMaster(data, changedTeacherId = null) {
+    const nowMs = Date.now();
     localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(data));
+    localStorage.setItem("hadir_guru_teachers_updated_ms", String(nowMs));
+
+    // Sinkronkan hadir_guru_cloud_profile_overrides agar tidak menimpa hasil editan baru dengan data lama
+    try {
+      const ovRaw = localStorage.getItem("hadir_guru_cloud_profile_overrides");
+      const cloudOverrides = ovRaw ? (JSON.parse(ovRaw) || {}) : {};
+      if (Array.isArray(data)) {
+        data.forEach(t => {
+          if (!t || typeof t !== "object") return;
+          if (changedTeacherId && t.id !== changedTeacherId && t.nip !== changedTeacherId && t.teacherId !== changedTeacherId && t.legacyId !== changedTeacherId) {
+            return;
+          }
+          const cleanNip = String(t.nip || "").trim();
+          const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
+          const canonicalId = hasValidNip ? cleanNip : (t.teacherId || t.id);
+          const ovEntry = { ...t, teacherId: canonicalId, updatedAtMs: nowMs };
+          if (canonicalId) cloudOverrides[canonicalId] = ovEntry;
+          if (t.id) cloudOverrides[t.id] = ovEntry;
+          if (hasValidNip) cloudOverrides[cleanNip] = ovEntry;
+          if (typeof FirebaseService !== "undefined" && FirebaseService._profileOverrides) {
+            if (canonicalId) FirebaseService._profileOverrides[canonicalId] = ovEntry;
+            if (t.id) FirebaseService._profileOverrides[t.id] = ovEntry;
+            if (hasValidNip) FirebaseService._profileOverrides[cleanNip] = ovEntry;
+          }
+        });
+        localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(cloudOverrides));
+      }
+    } catch (e) {}
 
     // Pastikan hadir_guru_profile untuk guru aktif ikut diperbarui secara lokal
     const activeId = this.getActiveTeacherId();
-    const activeTeacher = Array.isArray(data) ? data.find(t => t.id === activeId || t.nip === activeId || t.teacherId === activeId) : null;
+    const activeTeacher = Array.isArray(data) ? data.find(t => t.id === activeId || t.nip === activeId || t.teacherId === activeId || t.legacyId === activeId) : null;
     if (activeTeacher) {
       let curProf = {};
       try {
@@ -2208,6 +2237,7 @@ const StorageService = {
       const syncedProf = {
         ...curProf,
         id: activeTeacher.id,
+        teacherId: activeTeacher.teacherId || activeTeacher.nip || activeTeacher.id,
         name: activeTeacher.name,
         nip: activeTeacher.nip,
         nuptk: activeTeacher.nuptk || curProf.nuptk || "-",
@@ -2226,10 +2256,16 @@ const StorageService = {
     }
 
     if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      if (FirebaseService._lastSyncTimestamps) {
+        FirebaseService._lastSyncTimestamps["__sync_teachers_master__"] = nowMs;
+      }
       if (changedTeacherId && Array.isArray(data)) {
-        const targetT = data.find(t => t.id === changedTeacherId || t.nip === changedTeacherId || t.teacherId === changedTeacherId);
+        const targetT = data.find(t => t.id === changedTeacherId || t.nip === changedTeacherId || t.teacherId === changedTeacherId || t.legacyId === changedTeacherId);
         if (targetT) {
           FirebaseService.pushTeacherProfile(targetT.nip || changedTeacherId, targetT);
+          if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveTeacher === "function") {
+            ApiService.saveTeacher(targetT).catch(() => {});
+          }
         }
       }
       FirebaseService.pushSyncState("teachers_master", data);
@@ -2323,14 +2359,36 @@ const StorageService = {
         }
       } catch (e) { console.error(e); }
     }
-    return INITIAL_WELCOMING_PICKET_ROSTER;
+    return JSON.parse(JSON.stringify(INITIAL_WELCOMING_PICKET_ROSTER));
   },
 
   saveWelcomingPicketRoster(data) {
+    const nowMs = Date.now();
     localStorage.setItem("hadir_guru_welcoming_picket_v2", JSON.stringify(data));
+    localStorage.setItem("hadir_guru_welcoming_picket_updated_ms", String(nowMs));
     if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
+      if (FirebaseService._lastSyncTimestamps) {
+        FirebaseService._lastSyncTimestamps["__sync_picket__"] = nowMs;
+      }
       FirebaseService.pushSyncState("picket", data);
     }
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.savePicketRoster === "function") {
+      ApiService.savePicketRoster(data).catch(() => {});
+    }
+  },
+
+  _matchPicketMember(m, targetId, teacherObj = null) {
+    if (!m || !targetId) return false;
+    if (m.id === targetId || m.teacherId === targetId) return true;
+    if (teacherObj) {
+      return (
+        (teacherObj.id && m.teacherId === teacherObj.id) ||
+        (teacherObj.nip && m.teacherId === teacherObj.nip) ||
+        (teacherObj.teacherId && m.teacherId === teacherObj.teacherId) ||
+        (teacherObj.legacyId && m.teacherId === teacherObj.legacyId)
+      );
+    }
+    return false;
   },
 
   getTodayWelcomingPicket(date = new Date()) {
@@ -2373,14 +2431,16 @@ const StorageService = {
 
     const todayPicket = this.getTodayWelcomingPicket(day);
     if (!todayPicket) return null;
-    return todayPicket.members.find(m => m.teacherId === teacherId) || null;
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    return todayPicket.members.find(m => this._matchPicketMember(m, teacherId, teacher)) || null;
   },
 
   confirmPicketCheckIn(day, teacherId, customTimeStr = null, notes = "") {
     const roster = this.getWelcomingPicketRoster();
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return null;
-    const member = dayPicket.members.find(m => m.teacherId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const member = dayPicket.members.find(m => this._matchPicketMember(m, teacherId, teacher));
     if (!member) return null;
 
     const now = new Date();
@@ -2406,7 +2466,6 @@ const StorageService = {
 
     this.saveWelcomingPicketRoster(roster);
 
-    const teacher = this.getTeachersMaster().find(t => t.id === teacherId);
     const teacherName = member.teacherName || (teacher ? teacher.name : teacherId);
     this.addAdminActivityFeed(
       `[Piket Sambut] ${teacherName} Check-In di ${member.location} pukul ${timeStr} (${punctuality}).`,
@@ -2419,7 +2478,8 @@ const StorageService = {
     const roster = this.getWelcomingPicketRoster();
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return null;
-    const member = dayPicket.members.find(m => m.teacherId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const member = dayPicket.members.find(m => this._matchPicketMember(m, teacherId, teacher));
     if (!member) return null;
 
     member.standbyStatus = "terjadwal";
@@ -2433,7 +2493,6 @@ const StorageService = {
 
     this.saveWelcomingPicketRoster(roster);
 
-    const teacher = this.getTeachersMaster().find(t => t.id === teacherId);
     const teacherName = member.teacherName || (teacher ? teacher.name : teacherId);
     this.addAdminActivityFeed(`[Piket Sambut] Status kehadiran ${teacherName} di-reset ke Terjadwal.`, "info");
     return dayPicket;
@@ -2443,11 +2502,16 @@ const StorageService = {
     const roster = this.getWelcomingPicketRoster();
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return false;
-    const member = dayPicket.members.find(m => m.id === memberId || m.teacherId === memberId);
+    const teachers = this.getTeachersMaster();
+    const origLookup = teachers.find(t => t.id === memberId || t.nip === memberId || t.teacherId === memberId || t.legacyId === memberId);
+    const member = dayPicket.members.find(m => this._matchPicketMember(m, memberId, origLookup));
     if (!member) return false;
 
     const oldTeacherId = member.teacherId;
-    member.teacherId = newTeacherId;
+    const newTeacher = teachers.find(t => t.id === newTeacherId || t.nip === newTeacherId || t.teacherId === newTeacherId || t.legacyId === newTeacherId);
+    const canonicalNewId = newTeacher ? (newTeacher.id || newTeacherId) : newTeacherId;
+
+    member.teacherId = canonicalNewId;
     member.status = "Terjadwal (Inval)";
     member.standbyStatus = "terjadwal";
     member.checkInTime = "-";
@@ -2456,10 +2520,8 @@ const StorageService = {
     member.isSubstituted = true;
     member.substituteReason = reason;
 
-    const teachers = this.getTeachersMaster();
-    const oldTeacher = teachers.find(t => t.id === oldTeacherId);
-    const newTeacher = teachers.find(t => t.id === newTeacherId);
-    const oldName = oldTeacher ? oldTeacher.name : oldTeacherId;
+    const oldTeacher = teachers.find(t => t.id === oldTeacherId || t.nip === oldTeacherId || t.teacherId === oldTeacherId || t.legacyId === oldTeacherId);
+    const oldName = member.teacherName || (oldTeacher ? oldTeacher.name : oldTeacherId);
     const newName = newTeacher ? newTeacher.name : newTeacherId;
 
     member.originalTeacherName = oldName;
@@ -2480,11 +2542,17 @@ const StorageService = {
     if (!dayPicket) return { success: false, error: "Jadwal hari tidak ditemukan" };
 
     const teachers = this.getTeachersMaster();
-    const teacher = teachers.find(t => t.id === data.teacherId) || {};
+    const teacher = teachers.find(t =>
+      t.id === data.teacherId ||
+      t.nip === data.teacherId ||
+      t.teacherId === data.teacherId ||
+      t.legacyId === data.teacherId
+    ) || {};
+    const canonicalTeacherId = teacher.id || data.teacherId;
     const teacherName = data.teacherName || teacher.name || "Guru Piket";
 
     // Cek apakah guru sudah terdaftar di hari tersebut
-    const alreadyExists = dayPicket.members.find(m => m.teacherId === data.teacherId);
+    const alreadyExists = dayPicket.members.find(m => this._matchPicketMember(m, canonicalTeacherId, teacher));
     if (alreadyExists) {
       return { success: false, error: `Guru ${teacherName} sudah terdaftar dalam jadwal piket hari ${day}.` };
     }
@@ -2501,7 +2569,7 @@ const StorageService = {
 
     const newMember = {
       id: uniqueId,
-      teacherId: data.teacherId,
+      teacherId: canonicalTeacherId,
       teacherName: teacherName,
       subject: teacher.subject || "-",
       phone: teacher.phone || "",
@@ -2541,7 +2609,8 @@ const StorageService = {
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return false;
 
-    const idx = dayPicket.members.findIndex(m => m.id === teacherId || m.teacherId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const idx = dayPicket.members.findIndex(m => this._matchPicketMember(m, teacherId, teacher));
     if (idx === -1) return false;
 
     const removed = dayPicket.members.splice(idx, 1)[0];
@@ -2764,7 +2833,9 @@ const StorageService = {
     return INITIAL_TEACHER_PROFILE;
   },
   saveProfile(data) {
+    const nowMs = Date.now();
     localStorage.setItem("hadir_guru_profile", JSON.stringify(data));
+    localStorage.setItem("hadir_guru_teachers_updated_ms", String(nowMs));
 
     const cleanNip = String((data && data.nip) || "").trim();
     const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
@@ -2775,7 +2846,8 @@ const StorageService = {
       (hasValidNip && String(t.nip).trim() === cleanNip) || 
       t.id === targetId || 
       t.teacherId === targetId || 
-      (data && data.id && t.id === data.id)
+      t.legacyId === targetId ||
+      (data && data.id && (t.id === data.id || t.teacherId === data.id || t.nip === data.id))
     );
     let updatedTeacherObj = null;
 
@@ -2801,8 +2873,29 @@ const StorageService = {
       localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(teachers));
     }
 
+    const payloadToPush = updatedTeacherObj || { ...data, id: targetId, teacherId: targetId };
+
+    // Perbarui hadir_guru_cloud_profile_overrides agar hasil edit profil tidak ditimpa data lama
+    try {
+      const ovRaw = localStorage.getItem("hadir_guru_cloud_profile_overrides");
+      const cloudOverrides = ovRaw ? (JSON.parse(ovRaw) || {}) : {};
+      const ovEntry = { ...payloadToPush, updatedAtMs: nowMs };
+      if (targetId) cloudOverrides[targetId] = ovEntry;
+      if (payloadToPush.id) cloudOverrides[payloadToPush.id] = ovEntry;
+      if (hasValidNip) cloudOverrides[cleanNip] = ovEntry;
+      if (data && data.id) cloudOverrides[data.id] = ovEntry;
+      localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(cloudOverrides));
+      if (typeof FirebaseService !== "undefined" && FirebaseService._profileOverrides) {
+        if (targetId) FirebaseService._profileOverrides[targetId] = ovEntry;
+        if (payloadToPush.id) FirebaseService._profileOverrides[payloadToPush.id] = ovEntry;
+        if (hasValidNip) FirebaseService._profileOverrides[cleanNip] = ovEntry;
+      }
+    } catch (e) {}
+
     if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      const payloadToPush = updatedTeacherObj || { ...data, id: targetId, teacherId: targetId };
+      if (FirebaseService._lastSyncTimestamps) {
+        FirebaseService._lastSyncTimestamps["__sync_teachers_master__"] = nowMs;
+      }
       FirebaseService.pushTeacherProfile(targetId, payloadToPush);
       if (data && data.id && data.id !== targetId) {
         FirebaseService.pushTeacherProfile(data.id, payloadToPush);
@@ -2810,6 +2903,10 @@ const StorageService = {
       if (updatedTeacherObj) {
         FirebaseService.pushSyncState("teachers_master", teachers);
       }
+    }
+
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveTeacher === "function") {
+      ApiService.saveTeacher(payloadToPush).catch(() => {});
     }
   },
 

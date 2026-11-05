@@ -48,49 +48,76 @@ if ($method === 'POST') {
         sendResponse(true, ['affected' => $affected], "Semua password dan PIN akun guru berhasil di-reset menjadi 123456");
     }
 
-    // 2. Update Profil Guru Mandiri (No HP, Email, PIN, Password)
-    if ($action === 'update_profile') {
-        $identifier = trim($input['id'] ?? $input['nip'] ?? '');
+    // 2. Simpan / Update Data Lengkap Guru (Admin Database Guru & Edit Profil)
+    if ($action === 'save' || $action === 'update_profile') {
+        $identifier = trim($input['id'] ?? $input['teacherId'] ?? $input['nip'] ?? '');
         if (empty($identifier)) {
             sendResponse(false, null, "ID Guru atau NIP wajib disertakan", 400);
         }
 
-        $phone = trim($input['phone'] ?? '');
+        $nip = trim($input['nip'] ?? $identifier);
+        if ($nip === '-' || strlen($nip) <= 3) {
+            $nip = $identifier;
+        }
+        $id = trim($input['id'] ?? $nip);
+        $legacyId = trim($input['legacyId'] ?? $input['legacy_id'] ?? $id);
+        $name = trim($input['name'] ?? '');
+        $nuptk = trim($input['nuptk'] ?? '-');
+        $subject = trim($input['subject'] ?? 'Guru Mapel');
+        $dept = trim($input['dept'] ?? 'UMUM');
+        $targetJtm = (int)($input['targetJtm'] ?? $input['target_jtm'] ?? 24);
+        $classAssigned = trim($input['classAssigned'] ?? $input['class_assigned'] ?? 'Guru Mapel');
         $email = trim($input['email'] ?? '');
-        $pin = trim($input['pin'] ?? '');
-        $password = trim($input['password'] ?? '');
+        $phone = trim($input['phone'] ?? '');
+        $gender = trim($input['gender'] ?? 'Laki-laki');
+        $status = trim($input['status'] ?? $input['kepegawaian'] ?? $input['employmentStatus'] ?? 'Aktif');
+        $pin = trim($input['pin'] ?? $input['password'] ?? '123456');
+        $password = trim($input['password'] ?? $input['pin'] ?? '123456');
+        $role = trim($input['role'] ?? 'Pendidik');
+        $position = trim($input['position'] ?? $classAssigned);
 
-        $sql = "UPDATE teachers SET updated_at = CURRENT_TIMESTAMP";
-        $params = [];
+        // Cek apakah guru sudah ada di tabel teachers
+        $checkStmt = $pdo->prepare("SELECT id, nip FROM teachers WHERE nip = ? OR id = ? OR legacy_id = ? LIMIT 1");
+        $checkStmt->execute([$nip, $identifier, $identifier]);
+        $existing = $checkStmt->fetch();
 
-        if (!empty($phone)) {
-            $sql .= ", phone = ?";
-            $params[] = $phone;
+        if ($existing) {
+            $sql = "UPDATE teachers SET updated_at = CURRENT_TIMESTAMP";
+            $params = [];
+
+            if (!empty($name)) { $sql .= ", name = ?"; $params[] = $name; }
+            if (!empty($nip)) { $sql .= ", nip = ?"; $params[] = $nip; }
+            if (!empty($nuptk)) { $sql .= ", nuptk = ?"; $params[] = $nuptk; }
+            if (!empty($subject)) { $sql .= ", subject = ?"; $params[] = $subject; }
+            if (!empty($dept)) { $sql .= ", dept = ?"; $params[] = $dept; }
+            if (!empty($classAssigned)) { $sql .= ", class_assigned = ?"; $params[] = $classAssigned; }
+            if (isset($input['email'])) { $sql .= ", email = ?"; $params[] = $email; }
+            if (isset($input['phone'])) { $sql .= ", phone = ?"; $params[] = $phone; }
+            if (!empty($pin)) { $sql .= ", pin = ?"; $params[] = $pin; }
+            if (!empty($password)) { $sql .= ", password = ?"; $params[] = $password; }
+
+            $sql .= " WHERE id = ? OR nip = ?";
+            $params[] = $existing['id'];
+            $params[] = $existing['nip'];
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
+            sendResponse(true, ['id' => $existing['id'], 'nip' => $nip], "Data guru berhasil diperbarui");
+        } else {
+            $stmt = $pdo->prepare("
+                INSERT INTO teachers (id, nip, legacy_id, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, gender, status, password, pin, role, position)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $nip, $nip, $legacyId, $name ?: 'Guru MTs', $nuptk, $subject, $dept, $targetJtm,
+                $classAssigned, $email, $phone, $gender, 'Aktif', $password, $pin, $role, $position
+            ]);
+            sendResponse(true, ['id' => $nip, 'nip' => $nip], "Guru baru berhasil ditambahkan ke database");
         }
-        if (!empty($email)) {
-            $sql .= ", email = ?";
-            $params[] = $email;
-        }
-        if (!empty($pin)) {
-            $sql .= ", pin = ?";
-            $params[] = $pin;
-        }
-        if (!empty($password)) {
-            $sql .= ", password = ?";
-            $params[] = $password;
-        }
-
-        $sql .= " WHERE nip = ? OR id = ?";
-        $params[] = $identifier;
-        $params[] = $identifier;
-
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-
-        sendResponse(true, null, "Profil guru berhasil diperbarui");
     }
 
     sendResponse(false, null, "Action tidak dikenali", 400);
 }
 
 sendResponse(false, null, "Metode HTTP tidak didukung", 405);
+
