@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HADIR.GURU MTs — Firebase Cloud Database & Real-Time Synchronization Service
  * 
  * Mengelola autentikasi berbasis NIP + Password, sinkronisasi real-time dua arah
@@ -368,9 +368,11 @@ const FirebaseService = {
         } catch (tErr) {}
       }
 
-      const targetDocId = existingDocId || user.uid;
+      // Standarisasi ID dokumen users menggunakan NIP murni / admin untuk sinkronisasi multi-perangkat
+      const canonicalDocId = (role === "admin") ? "admin" : (cleanNip || existingDocId || user.uid);
       const userDocData = {
-        uid: targetDocId,
+        uid: canonicalDocId,
+        id: canonicalDocId,
         nip: cleanNip,
         teacherId: teacherId,
         name: finalName,
@@ -380,7 +382,14 @@ const FirebaseService = {
       };
 
       try {
-        await this.db.collection("users").doc(targetDocId).set(userDocData, { merge: true });
+        await this.db.collection("users").doc(canonicalDocId).set(userDocData, { merge: true });
+        // Bersihkan dokumen duplikat lama dengan ID acak Firebase Auth jika ada
+        if (existingDocId && existingDocId !== canonicalDocId) {
+          try { await this.db.collection("users").doc(existingDocId).delete(); } catch (e) {}
+        }
+        if (user && user.uid && user.uid !== canonicalDocId && user.uid !== "admin") {
+          try { await this.db.collection("users").doc(user.uid).delete(); } catch (e) {}
+        }
       } catch (uErr) {
         // Abaikan jika koleksi users dibatasi untuk sync_bridge
       }
@@ -587,6 +596,18 @@ const FirebaseService = {
           changed = true;
         }
 
+        // Simpan ke dokumen kanonikal `users/{teacherId}` (NIP)
+        try {
+          await this.db.collection("users").doc(teacherId).set({
+            ...bestData,
+            id: teacherId,
+            uid: teacherId,
+            teacherId: teacherId,
+            nip: hasValidNip ? cleanNip : (bestData.nip || "-"),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch (e) {}
+
         // Simpan ke dokumen kanonikal `teachers/{NIP}`
         try {
           await this.db.collection("teachers").doc(teacherId).set({
@@ -598,11 +619,9 @@ const FirebaseService = {
           }, { merge: true });
         } catch (e) {}
 
-        // PEMBERSIHAN OTOMATIS: Jika ada dokumen duplikat (> 1), hapus dari Firestore!
-        if (docs.length > 1) {
-          console.log(`[FirebaseService] Membersihkan ${docs.length - 1} dokumen duplikat di koleksi users untuk ${teacherId}...`);
-          for (let i = 1; i < docs.length; i++) {
-            const dup = docs[i];
+        // PEMBERSIHAN OTOMATIS: Hapus semua dokumen users yang ID-nya bukan teacherId (misal UID Firebase Auth acak)
+        for (const dup of docs) {
+          if (dup.id !== teacherId) {
             try {
               await this.db.collection("users").doc(dup.id).delete();
               console.log(`[FirebaseService] Berhasil menghapus dokumen duplikat users/${dup.id} (${dup.data.name})`);
@@ -636,6 +655,11 @@ const FirebaseService = {
         const teachersSnap = await this.db.collection("teachers").get();
         if (!teachersSnap.empty) {
           teachersSnap.forEach((doc) => {
+            if (doc.id.startsWith("TCH-")) {
+              // Otomatis bersihkan dokumen usang TCH-XX dari Cloud
+              try { doc.ref.delete(); } catch (e) {}
+              return;
+            }
             const tData = doc.data();
             const cleanNip = String((tData && tData.nip) || doc.id || "").trim();
             const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
@@ -665,6 +689,11 @@ const FirebaseService = {
       snapshot.forEach((doc) => {
         const id = doc.id;
         const data = doc.data();
+        if (id.startsWith("__profile_TCH-")) {
+          // Otomatis bersihkan log profil lama dari Cloud
+          try { doc.ref.delete(); } catch (e) {}
+          return;
+        }
         if (id.startsWith("__profile_")) {
           profileDocs.push({ id, data });
         } else if (id.startsWith("__sync_")) {
@@ -1296,24 +1325,28 @@ const FirebaseService = {
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
-        if (!userSnap.empty) {
-          let docs = [];
-          userSnap.forEach(d => docs.push(d));
-          // Update dokumen yang sudah ada (misal dokumen hS8RzNuOtbeWUUIHObMOpajmtEo2)
-          await this.db.collection("users").doc(docs[0].id).set(userUpdatePayload, { merge: true });
+        // Simpan dokumen kanonikal di users/{canonicalTeacherId} (NIP)
+        await this.db.collection("users").doc(canonicalTeacherId).set({
+          ...userUpdatePayload,
+          uid: canonicalTeacherId,
+          id: canonicalTeacherId
+        }, { merge: true });
 
-          // Hapus semua dokumen duplikat yang tersisa
-          for (let i = 1; i < docs.length; i++) {
-            try {
-              await this.db.collection("users").doc(docs[i].id).delete();
-              console.log(`[FirebaseService] Berhasil menghapus duplikat users/${docs[i].id}`);
-            } catch (delErr) {}
+        // Hapus dokumen users lain yang ID-nya bukan NIP (misal UID Firebase Auth acak)
+        if (!userSnap.empty) {
+          for (const docItem of userSnap.docs) {
+            if (docItem.id !== canonicalTeacherId) {
+              try {
+                await this.db.collection("users").doc(docItem.id).delete();
+                console.log(`[FirebaseService] Berhasil menghapus doc users bukan NIP: users/${docItem.id}`);
+              } catch (delErr) {}
+            }
           }
-        } else if (this.auth.currentUser) {
-          await this.db.collection("users").doc(this.auth.currentUser.uid).set({
-            ...userUpdatePayload,
-            uid: this.auth.currentUser.uid
-          }, { merge: true });
+        }
+        // Bersihkan juga log usang __profile_TCH-* jika ada
+        if (teacherId !== canonicalTeacherId) {
+          try { await this.db.collection("teaching_logs").doc(`__profile_${teacherId}__`).delete(); } catch (delLogErr) {}
+          try { await this.db.collection("teachers").doc(teacherId).delete(); } catch (delTchErr) {}
         }
       } catch (uErr) {
         console.warn("[FirebaseService] users sync/dedup warning:", uErr);
@@ -1625,6 +1658,157 @@ const FirebaseService = {
   },
 
   /**
+   * Upload seluruh data master localhost ke Cloud Firestore dan bersihkan data usang/duplikat
+   */
+  async uploadLocalhostDataToCloud(progressCallback = null) {
+    if (!this.isReady()) {
+      await this.init();
+    }
+    if (!this.isReady()) {
+      return { success: false, message: "Firebase belum terinisialisasi. Periksa koneksi internet." };
+    }
+
+    try {
+      await this.ensureAuthenticated();
+      if (!this.auth.currentUser) {
+        return { success: false, message: "Gagal autentikasi transport cloud." };
+      }
+
+      if (progressCallback) progressCallback("Mempersiapkan data master dari localhost...");
+
+      const teachers = (typeof StorageService !== "undefined" && StorageService.getTeachersMaster)
+        ? StorageService.getTeachersMaster()
+        : [];
+      const schedules = (typeof StorageService !== "undefined" && StorageService.getMasterSchedules)
+        ? StorageService.getMasterSchedules()
+        : [];
+      const picket = (typeof StorageService !== "undefined" && StorageService.getWelcomingPicketRoster)
+        ? StorageService.getWelcomingPicketRoster()
+        : [];
+      const schoolConfig = (typeof StorageService !== "undefined" && StorageService.getSchoolConfig)
+        ? StorageService.getSchoolConfig()
+        : {};
+
+      const validNips = new Set(teachers.map(t => String(t.nip || t.id).trim()).filter(Boolean));
+      const nowMs = Date.now();
+
+      let deletedUsers = 0;
+      let deletedTeachers = 0;
+      let deletedLogs = 0;
+
+      // 1. Bersihkan koleksi teachers dari ID usang (misal TCH-XX)
+      if (progressCallback) progressCallback("Membersihkan database teachers lama di Cloud...");
+      try {
+        const tSnap = await this.db.collection("teachers").get();
+        for (const doc of tSnap.docs) {
+          if (doc.id.startsWith("TCH-") || (!validNips.has(doc.id) && doc.id !== "admin")) {
+            await doc.ref.delete();
+            deletedTeachers++;
+          }
+        }
+      } catch (e) {
+        console.warn("Cleanup teachers warning:", e);
+      }
+
+      // 2. Bersihkan koleksi users dari akun duplikat / ID acak Firebase Auth
+      if (progressCallback) progressCallback("Membersihkan koleksi users duplikat di Cloud...");
+      try {
+        const uSnap = await this.db.collection("users").get();
+        for (const doc of uSnap.docs) {
+          if (doc.id !== "admin" && doc.id !== "sync_bridge" && !validNips.has(doc.id)) {
+            await doc.ref.delete();
+            deletedUsers++;
+          }
+        }
+      } catch (e) {
+        console.warn("Cleanup users warning:", e);
+      }
+
+      // 3. Bersihkan koleksi teaching_logs dari profil usang __profile_TCH-*
+      if (progressCallback) progressCallback("Membersihkan log profil lama di Cloud...");
+      try {
+        const lSnap = await this.db.collection("teaching_logs").get();
+        for (const doc of lSnap.docs) {
+          if (doc.id.startsWith("__profile_TCH-")) {
+            await doc.ref.delete();
+            deletedLogs++;
+          }
+        }
+      } catch (e) {
+        console.warn("Cleanup logs warning:", e);
+      }
+
+      // 4. Upload seluruh master guru ke teachers/{nip}, users/{nip}, dan teaching_logs/__profile_{nip}__
+      if (progressCallback) progressCallback(`Mengupload ${teachers.length} akun guru berbasis NIP ke Cloud...`);
+      for (let i = 0; i < teachers.length; i++) {
+        const t = teachers[i];
+        const nip = String(t.nip || t.id).trim();
+        if (!nip) continue;
+
+        const teacherPayload = {
+          ...t,
+          id: nip,
+          teacherId: nip,
+          nip: nip,
+          updatedAtMs: nowMs,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Simpan ke teachers/{nip}
+        await this.db.collection("teachers").doc(nip).set(teacherPayload, { merge: true });
+
+        // Simpan ke users/{nip}
+        const userPayload = {
+          uid: nip,
+          id: nip,
+          nip: nip,
+          teacherId: nip,
+          name: t.name,
+          email: t.email || this.nipToEmail(nip),
+          phone: t.phone || "",
+          role: "teacher",
+          subject: t.subject || "",
+          classAssigned: t.classAssigned || "",
+          updatedAtMs: nowMs,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        await this.db.collection("users").doc(nip).set(userPayload, { merge: true });
+
+        // Simpan ke teaching_logs/__profile_{nip}__
+        const logDocId = `__profile_${nip}__`;
+        await this.db.collection("teaching_logs").doc(logDocId).set({
+          _type: "teacher_profile",
+          teacherId: nip,
+          teacher: teacherPayload,
+          updatedAtMs: nowMs,
+          updatedByDevice: this.deviceId,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
+
+      // 5. Upload Master Sync States (teachers_master, schedules_master, picket_roster, school_config)
+      if (progressCallback) progressCallback("Mengupload jadwal pelajaran dan pengaturan madrasah ke Cloud...");
+      await this.pushSyncState("teachers_master", teachers);
+      await this.pushSyncState("schedules_master", schedules);
+      await this.pushSyncState("picket_roster", picket);
+      await this.pushSyncState("school_config", schoolConfig);
+
+      this.scheduleUIRefresh();
+      return {
+        success: true,
+        teachersCount: teachers.length,
+        schedulesCount: schedules.length,
+        deletedTeachers,
+        deletedUsers,
+        deletedLogs
+      };
+    } catch (err) {
+      console.error("[FirebaseService] uploadLocalhostDataToCloud error:", err);
+      return { success: false, error: err.message || err };
+    }
+  },
+
+  /**
    * Tampilkan Badge Status Koneksi Cloud di Header
    */
   updateConnectionBadge(isConnected, customLabel = null) {
@@ -1648,6 +1832,7 @@ const FirebaseService = {
 };
 
 window.FirebaseService = FirebaseService;
+window.uploadLocalhostDataToCloud = (cb) => FirebaseService.uploadLocalhostDataToCloud(cb);
 
 // Inisialisasi otomatis saat script selesai dimuat (Aman untuk WebView APK & Browser Fast Cache)
 if (document.readyState === "loading") {

@@ -963,7 +963,7 @@ function initMainApplication() {
 
         // Sinkronisasi langsung ke Master Rekap Guru agar Admin melihatnya seketika
         const activeTch = StorageService.getActiveTeacher();
-        const activeTchId = activeTch ? activeTch.id : "TCH-01";
+        const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : "91000074100899";
         syncTeacherAttendanceToMaster(
           activeTchId,
           statusStr,
@@ -1110,7 +1110,7 @@ function initMainApplication() {
 
         // Sinkronisasi langsung ke Master Rekap Guru agar Admin melihat absen pulang seketika
         const activeTch = StorageService.getActiveTeacher();
-        const activeTchId = activeTch ? activeTch.id : "TCH-01";
+        const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : "91000074100899";
         syncTeacherAttendanceToMaster(
           activeTchId,
           "Pulang",
@@ -1178,7 +1178,7 @@ function initMainApplication() {
         const activeT = StorageService.getActiveTeacher() || {};
         const newLeave = {
           id: `IZN-2026-${String(leaveRequests.length + 5).padStart(3, "0")}`,
-          teacherId: activeT.id || "TCH-01",
+          teacherId: (activeT.nip || activeT.id || "91000074100899"),
           teacherName: activeT.name || "Guru MTs",
           teacherNip: activeT.nip || "-",
           teacherSubject: activeT.subject || "Guru Mapel",
@@ -7110,6 +7110,61 @@ function initMainApplication() {
     }
 
     // Export CSV
+    // Tombol Upload Seluruh Data Localhost ke Cloud & Bersihkan Duplikat
+    const btnUploadCloud = document.getElementById("btnUploadLocalhostToCloud");
+    if (btnUploadCloud) {
+      btnUploadCloud.addEventListener("click", async () => {
+        const confirmSync = confirm(
+          "Upload Seluruh Data Localhost ke Cloud Firebase?\n\n" +
+          "1. Mengunggah 53 akun guru & jadwal KBM dengan ID berbasis NIP.\n" +
+          "2. Membersihkan dokumen duplikat / ID usang (TCH-XX / UID acak).\n" +
+          "3. Memastikan semua perangkat (HP, Android APK, Browser) tersinkronisasi 100%.\n\n" +
+          "Klik OK untuk melanjutkan."
+        );
+        if (!confirmSync) return;
+
+        btnUploadCloud.disabled = true;
+        const origBtnHtml = btnUploadCloud.innerHTML;
+        btnUploadCloud.innerHTML = `<span>â³ Mengupload ke Cloud...</span>`;
+
+        try {
+          if (typeof showToast === "function") {
+            showToast("Cloud Sync", "Mulai mengupload data localhost dan membersihkan database Cloud...", "info");
+          }
+
+          const res = await FirebaseService.uploadLocalhostDataToCloud((statusMsg) => {
+            console.log("[CloudSync]", statusMsg);
+            if (typeof showToast === "function") {
+              showToast("Cloud Sync", statusMsg, "info");
+            }
+          });
+
+          if (res && res.success) {
+            alert(
+              "✅ SINKRONISASI CLOUD BERHASIL!\n\n" +
+              `- ${res.teachersCount} Guru berhasil diupload (Berbasis NIP)\n` +
+              `- ${res.schedulesCount} Sesi Jadwal KBM diupload\n` +
+              `- ${res.deletedUsers || 0} Dokumen users lama dibersihkan\n` +
+              `- ${res.deletedTeachers || 0} Dokumen teachers usang dibersihkan\n\n` +
+              "Database Cloud kini bersih dan sinkron dengan semua perangkat!"
+            );
+            if (typeof showToast === "function") {
+              showToast("Sukses", "Database Cloud berhasil disinkronkan & dibersihkan.", "success");
+            }
+            if (typeof renderTeachersDb === "function") renderTeachersDb();
+          } else {
+            alert("âš ï¸ Gagal sinkronisasi ke Cloud: " + ((res && (res.message || res.error)) || "Koneksi terputus"));
+          }
+        } catch (syncErr) {
+          console.error("Cloud upload error:", syncErr);
+          alert("Terjadi kesalahan saat upload ke Cloud: " + (syncErr.message || syncErr));
+        } finally {
+          btnUploadCloud.disabled = false;
+          btnUploadCloud.innerHTML = origBtnHtml;
+        }
+      });
+    }
+
     if (btnExportAccounts) {
       btnExportAccounts.addEventListener("click", () => {
         const csv = StorageService.exportTeachersToCSV();
