@@ -889,7 +889,24 @@ const FirebaseService = {
 
         const targetStorageKey = storageKeyMap[key];
         if (targetStorageKey && parsed !== undefined && parsed !== null) {
+          if (key === "school_config" && parsed && typeof parsed === "object") {
+            if (parsed.name && (parsed.name.includes("Teladan") || parsed.name.includes("MTs Negeri 1"))) {
+              parsed.name = "MTs Asy-Syafi''iyyah Jatibarang";
+              parsed.principalName = "Drs. H. Akhmad Rosidi";
+              parsed.principalNip = "9248740641200003";
+              parsed.address = "Jl. Raya Jatibarang, Brebes, Jawa Tengah";
+              parsed.email = "kontak@mtsasyjtb.sch.id";
+              parsed.phone = "(0283) 617-1234 / @opmmtsasyjtb";
+              parsed.website = "https://mtsasyjtb.sch.id";
+              if (parsed.geofence) {
+                parsed.geofence.campusName = "Area Utama Kampus MTs Asy-Syafi''iyyah Jatibarang";
+              }
+            }
+          }
           localStorage.setItem(targetStorageKey, JSON.stringify(parsed));
+          if (key === "school_config" && typeof window.applySyncedTeacherAndSchoolData === "function") {
+            try { window.applySyncedTeacherAndSchoolData(); } catch (e) {}
+          }
           if (key === "schedules" && typeof StorageService !== "undefined" && StorageService.syncActiveTeachingSchedules) {
             StorageService.syncActiveTeachingSchedules();
           }
@@ -1791,7 +1808,11 @@ const FirebaseService = {
       await this.pushSyncState("teachers_master", teachers);
       await this.pushSyncState("schedules_master", schedules);
       await this.pushSyncState("picket_roster", picket);
-      await this.pushSyncState("school_config", schoolConfig);
+      const freshSchoolConfig = {
+        ...schoolConfig,
+        _updatedAtMs: nowMs
+      };
+      await this.pushSyncState("school_config", freshSchoolConfig);
 
       this.scheduleUIRefresh();
       return {

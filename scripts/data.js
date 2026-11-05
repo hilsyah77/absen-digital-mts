@@ -4,7 +4,7 @@
  */
 
 // Auto-migrate: Bersihkan seluruh riwayat absensi admin & personal
-const CURRENT_DATA_VERSION = "2026_guru_nip_unified_v11";
+const CURRENT_DATA_VERSION = "2026_guru_nip_unified_v12";
 try {
   if (typeof localStorage !== "undefined") {
     const curVer = localStorage.getItem("hadir_guru_data_version");
@@ -25,6 +25,7 @@ try {
       localStorage.removeItem("hadir_guru_history");
       localStorage.removeItem("hadir_guru_admin_feed");
       localStorage.removeItem("hadir_guru_holidays");
+      localStorage.removeItem("hadir_guru_school_config");
       localStorage.setItem("hadir_guru_data_version", CURRENT_DATA_VERSION);
     }
   }
@@ -166,7 +167,7 @@ const SCHOOL_CONFIG = {
     latitude: -6.208842,
     longitude: 106.845612,
     radiusMeters: 50,
-    campusName: "Area Utama Kampus MTs Negeri 1 Teladan"
+    campusName: "Area Utama Kampus MTs Asy-Syafi'iyyah Jatibarang"
   }
 };
 
@@ -1728,6 +1729,20 @@ const StorageService = {
           }
           if (!Array.isArray(merged.schedule.kbmPeriods) || merged.schedule.kbmPeriods.length === 0) {
             merged.schedule.kbmPeriods = baseClone.schedule.kbmPeriods;
+          }
+          if (merged.name && (merged.name.includes("Teladan") || merged.name.includes("MTs Negeri 1"))) {
+            merged.name = baseClone.name;
+            merged.principalName = baseClone.principalName;
+            merged.principalNip = baseClone.principalNip;
+            merged.address = baseClone.address;
+            merged.email = baseClone.email;
+            merged.phone = baseClone.phone;
+            merged.website = baseClone.website;
+            merged.level = baseClone.level;
+            merged.status = baseClone.status;
+            if (merged.geofence) {
+              merged.geofence.campusName = baseClone.geofence.campusName;
+            }
           }
           return merged;
         }

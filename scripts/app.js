@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HADIR.GURU - Client Application Logic
  * Implementasi Functional Requirements Frontend Dashboard Guru MTs
  */
@@ -424,7 +424,7 @@ function initMainApplication() {
     function renderGeofenceUI() {
       const cfg = StorageService.getSchoolConfig();
       const geo = (cfg && cfg.geofence) || {};
-      const campusName = geo.campusName || "MTs Negeri 1 Teladan";
+      const campusName = geo.campusName || "MTs Asy-Syafi'iyyah Jatibarang";
       const lat = geo.latitude !== undefined && !isNaN(geo.latitude) ? Number(geo.latitude) : -6.208842;
       const lng = geo.longitude !== undefined && !isNaN(geo.longitude) ? Number(geo.longitude) : 106.845612;
       const radiusMeters = parseInt(geo.radiusMeters, 10) || 50;
@@ -1467,7 +1467,7 @@ function initMainApplication() {
         </div>
         <div>
           <h4 style="font-family: 'Outfit'; font-size: 1.15rem; font-weight: 800;">Bukti Presensi #${item.id}</h4>
-          <p style="font-size: 0.8rem; color: var(--text-muted);">${item.day}, ${item.date} • MTs Negeri 1 Teladan</p>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">${item.day}, ${item.date} • ${StorageService.getSchoolConfig().name || "MTs Asy-Syafi'iyyah Jatibarang"}</p>
         </div>
       </div>
 
@@ -3816,7 +3816,7 @@ function initMainApplication() {
     if (profileCardPhone) profileCardPhone.textContent = profile.phone || "-";
 
     const profileCardMadrasah = document.getElementById("profileCardMadrasah");
-    if (profileCardMadrasah) profileCardMadrasah.textContent = config.name || "MTs Negeri 1 Teladan";
+    if (profileCardMadrasah) profileCardMadrasah.textContent = config.name || "MTs Asy-Syafi'iyyah Jatibarang";
 
     // Sync Avatar Image in Teacher Bio Card
     const avatarImg = document.getElementById("profileCardAvatarImg");
@@ -3832,7 +3832,7 @@ function initMainApplication() {
       }
     }
 
-    const schoolName = config.name || "MTs Negeri 1 Teladan";
+    const schoolName = config.name || "MTs Asy-Syafi'iyyah Jatibarang";
     const schUpper = schoolName.toUpperCase();
 
     // Sync to Login view and Footers
@@ -3988,7 +3988,7 @@ function initMainApplication() {
       if (t.status === "Belum Absen") badgeClass = "badge-belum";
 
       const phoneClean = t.phone ? t.phone.replace(/[^0-9]/g, "") : "";
-      const waMsg = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Bapak/Ibu ${t.name}, konfirmasi presensi digital MTs Negeri 1 Teladan hari ini.`);
+      const waMsg = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Bapak/Ibu ${t.name}, konfirmasi presensi digital MTs Asy-Syafi'iyyah Jatibarang hari ini.`);
 
       tr.innerHTML = `
         <td style="text-align: center; font-weight: 600; color: var(--text-muted); font-size: 0.82rem;">${rowNum}</td>
@@ -4225,7 +4225,7 @@ function initMainApplication() {
     if (lng) lng.value = config.geofence.longitude;
     if (radius) radius.value = config.geofence.radiusMeters;
 
-    if (sName) sName.value = config.name || "MTs Negeri 1 Teladan";
+    if (sName) sName.value = config.name || "MTs Asy-Syafi'iyyah Jatibarang";
     if (sNpsn) sNpsn.value = config.npsn || "20108741";
     if (sNsm) sNsm.value = config.nsm || "121131740001";
     if (sLevel) {
@@ -4238,12 +4238,12 @@ function initMainApplication() {
       }
     }
     if (sAccred) sAccred.value = config.accreditation || "A (Unggul)";
-    if (sPrincipal) sPrincipal.value = config.principalName || "Dra. Hj. Siti Aminah, M.Pd.I.";
-    if (sPrincipalNip) sPrincipalNip.value = config.principalNip || "19710814 199703 2 001";
-    if (sAddress) sAddress.value = config.address || "Jl. Madrasah No. 45, Kebayoran Baru, Jakarta Selatan, DKI Jakarta 12160";
-    if (sEmail) sEmail.value = config.email || "kontak@mtsn1teladan.sch.id";
-    if (sPhone) sPhone.value = config.phone || "(021) 720-1234 / +62 811-2345-6789";
-    if (sWebsite) sWebsite.value = config.website || "https://mtsn1teladan.sch.id";
+    if (sPrincipal) sPrincipal.value = config.principalName || "Drs. H. Akhmad Rosidi";
+    if (sPrincipalNip) sPrincipalNip.value = config.principalNip || "9248740641200003";
+    if (sAddress) sAddress.value = config.address || "Jl. Raya Jatibarang, Brebes, Jawa Tengah";
+    if (sEmail) sEmail.value = config.email || "kontak@mtsasyjtb.sch.id";
+    if (sPhone) sPhone.value = config.phone || "(0283) 617-1234 / @opmmtsasyjtb";
+    if (sWebsite) sWebsite.value = config.website || "https://mtsasyjtb.sch.id";
 
     const inputAdminUser = document.getElementById("settingAdminUsername");
     if (inputAdminUser) inputAdminUser.value = config.adminUsername || "admin";
@@ -4435,7 +4435,7 @@ function initMainApplication() {
             () => {
               document.getElementById("settingLatitude").value = "-6.208842";
               document.getElementById("settingLongitude").value = "106.845612";
-              showToast("Koordinat Standar", "Menggunakan koordinat default kampus MTsN 1 Teladan.", "info");
+              showToast("Koordinat Standar", "Menggunakan koordinat default kampus MTs Asy-Syafi'iyyah Jatibarang.", "info");
             }
           );
         }
@@ -5776,7 +5776,7 @@ function initMainApplication() {
           KEMENTERIAN AGAMA REPUBLIK INDONESIA
         </div>
         <h4 style="font-family: 'Outfit'; font-size: 1.15rem; font-weight: 800; margin: 0.2rem 0;">
-          MADRASAH TSANAWIYAH NEGERI 1 TELADAN
+          MADRASAH TSANAWIYAH ASY-SYAFI'IYYAH JATIBARANG
         </h4>
         <div style="font-size: 0.75rem; color: var(--text-muted);">
           LEMBAR JURNAL KBM & PRESENSI KELAS — ${log.id}
@@ -6701,7 +6701,7 @@ function initMainApplication() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "template_jadwal_guru_mtsn1.csv";
+        a.download = "template_jadwal_guru_mtsasyjtb.csv";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -7172,7 +7172,7 @@ function initMainApplication() {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `database_akun_guru_mtsn1_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `database_akun_guru_mtsasyjtb_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -8411,7 +8411,7 @@ function initMainApplication() {
           : `<span class="picket-role-badge role-member">🛡️ Petugas Sambut 5S</span>`;
 
         const phoneClean = (member.phone || teacherInfo.phone || "").replace(/[^0-9]/g, "");
-        const waLink = phoneClean ? `https://wa.me/${phoneClean}?text=Assalamu%27alaikum%20${encodeURIComponent(member.teacherName || teacherInfo.name)}%2C%20mengenai%20jadwal%20piket%20sambut%20siswa%20MTsN%201%20Teladan...` : "#";
+        const waLink = phoneClean ? `https://wa.me/${phoneClean}?text=Assalamu%27alaikum%20${encodeURIComponent(member.teacherName || teacherInfo.name)}%2C%20mengenai%20jadwal%20piket%20sambut%20siswa%20MTs%20Asy-Syafi%27iyyah%20Jatibarang...` : "#";
 
         let invalNotice = "";
         if (member.isSubstituted) {
@@ -9590,7 +9590,7 @@ function initMainApplication() {
 
     // Sync School Name dynamically from Admin Settings
     const schoolCfg = StorageService.getSchoolConfig();
-    const schName = schoolCfg.name || "MTs Negeri 1 Teladan";
+    const schName = schoolCfg.name || "MTs Asy-Syafi'iyyah Jatibarang";
     const elSch = document.getElementById("loginSchoolName");
     if (elSch) elSch.textContent = schName.toUpperCase();
     const elFoot = document.getElementById("loginFooterSchoolName");
