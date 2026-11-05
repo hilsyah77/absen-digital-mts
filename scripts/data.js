@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HADIR.GURU - Data Store & Master Database Guru Reel (51 Guru)
  * Berdasarkan PRD HADIR.GURU v1.0 (Sistem Absensi Digital Guru MTs)
  */
@@ -3112,6 +3112,23 @@ const StorageService = {
           teacherName: activeTeacher.name,
           nip: canonicalNip
         }).catch(err => console.warn("[Firebase] Background sync error:", err));
+      }
+    }
+    // Sinkronisasi ke MySQL Hosting via ApiService jika terdeteksi aktif
+    if (!skipCloud && typeof ApiService !== "undefined" && ApiService.isReady()) {
+      const activeTeacher = this.getActiveTeacher();
+      if (activeTeacher && data && data.status && data.status !== "Belum Absen") {
+        const canonicalNip = (activeTeacher.nip && activeTeacher.nip.length > 3 && activeTeacher.nip !== "-") 
+          ? String(activeTeacher.nip).trim() 
+          : (activeTeacher.teacherId || activeTeacher.id);
+        const dateStr = data.date || new Date().toISOString().split("T")[0];
+        ApiService.recordAttendance({
+          ...data,
+          id: `${canonicalNip}_${dateStr}`,
+          teacherId: canonicalNip,
+          teacherName: activeTeacher.name,
+          nip: canonicalNip
+        }).catch(err => console.warn("[ApiService] MySQL sync error:", err));
       }
     }
   },
