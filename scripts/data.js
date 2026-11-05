@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HADIR.GURU - Data Store & Master Database Guru Reel (51 Guru)
  * Berdasarkan PRD HADIR.GURU v1.0 (Sistem Absensi Digital Guru MTs)
  */
@@ -2659,7 +2659,19 @@ const StorageService = {
 
   // Active Teacher Profile & Multi-Account Switcher
   getActiveTeacherId() {
-    return localStorage.getItem("hadir_guru_active_teacher_id") || "TCH-01";
+    const stored = localStorage.getItem("hadir_guru_active_teacher_id");
+    if (stored) {
+      if (stored.startsWith("TCH-")) {
+        const teachers = this.getTeachersMaster();
+        const found = teachers.find(t => t.legacyId === stored || t.id === stored || t.teacherId === stored);
+        if (found && found.nip && found.nip !== "-") {
+          localStorage.setItem("hadir_guru_active_teacher_id", found.nip);
+          return found.nip;
+        }
+      }
+      return stored;
+    }
+    return "91000074100899";
   },
   setActiveTeacherId(id) {
     localStorage.setItem("hadir_guru_active_teacher_id", id);
@@ -2702,6 +2714,7 @@ const StorageService = {
       t.nip === activeId || 
       t.id === activeId || 
       t.teacherId === activeId || 
+      t.legacyId === activeId ||
       (t.nip && activeId && String(t.nip).trim() === String(activeId).trim())
     ) || teachers[0];
   },
@@ -3088,11 +3101,16 @@ const StorageService = {
     if (!skipCloud && typeof FirebaseService !== "undefined" && FirebaseService.isReady() && !FirebaseService.isApplyingCloud()) {
       const activeTeacher = this.getActiveTeacher();
       if (activeTeacher && data && data.status && data.status !== "Belum Absen") {
+        const canonicalNip = (activeTeacher.nip && activeTeacher.nip.length > 3 && activeTeacher.nip !== "-") 
+          ? String(activeTeacher.nip).trim() 
+          : (activeTeacher.teacherId || activeTeacher.id);
+        const dateStr = data.date || new Date().toISOString().split("T")[0];
         FirebaseService.recordAttendance({
           ...data,
-          teacherId: activeTeacher.id,
+          id: `${canonicalNip}_${dateStr}`,
+          teacherId: canonicalNip,
           teacherName: activeTeacher.name,
-          nip: activeTeacher.nip
+          nip: canonicalNip
         }).catch(err => console.warn("[Firebase] Background sync error:", err));
       }
     }

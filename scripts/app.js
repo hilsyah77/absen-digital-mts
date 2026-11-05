@@ -995,7 +995,7 @@ function initMainApplication() {
 
         attendanceHistory = [
           newHistoryItem,
-          ...attendanceHistory.filter(h => !(h.date === curDateStr && (!h.teacherId || h.teacherId === activeTchId)))
+          ...attendanceHistory.filter(h => !(h.date === curDateStr && (!h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.legacyId || h.nip === activeTch.nip)))))
         ];
         StorageService.saveHistory(attendanceHistory);
 
@@ -1122,7 +1122,7 @@ function initMainApplication() {
 
         // Update history item for active teacher
         attendanceHistory = attendanceHistory.map(item => {
-          if (item.date === curDateStr && (!item.teacherId || item.teacherId === activeTchId)) {
+          if (item.date === curDateStr && (!item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.legacyId || item.nip === activeTch.nip)))) {
             return {
               ...item,
               checkOut: timeFormatted
@@ -1228,9 +1228,9 @@ function initMainApplication() {
 
     tbody.innerHTML = "";
     const activeTch = StorageService.getActiveTeacher();
-    const activeTchId = activeTch ? activeTch.id : null;
+    const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : null;
     const teacherHistory = activeTchId
-      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId)
+      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.legacyId || h.nip === activeTch.nip)))
       : attendanceHistory;
     const recent = teacherHistory.slice(0, 5);
 
@@ -1279,9 +1279,9 @@ function initMainApplication() {
     const searchKeyword = (document.getElementById("historySearchInput")?.value || "").toLowerCase().trim();
 
     const activeTch = StorageService.getActiveTeacher();
-    const activeTchId = activeTch ? activeTch.id : null;
+    const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : null;
     let filtered = activeTchId
-      ? attendanceHistory.filter(item => !item.teacherId || item.teacherId === activeTchId)
+      ? attendanceHistory.filter(item => !item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.legacyId || item.nip === activeTch.nip)))
       : [...attendanceHistory];
 
     // Filter by period dynamically based on current app date
@@ -1566,9 +1566,9 @@ function initMainApplication() {
     const kpiAlphaVal = document.getElementById("kpiAlphaVal");
 
     const activeTch = StorageService.getActiveTeacher();
-    const activeTchId = activeTch ? activeTch.id : null;
+    const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : null;
     const myHistory = activeTchId
-      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId)
+      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.legacyId || h.nip === activeTch.nip)))
       : attendanceHistory;
 
     const hadirCount = myHistory.filter(h => h.status === "Hadir" || h.status === "Pulang").length;

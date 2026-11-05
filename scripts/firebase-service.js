@@ -129,6 +129,7 @@ const FirebaseService = {
       await this.ensureAuthenticated();
       this.startRealtimeSync();
       await this.pullAllFromCloud();
+      this.migrateAttendanceDocsToNip().catch(() => {});
 
       // Pasang listener otomatis ketika berpindah tab / kembali ke APK atau Web
       this.bindLifecycleSyncListeners();
@@ -991,7 +992,7 @@ const FirebaseService = {
    */
   _refreshActiveProfileFromTeachersList(teachers) {
     if (!Array.isArray(teachers) || teachers.length === 0) return;
-    const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "TCH-01";
+    const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "91000074100899";
     const activeTeacher = teachers.find((t) => 
       t.nip === activeId || 
       t.id === activeId || 
@@ -1133,7 +1134,7 @@ const FirebaseService = {
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     if (attData.date && attData.date !== todayStr) return false;
 
-    const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "TCH-01";
+    const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "91000074100899";
     let changed = false;
 
     if (attData.teacherId === activeId && attData.status) {
@@ -1179,7 +1180,7 @@ const FirebaseService = {
 
   _syncTodayAttendanceFromAllTeachers(allList) {
     if (!Array.isArray(allList)) return;
-    const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "TCH-01";
+    const activeId = localStorage.getItem("hadir_guru_active_teacher_id") || "91000074100899";
     const rec = allList.find((t) => t.id === activeId);
     if (!rec || !rec.status || rec.status === "Belum Absen") return;
 
@@ -1498,7 +1499,95 @@ const FirebaseService = {
   },
 
   /**
-   * Catat Presensi Harian Guru ke Firestore
+   * Helper: Resolusi identifier guru (legacy TCH-XX atau id) ke NIP resmi
+   */
+  resolveTeacherNip(identifier) {
+    if (!identifier) return "";
+    const cleanId = String(identifier).trim();
+    let teachers = [];
+    if (typeof StorageService !== "undefined" && typeof StorageService.getTeachersMaster === "function") {
+      teachers = StorageService.getTeachersMaster() || [];
+    } else if (typeof INITIAL_TEACHERS_MASTER !== "undefined") {
+      teachers = INITIAL_TEACHERS_MASTER || [];
+    }
+    const found = teachers.find(t => 
+      t.nip === cleanId || 
+      t.id === cleanId || 
+      t.teacherId === cleanId || 
+      t.legacyId === cleanId
+    );
+    if (found && found.nip && found.nip !== "-" && found.nip.length > 3) {
+      return String(found.nip).trim();
+    }
+    return cleanId;
+  },
+
+  /**
+   * Migrasi otomatis ID dokumen attendance di Firestore agar menggunakan format NIP_<tanggal>
+   * Mengonversi dokumen seperti TCH-01_2026-11-03 menjadi 91000074100899_2026-11-03
+   */
+  async migrateAttendanceDocsToNip() {
+    if (!this.isReady() || this._isApplyingCloud) return;
+    try {
+      await this.ensureAuthenticated();
+      if (!this.auth.currentUser) return;
+
+      const snapshot = await this.db.collection("attendance").get();
+      if (snapshot.empty) return;
+
+      const batch = this.db.batch();
+      let count = 0;
+
+      snapshot.forEach(doc => {
+        const docId = doc.id;
+        const data = doc.data() || {};
+        
+        // Identifikasi docId yang bukan NIP (misal TCH-01_...) atau teacherId bukan NIP
+        const isLegacyId = docId.startsWith("TCH-") || /^TCH/i.test(docId) || (data.teacherId && String(data.teacherId).startsWith("TCH-"));
+        if (!isLegacyId) return;
+
+        const dateStr = data.date || (docId.includes("_") ? docId.split("_")[1] : new Date().toISOString().split("T")[0]);
+        const teacherIdentifier = data.nip || data.teacherId || (docId.includes("_") ? docId.split("_")[0] : "");
+        const canonicalNip = this.resolveTeacherNip(teacherIdentifier);
+
+        if (!canonicalNip || canonicalNip.startsWith("TCH-")) return;
+
+        const newDocId = `${canonicalNip}_${dateStr}`;
+        if (newDocId === docId) return;
+
+        const updatedData = {
+          ...data,
+          id: newDocId,
+          teacherId: canonicalNip,
+          nip: canonicalNip,
+          date: dateStr,
+          migratedFrom: docId,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const newDocRef = this.db.collection("attendance").doc(newDocId);
+        const oldDocRef = this.db.collection("attendance").doc(docId);
+        const oldSyncDocRef = this.db.collection("teaching_logs").doc(`__att_${docId}__`);
+        const newSyncDocRef = this.db.collection("teaching_logs").doc(`__att_${newDocId}__`);
+
+        batch.set(newDocRef, updatedData, { merge: true });
+        batch.set(newSyncDocRef, updatedData, { merge: true });
+        batch.delete(oldDocRef);
+        batch.delete(oldSyncDocRef);
+        count++;
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        console.log(`[FirebaseService] Berhasil migrasi ${count} dokumen presensi ke format NIP.`);
+      }
+    } catch (err) {
+      console.warn("[FirebaseService] Gagal menjalankan migrasi attendance NIP:", err);
+    }
+  },
+
+  /**
+   * Catat Presensi Harian Guru ke Firestore menggunakan NIP resmi sebagai ID Dokumen
    */
   async recordAttendance(attendanceRecord) {
     if (!this.isReady() || this._isApplyingCloud) {
@@ -1509,24 +1598,39 @@ const FirebaseService = {
       await this.ensureAuthenticated();
       if (!this.auth.currentUser) return { success: false, fallback: true };
 
+      const rawTeacherId = attendanceRecord.teacherId || attendanceRecord.nip || "";
+      const canonicalNip = this.resolveTeacherNip(rawTeacherId) || rawTeacherId;
       const dateStr = attendanceRecord.date || new Date().toISOString().split("T")[0];
-      const docId = `${attendanceRecord.teacherId}_${dateStr}`;
+      const docId = `${canonicalNip}_${dateStr}`;
       const syncDocId = `__att_${docId}__`;
       const nowMs = Date.now();
       this._lastSyncTimestamps[syncDocId] = nowMs;
 
       const payload = {
         ...attendanceRecord,
+        id: docId,
+        teacherId: canonicalNip,
+        nip: canonicalNip,
         date: dateStr,
         updatedAtMs: nowMs,
         updatedByDevice: this.deviceId,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       };
 
-      await Promise.all([
+      const writes = [
         this.db.collection("attendance").doc(docId).set(payload, { merge: true }).catch(() => {}),
         this.db.collection("teaching_logs").doc(syncDocId).set(payload, { merge: true })
-      ]);
+      ];
+
+      // Jika ada dokumen legacy seperti TCH-01_2026-11-05, bersihkan
+      if (rawTeacherId && rawTeacherId !== canonicalNip) {
+        const legacyDocId = `${rawTeacherId}_${dateStr}`;
+        const legacySyncDocId = `__att_${legacyDocId}__`;
+        writes.push(this.db.collection("attendance").doc(legacyDocId).delete().catch(() => {}));
+        writes.push(this.db.collection("teaching_logs").doc(legacySyncDocId).delete().catch(() => {}));
+      }
+
+      await Promise.all(writes);
 
       return { success: true, docId: docId };
     } catch (error) {
@@ -1543,8 +1647,9 @@ const FirebaseService = {
 
     try {
       await this.ensureAuthenticated();
+      const canonicalNip = this.resolveTeacherNip(teacherId) || teacherId;
       const snapshot = await this.db.collection("attendance")
-        .where("teacherId", "==", teacherId)
+        .where("teacherId", "==", canonicalNip)
         .orderBy("date", "desc")
         .limit(limit)
         .get();
