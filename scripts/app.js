@@ -5655,7 +5655,13 @@ function initMainApplication() {
 
           // 2. Bersihkan di Cloud Firestore (jika aktif)
           let cloudDeletedCount = 0;
-          if (typeof FirebaseService !== "undefined" && FirebaseService.isReady() && typeof FirebaseService.purgeAttendanceHistory === "function") {
+          if (checkedMode === "all") {
+            StorageService.clearAllAdminHistory();
+            if (typeof FirebaseService !== "undefined" && FirebaseService.isReady() && typeof FirebaseService.purgeAllCloudData === "function") {
+              const cloudRes = await FirebaseService.purgeAllCloudData();
+              cloudDeletedCount = cloudRes.count || 0;
+            }
+          } else if (typeof FirebaseService !== "undefined" && FirebaseService.isReady() && typeof FirebaseService.purgeAttendanceHistory === "function") {
             const cloudRes = await FirebaseService.purgeAttendanceHistory(purgeOptions);
             cloudDeletedCount = cloudRes.count || 0;
           }

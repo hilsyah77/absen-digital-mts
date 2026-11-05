@@ -1675,6 +1675,40 @@ const FirebaseService = {
   },
 
   /**
+   * Mengosongkan seluruh data operasional di Cloud Firestore (Mulai dari Nol)
+   */
+  async purgeAllCloudData() {
+    if (!this.isReady()) return { success: false, count: 0 };
+    try {
+      await this.ensureAuthenticated();
+      let totalDeleted = 0;
+      const collectionsToPurge = ["attendance", "leaves", "teaching_logs"];
+      for (const colName of collectionsToPurge) {
+        const snap = await this.db.collection(colName).get();
+        if (!snap.empty) {
+          let batch = this.db.batch();
+          let opCount = 0;
+          for (const doc of snap.docs) {
+            batch.delete(doc.ref);
+            opCount++;
+            totalDeleted++;
+            if (opCount >= 450) {
+              await batch.commit();
+              batch = this.db.batch();
+              opCount = 0;
+            }
+          }
+          if (opCount > 0) await batch.commit();
+        }
+      }
+      console.log(`[FirebaseService] Berhasil mengosongkan ${totalDeleted} dokumen riwayat di Firestore.`);
+      return { success: true, count: totalDeleted };
+    } catch (e) {
+      console.warn("[FirebaseService] Gagal membersihkan dokumen cloud:", e);
+      return { success: false, error: e, count: 0 };
+    }
+  },
+  /**
    * Upload seluruh data master localhost ke Cloud Firestore dan bersihkan data usang/duplikat
    */
   async uploadLocalhostDataToCloud(progressCallback = null) {

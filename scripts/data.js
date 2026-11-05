@@ -1,31 +1,42 @@
-/**
+﻿/**
  * HADIR.GURU - Data Store & Master Database Guru Reel (51 Guru)
  * Berdasarkan PRD HADIR.GURU v1.0 (Sistem Absensi Digital Guru MTs)
  */
 
-// Auto-migrate: Bersihkan seluruh riwayat absensi admin & personal
-const CURRENT_DATA_VERSION = "2026_guru_nip_unified_v12";
+// Auto-migrate: Bersihkan seluruh data database (Mulai dari Nol / Clean Slate)
+const CURRENT_DATA_VERSION = "2026_clean_slate_zero_v1";
 try {
   if (typeof localStorage !== "undefined") {
     const curVer = localStorage.getItem("hadir_guru_data_version");
     if (curVer !== CURRENT_DATA_VERSION) {
-      localStorage.removeItem("hadir_guru_teachers_60");
-      localStorage.removeItem("hadir_guru_all_teachers");
-      localStorage.removeItem("hadir_guru_profile");
-      localStorage.removeItem("hadir_guru_master_schedules");
-      localStorage.removeItem("hadir_guru_welcoming_picket_v2");
-      localStorage.removeItem("hadir_guru_welcoming_picket");
-      localStorage.removeItem("hadir_guru_rooms_monitoring");
-      localStorage.removeItem("hadir_guru_rooms_monitoring_state");
-      localStorage.removeItem("hadir_guru_class_checkins");
-      localStorage.removeItem("hadir_guru_active_teacher_id");
-      localStorage.removeItem("hadir_guru_teaching_logs");
-      localStorage.removeItem("hadir_guru_leaves");
-      localStorage.removeItem("hadir_guru_today");
-      localStorage.removeItem("hadir_guru_history");
-      localStorage.removeItem("hadir_guru_admin_feed");
-      localStorage.removeItem("hadir_guru_holidays");
-      localStorage.removeItem("hadir_guru_school_config");
+      const keysToWipe = [
+        "hadir_guru_teachers_60",
+        "hadir_guru_all_teachers",
+        "hadir_guru_profile",
+        "hadir_guru_master_schedules",
+        "hadir_guru_welcoming_picket_v2",
+        "hadir_guru_welcoming_picket",
+        "hadir_guru_rooms_monitoring",
+        "hadir_guru_rooms_monitoring_state",
+        "hadir_guru_class_checkins",
+        "hadir_guru_active_teacher_id",
+        "hadir_guru_teaching_logs",
+        "hadir_guru_leaves",
+        "hadir_guru_today",
+        "hadir_guru_history",
+        "hadir_guru_admin_feed",
+        "hadir_guru_holidays",
+        "hadir_guru_school_config",
+        "hadir_guru_cloud_profile_overrides",
+        "hadir_guru_sync_timestamps",
+        "hadir_guru_pending_profiles",
+        "button_test_audit_results",
+        "button_test_audit_summary",
+        "hadir_guru_notifications"
+      ];
+      keysToWipe.forEach(k => {
+        try { localStorage.removeItem(k); } catch (e) {}
+      });
       localStorage.setItem("hadir_guru_data_version", CURRENT_DATA_VERSION);
     }
   }
@@ -657,32 +668,7 @@ let TEACHING_SCHEDULES = [
 
 const INITIAL_TEACHING_LOGS = [];
 
-const NOTIFICATIONS = [
-  {
-    id: "NOTIF-01",
-    title: "Pengingat Presensi Pulang",
-    message: "Pukul 14:00 WIB telah tiba. Jangan lupa untuk melakukan absen pulang sebelum meninggalkan area madrasah.",
-    time: "10 menit yang lalu",
-    type: "info",
-    unread: true
-  },
-  {
-    id: "NOTIF-02",
-    title: "Izin Dinas Disetujui",
-    message: "Permohonan tugas luar di Balai Diklat Keagamaan telah diverifikasi & disetujui Kepala Madrasah.",
-    time: "2 hari yang lalu",
-    type: "success",
-    unread: false
-  },
-  {
-    id: "NOTIF-03",
-    title: "Koreksi Kehadiran Diterapkan",
-    message: "Admin H. Musthafa telah memperbarui jam kepulangan Anda pada 19 Okt 2026 sesuai laporan piket.",
-    time: "19 Okt 2026",
-    type: "warning",
-    unread: false
-  }
-];
+const NOTIFICATIONS = [];
 
 // Data Live Monitoring Seluruh Ruang Kelas (Dashboard Admin / Guru Piket) - Dimulai bersih
 const INITIAL_ROOMS_MONITORING = [];
@@ -3736,34 +3722,59 @@ const StorageService = {
   },
 
   clearAllAdminHistory() {
-    localStorage.removeItem("hadir_guru_all_teachers");
-    localStorage.removeItem("hadir_guru_leaves");
-    localStorage.removeItem("hadir_guru_teaching_logs");
-    localStorage.removeItem("hadir_guru_class_checkins");
-    localStorage.removeItem("hadir_guru_rooms_monitoring");
-    localStorage.removeItem("hadir_guru_rooms_monitoring_state");
-    localStorage.removeItem("hadir_guru_admin_feed");
+    const keys = [
+      "hadir_guru_today",
+      "hadir_guru_history",
+      "hadir_guru_all_teachers",
+      "hadir_guru_leaves",
+      "hadir_guru_teaching_logs",
+      "hadir_guru_class_checkins",
+      "hadir_guru_rooms_monitoring",
+      "hadir_guru_rooms_monitoring_state",
+      "hadir_guru_admin_feed",
+      "hadir_guru_cloud_profile_overrides",
+      "hadir_guru_sync_timestamps",
+      "hadir_guru_pending_profiles",
+      "hadir_guru_notifications"
+    ];
+    keys.forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
   },
 
   resetAll() {
-    localStorage.removeItem("hadir_guru_today");
-    localStorage.removeItem("hadir_guru_history");
-    localStorage.removeItem("hadir_guru_leaves");
-    localStorage.removeItem("hadir_guru_teaching_logs");
-    localStorage.removeItem("hadir_guru_class_checkins");
-    localStorage.removeItem("hadir_guru_rooms_monitoring");
-    localStorage.removeItem("hadir_guru_rooms_monitoring_state");
-    localStorage.removeItem("hadir_guru_admin_feed");
-    localStorage.removeItem("hadir_guru_school_config");
-    localStorage.removeItem("hadir_guru_profile");
-    localStorage.removeItem("hadir_guru_all_teachers");
-    localStorage.removeItem("hadir_guru_teachers_60");
-    localStorage.removeItem("hadir_guru_master_schedules");
-    localStorage.removeItem("hadir_guru_welcoming_picket");
-    localStorage.removeItem("hadir_guru_welcoming_picket_v2");
-    localStorage.removeItem("hadir_guru_active_teacher_id");
-    localStorage.removeItem("hadir_guru_holidays");
-    location.reload();
+    const keys = [
+      "hadir_guru_today",
+      "hadir_guru_history",
+      "hadir_guru_leaves",
+      "hadir_guru_teaching_logs",
+      "hadir_guru_class_checkins",
+      "hadir_guru_rooms_monitoring",
+      "hadir_guru_rooms_monitoring_state",
+      "hadir_guru_admin_feed",
+      "hadir_guru_school_config",
+      "hadir_guru_profile",
+      "hadir_guru_all_teachers",
+      "hadir_guru_teachers_60",
+      "hadir_guru_master_schedules",
+      "hadir_guru_welcoming_picket",
+      "hadir_guru_welcoming_picket_v2",
+      "hadir_guru_active_teacher_id",
+      "hadir_guru_holidays",
+      "hadir_guru_cloud_profile_overrides",
+      "hadir_guru_sync_timestamps",
+      "hadir_guru_pending_profiles",
+      "hadir_guru_notifications",
+      "button_test_audit_results",
+      "button_test_audit_summary"
+    ];
+    keys.forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+    localStorage.setItem("hadir_guru_data_version", CURRENT_DATA_VERSION);
+    if (typeof location !== "undefined" && location.reload) {
+      location.reload();
+    }
   }
 };
 
