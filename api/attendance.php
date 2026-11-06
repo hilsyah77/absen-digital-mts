@@ -11,8 +11,8 @@ $method = $_SERVER['REQUEST_METHOD'];
 // Helper: cari NIP resmi guru
 function resolveCanonicalNip($pdo, $identifier) {
     if (empty($identifier)) return '';
-    $stmt = $pdo->prepare("SELECT nip FROM teachers WHERE nip = ? OR id = ? OR legacy_id = ? LIMIT 1");
-    $stmt->execute([$identifier, $identifier, $identifier]);
+    $stmt = $pdo->prepare("SELECT nip FROM teachers WHERE nip = ? OR id = ? LIMIT 1");
+    $stmt->execute([$identifier, $identifier]);
     $res = $stmt->fetch();
     return $res ? $res['nip'] : $identifier;
 }
@@ -32,7 +32,7 @@ if ($method === 'GET') {
         // Gabungkan tabel teachers dengan presensi tanggal tersebut
         $stmt = $pdo->prepare("
             SELECT 
-                t.id, t.nip, t.legacy_id, t.name, t.role, t.subject, t.dept, t.class_assigned, t.gender,
+                t.id, t.nip, t.name, t.role, t.subject, t.dept, t.class_assigned, t.gender,
                 COALESCE(a.status, 'Belum Absen') AS status,
                 a.id AS attendance_id,
                 a.status_detail,
@@ -203,10 +203,9 @@ if ($method === 'POST') {
         ':is_late'            => $isLate
     ]);
 
-    // Bersihkan catatan legacy jika sebelumnya tersimpan dengan format TCH-XX
     if ($rawTeacherId !== $canonicalNip) {
-        $legacyDocId = "{$rawTeacherId}_{$dateStr}";
-        $pdo->prepare("DELETE FROM attendance WHERE id = ?")->execute([$legacyDocId]);
+        $oldDocId = "{$rawTeacherId}_{$dateStr}";
+        $pdo->prepare("DELETE FROM attendance WHERE id = ?")->execute([$oldDocId]);
     }
 
     sendResponse(true, [

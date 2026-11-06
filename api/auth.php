@@ -52,9 +52,9 @@ if ($action === 'login') {
         sendResponse(false, null, "NIP atau Akun Guru wajib diisi", 400);
     }
 
-    // Cari guru berdasarkan NIP, ID, atau Legacy ID (TCH-XX)
-    $stmt = $pdo->prepare("SELECT * FROM teachers WHERE nip = ? OR id = ? OR legacy_id = ? LIMIT 1");
-    $stmt->execute([$identifier, $identifier, $identifier]);
+    // Cari guru berdasarkan NIP atau ID
+    $stmt = $pdo->prepare("SELECT * FROM teachers WHERE nip = ? OR id = ? LIMIT 1");
+    $stmt->execute([$identifier, $identifier]);
     $teacher = $stmt->fetch();
 
     if (!$teacher) {

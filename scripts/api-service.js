@@ -381,7 +381,6 @@ const ApiService = {
             const dbRow = dbTeachers.find(r =>
               (cleanNip && cleanNip !== "-" && String(r.nip || "").trim() === cleanNip) ||
               r.id === t.id ||
-              r.legacy_id === t.id ||
               r.nip === t.id
             );
             if (!dbRow) return t;

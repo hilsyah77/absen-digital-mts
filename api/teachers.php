@@ -15,8 +15,8 @@ if ($method === 'GET') {
     $teacherId = trim($_GET['id'] ?? $_GET['nip'] ?? '');
 
     if (!empty($teacherId)) {
-        $stmt = $pdo->prepare("SELECT * FROM teachers WHERE nip = ? OR id = ? OR legacy_id = ? LIMIT 1");
-        $stmt->execute([$teacherId, $teacherId, $teacherId]);
+        $stmt = $pdo->prepare("SELECT * FROM teachers WHERE nip = ? OR id = ? LIMIT 1");
+        $stmt->execute([$teacherId, $teacherId]);
         $teacher = $stmt->fetch();
         if ($teacher) {
             unset($teacher['password']);
@@ -27,7 +27,7 @@ if ($method === 'GET') {
     }
 
     // Ambil semua daftar guru (diurutkan berdasarkan nama)
-    $stmt = $pdo->query("SELECT id, nip, legacy_id, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, gender, status, pin, role, position, created_at FROM teachers ORDER BY name ASC");
+    $stmt = $pdo->query("SELECT id, nip, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, gender, status, pin, role, position, created_at FROM teachers ORDER BY name ASC");
     $list = $stmt->fetchAll();
 
     sendResponse(true, $list, "Daftar guru berhasil dimuat");
@@ -60,7 +60,6 @@ if ($method === 'POST') {
             $nip = $identifier;
         }
         $id = trim($input['id'] ?? $nip);
-        $legacyId = trim($input['legacyId'] ?? $input['legacy_id'] ?? $id);
         $name = trim($input['name'] ?? '');
         $nuptk = trim($input['nuptk'] ?? '-');
         $subject = trim($input['subject'] ?? 'Guru Mapel');
@@ -77,8 +76,8 @@ if ($method === 'POST') {
         $position = trim($input['position'] ?? $classAssigned);
 
         // Cek apakah guru sudah ada di tabel teachers
-        $checkStmt = $pdo->prepare("SELECT id, nip FROM teachers WHERE nip = ? OR id = ? OR legacy_id = ? LIMIT 1");
-        $checkStmt->execute([$nip, $identifier, $identifier]);
+        $checkStmt = $pdo->prepare("SELECT id, nip FROM teachers WHERE nip = ? OR id = ? LIMIT 1");
+        $checkStmt->execute([$nip, $identifier]);
         $existing = $checkStmt->fetch();
 
         if ($existing) {
@@ -105,11 +104,11 @@ if ($method === 'POST') {
             sendResponse(true, ['id' => $existing['id'], 'nip' => $nip], "Data guru berhasil diperbarui");
         } else {
             $stmt = $pdo->prepare("
-                INSERT INTO teachers (id, nip, legacy_id, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, gender, status, password, pin, role, position)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO teachers (id, nip, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, gender, status, password, pin, role, position)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([
-                $nip, $nip, $legacyId, $name ?: 'Guru MTs', $nuptk, $subject, $dept, $targetJtm,
+                $nip, $nip, $name ?: 'Guru MTs', $nuptk, $subject, $dept, $targetJtm,
                 $classAssigned, $email, $phone, $gender, 'Aktif', $password, $pin, $role, $position
             ]);
             sendResponse(true, ['id' => $nip, 'nip' => $nip], "Guru baru berhasil ditambahkan ke database");

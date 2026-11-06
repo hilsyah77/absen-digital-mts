@@ -4,7 +4,7 @@
  */
 
 // Auto-migrate: Bersihkan seluruh data database (Mulai dari Nol / Clean Slate)
-const CURRENT_DATA_VERSION = "2026_clean_slate_zero_v1";
+const CURRENT_DATA_VERSION = "2026_no_tch_id_v2";
 try {
   if (typeof localStorage !== "undefined") {
     const curVer = localStorage.getItem("hadir_guru_data_version");
@@ -45,7 +45,7 @@ try {
 }
 
 const INITIAL_TEACHER_PROFILE = {
-  id: "91000074100899", teacherId: "91000074100899", legacyId: "TCH-01",
+  id: "91000074100899", teacherId: "91000074100899",
   name: "ABDUR ROUF",
   nip: "91000074100899",
   nuptk: "-",
@@ -711,58 +711,58 @@ const PERIODS_LIST = [
 // (Sumber: Data Kepegawaian & Jadwal Mengajar Resmi)
 // ==========================================
 const INITIAL_TEACHERS_MASTER = [
-  { id: "9248740641200003", teacherId: "9248740641200003", legacyId: "TCH-00", name: "Drs. H. Akhmad Rosidi", nip: "9248740641200003", nuptk: "9248740641200003", subject: "Kepala Madrasah", dept: "Manajemen Madrasah", targetJtm: 0, classAssigned: "Kepala Madrasah", email: "akhmad.rosisi@mtsasyjtb.sch.id", phone: "6281234567890", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Pendidik", position: "Kepala Madrasah" },
-  { id: "91000074100899", teacherId: "91000074100899", legacyId: "TCH-01", name: "ABDUR ROUF", nip: "91000074100899", nuptk: "-", subject: "SKI", dept: "PAI", targetJtm: 24, classAssigned: "Wali Kelas VII-A", email: "abdur.rouf@mtsasyjtb.sch.id", phone: "6281548138852", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Pendidik", position: "Wali Kelas VII-A" },
-  { id: "20326797197002", teacherId: "20326797197002", legacyId: "TCH-02", name: "ADE AYU NUR TANTRI", nip: "20326797197002", nuptk: "-", subject: "Pendidikan Pancasila", dept: "Sosial & Kewarganegaraan", targetJtm: 26, classAssigned: "Wali Kelas VII-B", email: "ade.ayu@mtsasyjtb.sch.id", phone: "6285869979210", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20200613100001", teacherId: "20200613100001", legacyId: "TCH-03", name: "AENI AFTHINA", nip: "20200613100001", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 26, classAssigned: "Wali Kelas VII-C", email: "aeni.afthina@mtsasyjtb.sch.id", phone: "6287775288140", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000080102905", teacherId: "91000080102905", legacyId: "TCH-04", name: "AHMAD FARID", nip: "91000080102905", nuptk: "-", subject: "Akidah Akhlak", dept: "PAI", targetJtm: 12, classAssigned: "Guru Mapel", email: "ahmad.farid@mtsasyjtb.sch.id", phone: "6285601633669", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797185001", teacherId: "20326797185001", legacyId: "TCH-05", name: "Ahmad Syafi", nip: "20326797185001", nuptk: "-", subject: "Ke-NU-an", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Wali Kelas VII-D", email: "ahmad.syafi@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797199001", teacherId: "20326797199001", legacyId: "TCH-06", name: "AHMAD SYAMSUL FALAH", nip: "20326797199001", nuptk: "-", subject: "Ke-NU-an", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "syamsul.falah@mtsasyjtb.sch.id", phone: "6281542130070", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000081103794", teacherId: "91000081103794", legacyId: "TCH-07", name: "Aini Lutfiyah", nip: "91000081103794", nuptk: "-", subject: "Bahasa Arab", dept: "Bahasa", targetJtm: 24, classAssigned: "Wali Kelas VIII-A", email: "aini.lutfiyah@mtsasyjtb.sch.id", phone: "6281542260659", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000081104938", teacherId: "91000081104938", legacyId: "TCH-08", name: "AMIR SYARIFUDIN", nip: "91000081104938", nuptk: "-", subject: "Pendidikan Agama Islam", dept: "PAI", targetJtm: 0, classAssigned: "Guru Pembina", email: "amir.syarifudin@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000075104250", teacherId: "91000075104250", legacyId: "TCH-09", name: "Ana Rodiyana", nip: "91000075104250", nuptk: "-", subject: "Bimbingan Konseling", dept: "BK", targetJtm: 0, classAssigned: "Guru BK", email: "ana.rodiyana@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000085105943", teacherId: "91000085105943", legacyId: "TCH-10", name: "ANIS MASRUFATUN SAADAH", nip: "91000085105943", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 24, classAssigned: "Wali Kelas VIII-B", email: "anis.masrufatun@mtsasyjtb.sch.id", phone: "6285867477945", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000072105448", teacherId: "91000072105448", legacyId: "TCH-11", name: "APRIS DWI PRIYATOMO", nip: "91000072105448", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 12, classAssigned: "Guru Mapel", email: "apris.dwi@mtsasyjtb.sch.id", phone: "6282328831541", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797196002", teacherId: "20326797196002", legacyId: "TCH-12", name: "AYU ROSALITA", nip: "20326797196002", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 28, classAssigned: "Wali Kelas VIII-C", email: "ayu.rosalita@mtsasyjtb.sch.id", phone: "6285742390604", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797199003", teacherId: "20326797199003", legacyId: "TCH-13", name: "BAENY ABDUL FATAH", nip: "20326797199003", nuptk: "-", subject: "PJOK", dept: "Olahraga & Kesehatan", targetJtm: 28, classAssigned: "Wali Kelas VIII-D", email: "baeny.abdul@mtsasyjtb.sch.id", phone: "6285934250084", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000066108311", teacherId: "91000066108311", legacyId: "TCH-14", name: "DARSONAH SETYOWATI", nip: "91000066108311", nuptk: "-", subject: "Bimbingan Konseling", dept: "BK", targetJtm: 0, classAssigned: "Guru Pembina", email: "darsonah.setyowati@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000080112516", teacherId: "91000080112516", legacyId: "TCH-15", name: "DENY PRABOWO", nip: "91000080112516", nuptk: "-", subject: "Bahasa Inggris", dept: "Bahasa", targetJtm: 26, classAssigned: "Wali Kelas IX-A", email: "deny.prabowo@mtsasyjtb.sch.id", phone: "6285642504157", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000086111652", teacherId: "91000086111652", legacyId: "TCH-16", name: "DETTY TURISHA WIGUNANTI", nip: "91000086111652", nuptk: "-", subject: "Bahasa Inggris", dept: "Bahasa", targetJtm: 26, classAssigned: "Wali Kelas IX-B", email: "detty.turisha@mtsasyjtb.sch.id", phone: "62816697488", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000082115252", teacherId: "91000082115252", legacyId: "TCH-17", name: "DEWI RACHMAWATI", nip: "91000082115252", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 28, classAssigned: "Wali Kelas IX-C", email: "dewi.rachmawati@mtsasyjtb.sch.id", phone: "6281542178006", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797101001", teacherId: "20326797101001", legacyId: "TCH-18", name: "ELLA LINTANG AGUSTIN", nip: "20326797101001", nuptk: "-", subject: "Informatika", dept: "Teknologi & Keterampilan", targetJtm: 28, classAssigned: "Wali Kelas IX-D", email: "ella.lintang@mtsasyjtb.sch.id", phone: "62816722589", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000082120487", teacherId: "91000082120487", legacyId: "TCH-19", name: "ENY ERLINA", nip: "91000082120487", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 24, classAssigned: "Guru Mapel", email: "eny.erlina@mtsasyjtb.sch.id", phone: "6281542054714", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000076113942", teacherId: "91000076113942", legacyId: "TCH-20", name: "ETHIK RAHMAWATI", nip: "91000076113942", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 28, classAssigned: "Guru Mapel", email: "ethik.rahmawati@mtsasyjtb.sch.id", phone: "628157970850", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20363282185001", teacherId: "20363282185001", legacyId: "TCH-21", name: "ETIK SULISTYO RATRI", nip: "20363282185001", nuptk: "-", subject: "Bahasa Jawa", dept: "Bahasa", targetJtm: 23, classAssigned: "Guru Mapel", email: "etik.sulistyo@mtsasyjtb.sch.id", phone: "6285600667262", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000081123488", teacherId: "91000081123488", legacyId: "TCH-22", name: "HARIYANTO", nip: "91000081123488", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 20, classAssigned: "Guru Mapel", email: "hariyanto@mtsasyjtb.sch.id", phone: "6285866827575", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797191003", teacherId: "20326797191003", legacyId: "TCH-23", name: "Ismatul Maula", nip: "20326797191003", nuptk: "-", subject: "Bahasa Arab", dept: "Bahasa", targetJtm: 24, classAssigned: "Guru Mapel", email: "ismatul.maula@mtsasyjtb.sch.id", phone: "6285927492177", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000076124272", teacherId: "91000076124272", legacyId: "TCH-24", name: "KHASANAH", nip: "91000076124272", nuptk: "-", subject: "Bahasa Arab", dept: "Bahasa", targetJtm: 24, classAssigned: "Guru Mapel", email: "khasanah@mtsasyjtb.sch.id", phone: "6285865947049", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797188001", teacherId: "20326797188001", legacyId: "TCH-25", name: "Khodijatul Kubro", nip: "20326797188001", nuptk: "-", subject: "Tahfidz", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "khodijatul.kubro@mtsasyjtb.sch.id", phone: "6285742603241", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797194002", teacherId: "20326797194002", legacyId: "TCH-26", name: "M. AZIZ HIMAWAN AKBAR", nip: "20326797194002", nuptk: "-", subject: "Tahfidz", dept: "Keagamaan & Muatan Lokal", targetJtm: 24, classAssigned: "Guru Mapel", email: "aziz.himawan@mtsasyjtb.sch.id", phone: "6285712626267", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797189002", teacherId: "20326797189002", legacyId: "TCH-27", name: "Mochammad Aqil Mahfudz", nip: "20326797189002", nuptk: "-", subject: "Fikih", dept: "PAI", targetJtm: 22, classAssigned: "Guru Mapel", email: "aqil.mahfudz@mtsasyjtb.sch.id", phone: "6285210785527", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000077131961", teacherId: "91000077131961", legacyId: "TCH-28", name: "MOHAMMAD AZAMIN", nip: "91000077131961", nuptk: "-", subject: "SKI", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "mohammad.azamin@mtsasyjtb.sch.id", phone: "6285716611167", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797197003", teacherId: "20326797197003", legacyId: "TCH-29", name: "MUHAMMAD AKVIN SYARIFUDIN", nip: "20326797197003", nuptk: "-", subject: "BTQ", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "akvin.syarifudin@mtsasyjtb.sch.id", phone: "6285693038967", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797196005", teacherId: "20326797196005", legacyId: "TCH-30", name: "MUHAMMAD IRSYAD HUSNI", nip: "20326797196005", nuptk: "-", subject: "Tahfidz", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "irsyad.husni@mtsasyjtb.sch.id", phone: "6285742226906", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000073129641", teacherId: "91000073129641", legacyId: "TCH-31", name: "MUHDI", nip: "91000073129641", nuptk: "-", subject: "Akidah Akhlak", dept: "PAI", targetJtm: 27, classAssigned: "Guru Mapel", email: "muhdi@mtsasyjtb.sch.id", phone: "6281542028802", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000077133655", teacherId: "91000077133655", legacyId: "TCH-32", name: "MUKHAMAD ARIS", nip: "91000077133655", nuptk: "-", subject: "Informatika", dept: "Teknologi & Keterampilan", targetJtm: 12, classAssigned: "Guru Mapel", email: "mukhamad.aris@mtsasyjtb.sch.id", phone: "085229755797", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000076133788", teacherId: "91000076133788", legacyId: "TCH-33", name: "MUSTOFA", nip: "91000076133788", nuptk: "-", subject: "Fikih", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "mustofa@mtsasyjtb.sch.id", phone: "6285780944439", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000075133679", teacherId: "91000075133679", legacyId: "TCH-34", name: "MUZAKKY MIFTAH", nip: "91000075133679", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 21, classAssigned: "Guru Mapel", email: "muzakky.miftah@mtsasyjtb.sch.id", phone: "6281548841706", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000064129055", teacherId: "91000064129055", legacyId: "TCH-35", name: "NASARUDIN", nip: "91000064129055", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 24, classAssigned: "Guru Mapel", email: "nasarudin@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000082154354", teacherId: "91000082154354", legacyId: "TCH-36", name: "NOPRIYANI", nip: "91000082154354", nuptk: "-", subject: "Informatika", dept: "Teknologi & Keterampilan", targetJtm: 26, classAssigned: "Guru Mapel", email: "nopriyani@mtsasyjtb.sch.id", phone: "6285228732293", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797175001", teacherId: "20326797175001", legacyId: "TCH-37", name: "Nur Azizah", nip: "20326797175001", nuptk: "-", subject: "SKI", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "nur.azizah@mtsasyjtb.sch.id", phone: "62882008826272", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000083152640", teacherId: "91000083152640", legacyId: "TCH-38", name: "NUR KHIKMAH", nip: "91000083152640", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 28, classAssigned: "Guru Mapel", email: "nur.khikmah@mtsasyjtb.sch.id", phone: "6282224499521", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797199002", teacherId: "20326797199002", legacyId: "TCH-39", name: "RAGIL SUSYANTO", nip: "20326797199002", nuptk: "-", subject: "PJOK", dept: "Olahraga & Kesehatan", targetJtm: 28, classAssigned: "Guru Mapel", email: "ragil.susyanto@mtsasyjtb.sch.id", phone: "628976999218", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000069143609", teacherId: "91000069143609", legacyId: "TCH-40", name: "RAMDLONI", nip: "91000069143609", nuptk: "-", subject: "Al-Qur'an Hadis", dept: "PAI", targetJtm: 26, classAssigned: "Guru Mapel", email: "ramdloni@mtsasyjtb.sch.id", phone: "6285786690330", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20363082185001", teacherId: "20363082185001", legacyId: "TCH-41", name: "RETNO FAJAR INTAMI", nip: "20363082185001", nuptk: "-", subject: "Seni Rupa", dept: "Seni & Budaya", targetJtm: 30, classAssigned: "Guru Mapel", email: "retno.fajar@mtsasyjtb.sch.id", phone: "6282324698120", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797190001", teacherId: "20326797190001", legacyId: "TCH-42", name: "Ridlo Alam Nan Asa", nip: "20326797190001", nuptk: "-", subject: "Akidah Akhlak", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "ridlo.alam@mtsasyjtb.sch.id", phone: "6285799263027", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797197001", teacherId: "20326797197001", legacyId: "TCH-43", name: "RIZQI YUNI ARSIH", nip: "20326797197001", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 32, classAssigned: "Guru Mapel", email: "rizqi.yuni@mtsasyjtb.sch.id", phone: "6285741747985", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000081160541", teacherId: "91000081160541", legacyId: "TCH-44", name: "SILVIA TINDIYAH SUGIARTO", nip: "91000081160541", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 28, classAssigned: "Guru Mapel", email: "silvia.tindiyah@mtsasyjtb.sch.id", phone: "628156914005", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000071143239", teacherId: "91000071143239", legacyId: "TCH-45", name: "SITI ISYUNIATI", nip: "91000071143239", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 24, classAssigned: "Guru Mapel", email: "siti.isyuniati@mtsasyjtb.sch.id", phone: "6289636059040", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000078151658", teacherId: "91000078151658", legacyId: "TCH-46", name: "SITI NURJANAH", nip: "91000078151658", nuptk: "-", subject: "Pendidikan Pancasila", dept: "Sosial & Kewarganegaraan", targetJtm: 24, classAssigned: "Guru Mapel", email: "siti.nurjanah@mtsasyjtb.sch.id", phone: "6285540141253", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000078154469", teacherId: "91000078154469", legacyId: "TCH-47", name: "SUDIYANTO", nip: "91000078154469", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 15, classAssigned: "Guru Mapel", email: "sudiyanto@mtsasyjtb.sch.id", phone: "6285602845241", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000068159822", teacherId: "91000068159822", legacyId: "TCH-48", name: "TITIN SOFIYATIN", nip: "91000068159822", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 27, classAssigned: "Guru Mapel", email: "titin.sofiyatin@mtsasyjtb.sch.id", phone: "6285712792600", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000475154699", teacherId: "91000475154699", legacyId: "TCH-49", name: "TUTI ALAWIYYAH", nip: "91000475154699", nuptk: "-", subject: "Al-Qur'an Hadis", dept: "PAI", targetJtm: 26, classAssigned: "Guru Mapel", email: "tuti.alawiyyah@mtsasyjtb.sch.id", phone: "6285325735885", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "91000068162605", teacherId: "91000068162605", legacyId: "TCH-50", name: "WAWAN ERAWAN", nip: "91000068162605", nuptk: "-", subject: "Bahasa Inggris", dept: "Bahasa", targetJtm: 24, classAssigned: "Guru Mapel", email: "wawan.erawan@mtsasyjtb.sch.id", phone: "6285870188834", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
-  { id: "20326797100002", teacherId: "20326797100002", legacyId: "TCH-51", name: "YULITA LISTIA SARI", nip: "20326797100002", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 15, classAssigned: "Guru BK", email: "yulita.listia@mtsasyjtb.sch.id", phone: "6285722041401", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" }
+  { id: "9248740641200003", teacherId: "9248740641200003", name: "Drs. H. Akhmad Rosidi", nip: "9248740641200003", nuptk: "9248740641200003", subject: "Kepala Madrasah", dept: "Manajemen Madrasah", targetJtm: 0, classAssigned: "Kepala Madrasah", email: "akhmad.rosisi@mtsasyjtb.sch.id", phone: "6281234567890", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Pendidik", position: "Kepala Madrasah" },
+  { id: "91000074100899", teacherId: "91000074100899", name: "ABDUR ROUF", nip: "91000074100899", nuptk: "-", subject: "SKI", dept: "PAI", targetJtm: 24, classAssigned: "Wali Kelas VII-A", email: "abdur.rouf@mtsasyjtb.sch.id", phone: "6281548138852", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Pendidik", position: "Wali Kelas VII-A" },
+  { id: "20326797197002", teacherId: "20326797197002", name: "ADE AYU NUR TANTRI", nip: "20326797197002", nuptk: "-", subject: "Pendidikan Pancasila", dept: "Sosial & Kewarganegaraan", targetJtm: 26, classAssigned: "Wali Kelas VII-B", email: "ade.ayu@mtsasyjtb.sch.id", phone: "6285869979210", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20200613100001", teacherId: "20200613100001", name: "AENI AFTHINA", nip: "20200613100001", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 26, classAssigned: "Wali Kelas VII-C", email: "aeni.afthina@mtsasyjtb.sch.id", phone: "6287775288140", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000080102905", teacherId: "91000080102905", name: "AHMAD FARID", nip: "91000080102905", nuptk: "-", subject: "Akidah Akhlak", dept: "PAI", targetJtm: 12, classAssigned: "Guru Mapel", email: "ahmad.farid@mtsasyjtb.sch.id", phone: "6285601633669", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797185001", teacherId: "20326797185001", name: "Ahmad Syafi", nip: "20326797185001", nuptk: "-", subject: "Ke-NU-an", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Wali Kelas VII-D", email: "ahmad.syafi@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797199001", teacherId: "20326797199001", name: "AHMAD SYAMSUL FALAH", nip: "20326797199001", nuptk: "-", subject: "Ke-NU-an", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "syamsul.falah@mtsasyjtb.sch.id", phone: "6281542130070", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000081103794", teacherId: "91000081103794", name: "Aini Lutfiyah", nip: "91000081103794", nuptk: "-", subject: "Bahasa Arab", dept: "Bahasa", targetJtm: 24, classAssigned: "Wali Kelas VIII-A", email: "aini.lutfiyah@mtsasyjtb.sch.id", phone: "6281542260659", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000081104938", teacherId: "91000081104938", name: "AMIR SYARIFUDIN", nip: "91000081104938", nuptk: "-", subject: "Pendidikan Agama Islam", dept: "PAI", targetJtm: 0, classAssigned: "Guru Pembina", email: "amir.syarifudin@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000075104250", teacherId: "91000075104250", name: "Ana Rodiyana", nip: "91000075104250", nuptk: "-", subject: "Bimbingan Konseling", dept: "BK", targetJtm: 0, classAssigned: "Guru BK", email: "ana.rodiyana@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000085105943", teacherId: "91000085105943", name: "ANIS MASRUFATUN SAADAH", nip: "91000085105943", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 24, classAssigned: "Wali Kelas VIII-B", email: "anis.masrufatun@mtsasyjtb.sch.id", phone: "6285867477945", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000072105448", teacherId: "91000072105448", name: "APRIS DWI PRIYATOMO", nip: "91000072105448", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 12, classAssigned: "Guru Mapel", email: "apris.dwi@mtsasyjtb.sch.id", phone: "6282328831541", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797196002", teacherId: "20326797196002", name: "AYU ROSALITA", nip: "20326797196002", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 28, classAssigned: "Wali Kelas VIII-C", email: "ayu.rosalita@mtsasyjtb.sch.id", phone: "6285742390604", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797199003", teacherId: "20326797199003", name: "BAENY ABDUL FATAH", nip: "20326797199003", nuptk: "-", subject: "PJOK", dept: "Olahraga & Kesehatan", targetJtm: 28, classAssigned: "Wali Kelas VIII-D", email: "baeny.abdul@mtsasyjtb.sch.id", phone: "6285934250084", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000066108311", teacherId: "91000066108311", name: "DARSONAH SETYOWATI", nip: "91000066108311", nuptk: "-", subject: "Bimbingan Konseling", dept: "BK", targetJtm: 0, classAssigned: "Guru Pembina", email: "darsonah.setyowati@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000080112516", teacherId: "91000080112516", name: "DENY PRABOWO", nip: "91000080112516", nuptk: "-", subject: "Bahasa Inggris", dept: "Bahasa", targetJtm: 26, classAssigned: "Wali Kelas IX-A", email: "deny.prabowo@mtsasyjtb.sch.id", phone: "6285642504157", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000086111652", teacherId: "91000086111652", name: "DETTY TURISHA WIGUNANTI", nip: "91000086111652", nuptk: "-", subject: "Bahasa Inggris", dept: "Bahasa", targetJtm: 26, classAssigned: "Wali Kelas IX-B", email: "detty.turisha@mtsasyjtb.sch.id", phone: "62816697488", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000082115252", teacherId: "91000082115252", name: "DEWI RACHMAWATI", nip: "91000082115252", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 28, classAssigned: "Wali Kelas IX-C", email: "dewi.rachmawati@mtsasyjtb.sch.id", phone: "6281542178006", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797101001", teacherId: "20326797101001", name: "ELLA LINTANG AGUSTIN", nip: "20326797101001", nuptk: "-", subject: "Informatika", dept: "Teknologi & Keterampilan", targetJtm: 28, classAssigned: "Wali Kelas IX-D", email: "ella.lintang@mtsasyjtb.sch.id", phone: "62816722589", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000082120487", teacherId: "91000082120487", name: "ENY ERLINA", nip: "91000082120487", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 24, classAssigned: "Guru Mapel", email: "eny.erlina@mtsasyjtb.sch.id", phone: "6281542054714", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000076113942", teacherId: "91000076113942", name: "ETHIK RAHMAWATI", nip: "91000076113942", nuptk: "-", subject: "IPA", dept: "MIPA", targetJtm: 28, classAssigned: "Guru Mapel", email: "ethik.rahmawati@mtsasyjtb.sch.id", phone: "628157970850", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20363282185001", teacherId: "20363282185001", name: "ETIK SULISTYO RATRI", nip: "20363282185001", nuptk: "-", subject: "Bahasa Jawa", dept: "Bahasa", targetJtm: 23, classAssigned: "Guru Mapel", email: "etik.sulistyo@mtsasyjtb.sch.id", phone: "6285600667262", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000081123488", teacherId: "91000081123488", name: "HARIYANTO", nip: "91000081123488", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 20, classAssigned: "Guru Mapel", email: "hariyanto@mtsasyjtb.sch.id", phone: "6285866827575", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797191003", teacherId: "20326797191003", name: "Ismatul Maula", nip: "20326797191003", nuptk: "-", subject: "Bahasa Arab", dept: "Bahasa", targetJtm: 24, classAssigned: "Guru Mapel", email: "ismatul.maula@mtsasyjtb.sch.id", phone: "6285927492177", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000076124272", teacherId: "91000076124272", name: "KHASANAH", nip: "91000076124272", nuptk: "-", subject: "Bahasa Arab", dept: "Bahasa", targetJtm: 24, classAssigned: "Guru Mapel", email: "khasanah@mtsasyjtb.sch.id", phone: "6285865947049", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797188001", teacherId: "20326797188001", name: "Khodijatul Kubro", nip: "20326797188001", nuptk: "-", subject: "Tahfidz", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "khodijatul.kubro@mtsasyjtb.sch.id", phone: "6285742603241", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797194002", teacherId: "20326797194002", name: "M. AZIZ HIMAWAN AKBAR", nip: "20326797194002", nuptk: "-", subject: "Tahfidz", dept: "Keagamaan & Muatan Lokal", targetJtm: 24, classAssigned: "Guru Mapel", email: "aziz.himawan@mtsasyjtb.sch.id", phone: "6285712626267", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797189002", teacherId: "20326797189002", name: "Mochammad Aqil Mahfudz", nip: "20326797189002", nuptk: "-", subject: "Fikih", dept: "PAI", targetJtm: 22, classAssigned: "Guru Mapel", email: "aqil.mahfudz@mtsasyjtb.sch.id", phone: "6285210785527", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000077131961", teacherId: "91000077131961", name: "MOHAMMAD AZAMIN", nip: "91000077131961", nuptk: "-", subject: "SKI", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "mohammad.azamin@mtsasyjtb.sch.id", phone: "6285716611167", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797197003", teacherId: "20326797197003", name: "MUHAMMAD AKVIN SYARIFUDIN", nip: "20326797197003", nuptk: "-", subject: "BTQ", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "akvin.syarifudin@mtsasyjtb.sch.id", phone: "6285693038967", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797196005", teacherId: "20326797196005", name: "MUHAMMAD IRSYAD HUSNI", nip: "20326797196005", nuptk: "-", subject: "Tahfidz", dept: "Keagamaan & Muatan Lokal", targetJtm: 26, classAssigned: "Guru Mapel", email: "irsyad.husni@mtsasyjtb.sch.id", phone: "6285742226906", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000073129641", teacherId: "91000073129641", name: "MUHDI", nip: "91000073129641", nuptk: "-", subject: "Akidah Akhlak", dept: "PAI", targetJtm: 27, classAssigned: "Guru Mapel", email: "muhdi@mtsasyjtb.sch.id", phone: "6281542028802", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000077133655", teacherId: "91000077133655", name: "MUKHAMAD ARIS", nip: "91000077133655", nuptk: "-", subject: "Informatika", dept: "Teknologi & Keterampilan", targetJtm: 12, classAssigned: "Guru Mapel", email: "mukhamad.aris@mtsasyjtb.sch.id", phone: "085229755797", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000076133788", teacherId: "91000076133788", name: "MUSTOFA", nip: "91000076133788", nuptk: "-", subject: "Fikih", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "mustofa@mtsasyjtb.sch.id", phone: "6285780944439", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000075133679", teacherId: "91000075133679", name: "MUZAKKY MIFTAH", nip: "91000075133679", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 21, classAssigned: "Guru Mapel", email: "muzakky.miftah@mtsasyjtb.sch.id", phone: "6281548841706", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000064129055", teacherId: "91000064129055", name: "NASARUDIN", nip: "91000064129055", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 24, classAssigned: "Guru Mapel", email: "nasarudin@mtsasyjtb.sch.id", phone: "", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000082154354", teacherId: "91000082154354", name: "NOPRIYANI", nip: "91000082154354", nuptk: "-", subject: "Informatika", dept: "Teknologi & Keterampilan", targetJtm: 26, classAssigned: "Guru Mapel", email: "nopriyani@mtsasyjtb.sch.id", phone: "6285228732293", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797175001", teacherId: "20326797175001", name: "Nur Azizah", nip: "20326797175001", nuptk: "-", subject: "SKI", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "nur.azizah@mtsasyjtb.sch.id", phone: "62882008826272", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000083152640", teacherId: "91000083152640", name: "NUR KHIKMAH", nip: "91000083152640", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 28, classAssigned: "Guru Mapel", email: "nur.khikmah@mtsasyjtb.sch.id", phone: "6282224499521", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797199002", teacherId: "20326797199002", name: "RAGIL SUSYANTO", nip: "20326797199002", nuptk: "-", subject: "PJOK", dept: "Olahraga & Kesehatan", targetJtm: 28, classAssigned: "Guru Mapel", email: "ragil.susyanto@mtsasyjtb.sch.id", phone: "628976999218", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000069143609", teacherId: "91000069143609", name: "RAMDLONI", nip: "91000069143609", nuptk: "-", subject: "Al-Qur'an Hadis", dept: "PAI", targetJtm: 26, classAssigned: "Guru Mapel", email: "ramdloni@mtsasyjtb.sch.id", phone: "6285786690330", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20363082185001", teacherId: "20363082185001", name: "RETNO FAJAR INTAMI", nip: "20363082185001", nuptk: "-", subject: "Seni Rupa", dept: "Seni & Budaya", targetJtm: 30, classAssigned: "Guru Mapel", email: "retno.fajar@mtsasyjtb.sch.id", phone: "6282324698120", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797190001", teacherId: "20326797190001", name: "Ridlo Alam Nan Asa", nip: "20326797190001", nuptk: "-", subject: "Akidah Akhlak", dept: "PAI", targetJtm: 24, classAssigned: "Guru Mapel", email: "ridlo.alam@mtsasyjtb.sch.id", phone: "6285799263027", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797197001", teacherId: "20326797197001", name: "RIZQI YUNI ARSIH", nip: "20326797197001", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 32, classAssigned: "Guru Mapel", email: "rizqi.yuni@mtsasyjtb.sch.id", phone: "6285741747985", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000081160541", teacherId: "91000081160541", name: "SILVIA TINDIYAH SUGIARTO", nip: "91000081160541", nuptk: "-", subject: "Bahasa Indonesia", dept: "Bahasa", targetJtm: 28, classAssigned: "Guru Mapel", email: "silvia.tindiyah@mtsasyjtb.sch.id", phone: "628156914005", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000071143239", teacherId: "91000071143239", name: "SITI ISYUNIATI", nip: "91000071143239", nuptk: "-", subject: "Matematika", dept: "MIPA", targetJtm: 24, classAssigned: "Guru Mapel", email: "siti.isyuniati@mtsasyjtb.sch.id", phone: "6289636059040", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000078151658", teacherId: "91000078151658", name: "SITI NURJANAH", nip: "91000078151658", nuptk: "-", subject: "Pendidikan Pancasila", dept: "Sosial & Kewarganegaraan", targetJtm: 24, classAssigned: "Guru Mapel", email: "siti.nurjanah@mtsasyjtb.sch.id", phone: "6285540141253", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000078154469", teacherId: "91000078154469", name: "SUDIYANTO", nip: "91000078154469", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 15, classAssigned: "Guru Mapel", email: "sudiyanto@mtsasyjtb.sch.id", phone: "6285602845241", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000068159822", teacherId: "91000068159822", name: "TITIN SOFIYATIN", nip: "91000068159822", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 27, classAssigned: "Guru Mapel", email: "titin.sofiyatin@mtsasyjtb.sch.id", phone: "6285712792600", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000475154699", teacherId: "91000475154699", name: "TUTI ALAWIYYAH", nip: "91000475154699", nuptk: "-", subject: "Al-Qur'an Hadis", dept: "PAI", targetJtm: 26, classAssigned: "Guru Mapel", email: "tuti.alawiyyah@mtsasyjtb.sch.id", phone: "6285325735885", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "91000068162605", teacherId: "91000068162605", name: "WAWAN ERAWAN", nip: "91000068162605", nuptk: "-", subject: "Bahasa Inggris", dept: "Bahasa", targetJtm: 24, classAssigned: "Guru Mapel", email: "wawan.erawan@mtsasyjtb.sch.id", phone: "6285870188834", avatarUrl: "", gender: "Laki-laki", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" },
+  { id: "20326797100002", teacherId: "20326797100002", name: "YULITA LISTIA SARI", nip: "20326797100002", nuptk: "-", subject: "IPS", dept: "Sosial & Kewarganegaraan", targetJtm: 15, classAssigned: "Guru BK", email: "yulita.listia@mtsasyjtb.sch.id", phone: "6285722041401", avatarUrl: "", gender: "Perempuan", status: "Aktif", pin: "123456", password: "123456", role: "Guru Pengajar" }
 ];
 
 // Alias kompatibilitas
@@ -2125,7 +2125,7 @@ const StorageService = {
       if (!t || typeof t !== "object") return;
       const cleanNip = String(t.nip || "").trim();
       const hasValidNip = cleanNip && cleanNip.length > 3 && cleanNip !== "-";
-      const canonicalTeacherId = hasValidNip ? cleanNip : (t.teacherId || t.id || `TCH-${idx + 1}`);
+      const canonicalTeacherId = hasValidNip ? cleanNip : (t.teacherId || t.id || String(91000000000000 + idx + 1));
 
       // Cari override profil cloud
       const ov = (hasValidNip && cloudOverrides[cleanNip]) || cloudOverrides[t.id] || cloudOverrides[canonicalTeacherId] || {};
@@ -2206,7 +2206,7 @@ const StorageService = {
       if (Array.isArray(data)) {
         data.forEach(t => {
           if (!t || typeof t !== "object") return;
-          if (changedTeacherId && t.id !== changedTeacherId && t.nip !== changedTeacherId && t.teacherId !== changedTeacherId && t.legacyId !== changedTeacherId) {
+          if (changedTeacherId && t.id !== changedTeacherId && t.nip !== changedTeacherId && t.teacherId !== changedTeacherId) {
             return;
           }
           const cleanNip = String(t.nip || "").trim();
@@ -2223,7 +2223,7 @@ const StorageService = {
 
     // Pastikan hadir_guru_profile untuk guru aktif ikut diperbarui secara lokal
     const activeId = this.getActiveTeacherId();
-    const activeTeacher = Array.isArray(data) ? data.find(t => t.id === activeId || t.nip === activeId || t.teacherId === activeId || t.legacyId === activeId) : null;
+    const activeTeacher = Array.isArray(data) ? data.find(t => t.id === activeId || t.nip === activeId || t.teacherId === activeId) : null;
     if (activeTeacher) {
       let curProf = {};
       try {
@@ -2252,7 +2252,7 @@ const StorageService = {
 
     if (typeof ApiService !== "undefined" && ApiService.isReady()) {
       if (changedTeacherId && Array.isArray(data) && typeof ApiService.saveTeacher === "function") {
-        const targetT = data.find(t => t.id === changedTeacherId || t.nip === changedTeacherId || t.teacherId === changedTeacherId || t.legacyId === changedTeacherId);
+        const targetT = data.find(t => t.id === changedTeacherId || t.nip === changedTeacherId || t.teacherId === changedTeacherId);
         if (targetT) {
           ApiService.saveTeacher(targetT).catch(() => {});
         }
@@ -2375,8 +2375,7 @@ const StorageService = {
     const resolvedTeacher = teacherObj || (typeof this.getTeachersMaster === "function" ? this.getTeachersMaster().find(t =>
       String(t.id || "").trim() === tIdStr ||
       String(t.nip || "").trim() === tIdStr ||
-      String(t.teacherId || "").trim() === tIdStr ||
-      String(t.legacyId || "").trim() === tIdStr
+      String(t.teacherId || "").trim() === tIdStr
     ) : null);
     if (resolvedTeacher) {
       const mTid = String(m.teacherId || "").trim();
@@ -2384,8 +2383,7 @@ const StorageService = {
       return Boolean(
         (resolvedTeacher.id && mTid === String(resolvedTeacher.id).trim()) ||
         (resolvedTeacher.nip && (mTid === String(resolvedTeacher.nip).trim() || (mNip && mNip === String(resolvedTeacher.nip).trim()))) ||
-        (resolvedTeacher.teacherId && mTid === String(resolvedTeacher.teacherId).trim()) ||
-        (resolvedTeacher.legacyId && mTid === String(resolvedTeacher.legacyId).trim())
+        (resolvedTeacher.teacherId && mTid === String(resolvedTeacher.teacherId).trim())
       );
     }
     return false;
@@ -2431,7 +2429,7 @@ const StorageService = {
 
     const todayPicket = this.getTodayWelcomingPicket(day);
     if (!todayPicket) return null;
-    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
     return todayPicket.members.find(m => this._matchPicketMember(m, teacherId, teacher)) || null;
   },
 
@@ -2439,7 +2437,7 @@ const StorageService = {
     const roster = this.getWelcomingPicketRoster();
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return null;
-    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
     const member = dayPicket.members.find(m => this._matchPicketMember(m, teacherId, teacher));
     if (!member) return null;
 
@@ -2478,7 +2476,7 @@ const StorageService = {
     const roster = this.getWelcomingPicketRoster();
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return null;
-    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
     const member = dayPicket.members.find(m => this._matchPicketMember(m, teacherId, teacher));
     if (!member) return null;
 
@@ -2503,12 +2501,12 @@ const StorageService = {
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return false;
     const teachers = this.getTeachersMaster();
-    const origLookup = teachers.find(t => t.id === memberId || t.nip === memberId || t.teacherId === memberId || t.legacyId === memberId);
+    const origLookup = teachers.find(t => t.id === memberId || t.nip === memberId || t.teacherId === memberId);
     const member = dayPicket.members.find(m => this._matchPicketMember(m, memberId, origLookup));
     if (!member) return false;
 
     const oldTeacherId = member.teacherId;
-    const newTeacher = teachers.find(t => t.id === newTeacherId || t.nip === newTeacherId || t.teacherId === newTeacherId || t.legacyId === newTeacherId);
+    const newTeacher = teachers.find(t => t.id === newTeacherId || t.nip === newTeacherId || t.teacherId === newTeacherId);
     const canonicalNewId = newTeacher ? (newTeacher.id || newTeacherId) : newTeacherId;
 
     member.teacherId = canonicalNewId;
@@ -2520,7 +2518,7 @@ const StorageService = {
     member.isSubstituted = true;
     member.substituteReason = reason;
 
-    const oldTeacher = teachers.find(t => t.id === oldTeacherId || t.nip === oldTeacherId || t.teacherId === oldTeacherId || t.legacyId === oldTeacherId);
+    const oldTeacher = teachers.find(t => t.id === oldTeacherId || t.nip === oldTeacherId || t.teacherId === oldTeacherId);
     const oldName = member.teacherName || (oldTeacher ? oldTeacher.name : oldTeacherId);
     const newName = newTeacher ? newTeacher.name : newTeacherId;
 
@@ -2545,8 +2543,7 @@ const StorageService = {
     const teacher = teachers.find(t =>
       t.id === data.teacherId ||
       t.nip === data.teacherId ||
-      t.teacherId === data.teacherId ||
-      t.legacyId === data.teacherId
+      t.teacherId === data.teacherId
     ) || {};
     const canonicalTeacherId = teacher.id || data.teacherId;
     const teacherName = data.teacherName || teacher.name || "Guru Piket";
@@ -2610,7 +2607,7 @@ const StorageService = {
     const dayPicket = roster.find(r => r.day === day);
     if (!dayPicket) return false;
 
-    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+    const teacher = this.getTeachersMaster().find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
     const idx = dayPicket.members.findIndex(m => this._matchPicketMember(m, teacherId, teacher));
     if (idx === -1) return false;
 
@@ -2730,15 +2727,7 @@ const StorageService = {
   // Active Teacher Profile & Multi-Account Switcher
   getActiveTeacherId() {
     const stored = localStorage.getItem("hadir_guru_active_teacher_id");
-    if (stored) {
-      if (stored.startsWith("TCH-")) {
-        const teachers = this.getTeachersMaster();
-        const found = teachers.find(t => t.legacyId === stored || t.id === stored || t.teacherId === stored);
-        if (found && found.nip && found.nip !== "-") {
-          localStorage.setItem("hadir_guru_active_teacher_id", found.nip);
-          return found.nip;
-        }
-      }
+    if (stored && !/^[A-Z]+-\d+$/.test(stored)) {
       return stored;
     }
     return "91000074100899";
@@ -2783,8 +2772,7 @@ const StorageService = {
     return teachers.find(t => 
       t.nip === activeId || 
       t.id === activeId || 
-      t.teacherId === activeId || 
-      t.legacyId === activeId ||
+      t.teacherId === activeId ||
       (t.nip && activeId && String(t.nip).trim() === String(activeId).trim())
     ) || teachers[0];
   },
@@ -2846,8 +2834,7 @@ const StorageService = {
     const idx = teachers.findIndex(t => 
       (hasValidNip && String(t.nip).trim() === cleanNip) || 
       t.id === targetId || 
-      t.teacherId === targetId || 
-      t.legacyId === targetId ||
+      t.teacherId === targetId ||
       (data && data.id && (t.id === data.id || t.teacherId === data.id || t.nip === data.id))
     );
     let updatedTeacherObj = null;
@@ -2928,12 +2915,12 @@ const StorageService = {
     const activeTeacher = this.getActiveTeacher();
     const activeId = this.getActiveTeacherId();
     const activeNip = activeTeacher ? activeTeacher.nip : null;
-    const activeLegacyId = activeTeacher ? activeTeacher.id : null;
+    const activeCanonicalId = activeTeacher ? activeTeacher.id : null;
     const schedules = this.getMasterSchedules();
     return schedules.filter(s => 
       s.teacherId === activeId || 
       (activeNip && s.teacherId === activeNip) ||
-      (activeLegacyId && s.teacherId === activeLegacyId) ||
+      (activeCanonicalId && s.teacherId === activeCanonicalId) ||
       (activeTeacher && s.teacherName && activeTeacher.name && s.teacherName.toLowerCase() === activeTeacher.name.toLowerCase())
     );
   },
@@ -3032,7 +3019,7 @@ const StorageService = {
       if (!values || values.length < 5) continue;
 
       const id = cleanField(values[0]) || `SCH-${Date.now()}-${i}`;
-      const teacherId = cleanField(values[1]) || "TCH-01";
+      const teacherId = cleanField(values[1]) || "91000074100899";
       const teacherName = cleanField(values[2]) || "";
       const day = cleanField(values[3]) || "Senin";
       const periodStart = parseInt(cleanField(values[4]), 10) || 1;
@@ -3093,7 +3080,6 @@ const StorageService = {
               if (p.id) map[p.id] = p;
               if (p.nip && p.nip !== "-") map[p.nip] = p;
               if (p.teacherId) map[p.teacherId] = p;
-              if (p.legacyId) map[p.legacyId] = p;
             }
           });
         }
@@ -3113,8 +3099,8 @@ const StorageService = {
     });
 
     const all = teachers.map((t, idx) => {
-      const approvedLeave = activeLeavesMap[t.id] || (t.nip ? activeLeavesMap[t.nip] : null) || (t.legacyId ? activeLeavesMap[t.legacyId] : null);
-      const storedRec = map[t.id] || (t.nip ? map[t.nip] : null) || (t.teacherId ? map[t.teacherId] : null) || (t.legacyId ? map[t.legacyId] : null);
+      const approvedLeave = activeLeavesMap[t.id] || (t.nip ? activeLeavesMap[t.nip] : null);
+      const storedRec = map[t.id] || (t.nip ? map[t.nip] : null) || (t.teacherId ? map[t.teacherId] : null);
       if (storedRec) {
         const rec = {
           ...storedRec,
@@ -3236,7 +3222,7 @@ const StorageService = {
           localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
           ApiService.submitLeaveRequest({
             ...firstRequest,
-            teacherId: activeTeacher ? (activeTeacher.nip || activeTeacher.id) : (firstRequest.teacherId || "TCH-01")
+            teacherId: activeTeacher ? (activeTeacher.nip || activeTeacher.id) : (firstRequest.teacherId || "91000074100899")
           }).catch(err => console.warn("[ApiService] Leave sync error:", err));
         }
       }

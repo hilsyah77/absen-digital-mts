@@ -521,7 +521,7 @@ function initMainApplication() {
       const curDateStr = getAppTodayDateString();
       
       const record = allTeachers.find(t =>
-        (targetId && (t.id === targetId || t.nip === targetId || t.teacherId === targetId || t.legacyId === targetId)) ||
+        (targetId && (t.id === targetId || t.nip === targetId || t.teacherId === targetId)) ||
         (activeTeacher && (
           t.id === activeTeacher.id ||
           (activeTeacher.nip && activeTeacher.nip !== "-" && t.nip === activeTeacher.nip) ||
@@ -560,7 +560,6 @@ function initMainApplication() {
       const record = allTeachers.find(t =>
         t.id === activeTeacher.id ||
         (activeTeacher.nip && activeTeacher.nip !== "-" && (t.nip === activeTeacher.nip || t.id === activeTeacher.nip)) ||
-        (activeTeacher.legacyId && t.id === activeTeacher.legacyId) ||
         t.name === activeTeacher.name
       );
 
@@ -1026,7 +1025,7 @@ function initMainApplication() {
 
         attendanceHistory = [
           newHistoryItem,
-          ...attendanceHistory.filter(h => !(h.date === curDateStr && (!h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.legacyId || h.nip === activeTch.nip)))))
+          ...attendanceHistory.filter(h => !(h.date === curDateStr && (!h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.id || h.nip === activeTch.nip)))))
         ];
         StorageService.saveHistory(attendanceHistory);
 
@@ -1153,7 +1152,7 @@ function initMainApplication() {
 
         // Update history item for active teacher
         attendanceHistory = attendanceHistory.map(item => {
-          if (item.date === curDateStr && (!item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.legacyId || item.nip === activeTch.nip)))) {
+          if (item.date === curDateStr && (!item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.id || item.nip === activeTch.nip)))) {
             return {
               ...item,
               checkOut: timeFormatted
@@ -1261,7 +1260,7 @@ function initMainApplication() {
     const activeTch = StorageService.getActiveTeacher();
     const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : null;
     const teacherHistory = activeTchId
-      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.legacyId || h.nip === activeTch.nip)))
+      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.id || h.nip === activeTch.nip)))
       : attendanceHistory;
     const recent = teacherHistory.slice(0, 5);
 
@@ -1312,7 +1311,7 @@ function initMainApplication() {
     const activeTch = StorageService.getActiveTeacher();
     const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : null;
     let filtered = activeTchId
-      ? attendanceHistory.filter(item => !item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.legacyId || item.nip === activeTch.nip)))
+      ? attendanceHistory.filter(item => !item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.id || item.nip === activeTch.nip)))
       : [...attendanceHistory];
 
     // Filter by period dynamically based on current app date
@@ -1599,7 +1598,7 @@ function initMainApplication() {
     const activeTch = StorageService.getActiveTeacher();
     const activeTchId = activeTch ? (activeTch.nip || activeTch.id) : null;
     const myHistory = activeTchId
-      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.legacyId || h.nip === activeTch.nip)))
+      ? attendanceHistory.filter(h => !h.teacherId || h.teacherId === activeTchId || (activeTch && (h.teacherId === activeTch.id || h.nip === activeTch.nip)))
       : attendanceHistory;
 
     const hadirCount = myHistory.filter(h => h.status === "Hadir" || h.status === "Pulang").length;
@@ -6780,10 +6779,10 @@ function initMainApplication() {
       btnDownloadTemplate.addEventListener("click", () => {
         const sampleHeaders = "ID Sesi,ID Guru,Nama Guru,Hari,Jam Ke Mulai,Jam Ke Selesai,Waktu Mulai,Waktu Selesai,Kelas,Mata Pelajaran,Ruang,JTM\r\n";
         const sampleRows = [
-          'SCH-01-MON1,TCH-01,"ABDUR ROUF",Senin,1,2,07:15,08:35,Kelas VII-A,Fikih,Ruang Teori 1,2',
-          'SCH-FRI-02,TCH-01,"ABDUR ROUF",Jumat,3,4,08:35,10:15,Kelas VII-A,Fikih Tematik,Ruang Teori 1,2',
-          'SCH-02-MON1,TCH-02,"ADE AYU NUR TANTRI",Senin,1,2,07:15,08:35,Kelas VII-B,Matematika,Ruang Teori 2,2',
-          'SCH-03-MON1,TCH-03,"AENI AFTHINA",Senin,3,4,08:35,10:15,Kelas VIII-A,Bahasa Indonesia,Ruang Teori 5,2'
+          'SCH-01-MON1,91000074100899,"ABDUR ROUF",Senin,1,2,07:15,08:35,Kelas VII-A,Fikih,Ruang Teori 1,2',
+          'SCH-FRI-02,91000074100899,"ABDUR ROUF",Jumat,3,4,08:35,10:15,Kelas VII-A,Fikih Tematik,Ruang Teori 1,2',
+          'SCH-02-MON1,20326797197002,"ADE AYU NUR TANTRI",Senin,1,2,07:15,08:35,Kelas VII-B,Matematika,Ruang Teori 2,2',
+          'SCH-03-MON1,20200613100001,"AENI AFTHINA",Senin,3,4,08:35,10:15,Kelas VIII-A,Bahasa Indonesia,Ruang Teori 5,2'
         ].join("\r\n");
 
         const blob = new Blob(["\uFEFF" + sampleHeaders + sampleRows], { type: "text/csv;charset=utf-8;" });
@@ -6863,13 +6862,13 @@ function initMainApplication() {
       btnPasteSample.addEventListener("click", () => {
         textareaImport.value = [
           'id,teacherId,teacherName,day,periodStart,periodEnd,startTime,endTime,class,subject,room,jtm',
-          'SCH-01-MON1,TCH-01,"ABDUR ROUF",Senin,1,2,07:15,08:35,Kelas VII-A,Fikih,Ruang Teori 1,2',
-          'SCH-FRI-02,TCH-01,"ABDUR ROUF",Jumat,3,4,08:35,10:15,Kelas VII-A,Fikih Tematik,Ruang Teori 1,2',
-          'SCH-02-MON1,TCH-02,"ADE AYU NUR TANTRI",Senin,1,2,07:15,08:35,Kelas VII-B,Matematika,Ruang Teori 2,2',
-          'SCH-03-MON1,TCH-03,"AENI AFTHINA",Senin,3,4,08:35,10:15,Kelas VIII-A,Bahasa Indonesia,Ruang Teori 5,2',
-          'SCH-04-MON1,TCH-04,"AHMAD FARID",Senin,5,6,10:15,11:35,Kelas IX-A,Al-Qur\'an Hadis,Ruang Teori 9,2',
-          'SCH-10-MON1,TCH-10,"ANIS MASRUFATUN SAADAH",Senin,1,3,07:15,09:15,Kelas VII-A,IPA Terpadu,Lab IPA,3',
-          'SCH-15-MON1,TCH-15,"DENY PRABOWO",Senin,5,6,10:15,11:35,Kelas VII-A,IPS Terpadu,Ruang Teori 1,2'
+          'SCH-01-MON1,91000074100899,"ABDUR ROUF",Senin,1,2,07:15,08:35,Kelas VII-A,Fikih,Ruang Teori 1,2',
+          'SCH-FRI-02,91000074100899,"ABDUR ROUF",Jumat,3,4,08:35,10:15,Kelas VII-A,Fikih Tematik,Ruang Teori 1,2',
+          'SCH-02-MON1,20326797197002,"ADE AYU NUR TANTRI",Senin,1,2,07:15,08:35,Kelas VII-B,Matematika,Ruang Teori 2,2',
+          'SCH-03-MON1,20200613100001,"AENI AFTHINA",Senin,3,4,08:35,10:15,Kelas VIII-A,Bahasa Indonesia,Ruang Teori 5,2',
+          'SCH-04-MON1,91000080102905,"AHMAD FARID",Senin,5,6,10:15,11:35,Kelas IX-A,Al-Qur\'an Hadis,Ruang Teori 9,2',
+          'SCH-10-MON1,91000085105943,"ANIS MASRUFATUN SAADAH",Senin,1,3,07:15,09:15,Kelas VII-A,IPA Terpadu,Lab IPA,3',
+          'SCH-15-MON1,91000080112516,"DENY PRABOWO",Senin,5,6,10:15,11:35,Kelas VII-A,IPS Terpadu,Ruang Teori 1,2'
         ].join("\n");
       });
     }
@@ -7255,7 +7254,6 @@ function initMainApplication() {
               t.id === editId ||
               t.teacherId === editId ||
               t.nip === editId ||
-              t.legacyId === editId ||
               (hasValidNip && String(t.nip).trim() === cleanNip)
             )
           : null;
@@ -7273,12 +7271,11 @@ function initMainApplication() {
         let savedTeacherRecord = null;
 
         if (editId) {
-          // Edit existing: cari berdasarkan editId, teacherId, legacyId, atau NIP
+          // Edit existing: cari berdasarkan editId, teacherId, atau NIP
           const idx = teachers.findIndex(t =>
             t.id === editId ||
             t.teacherId === editId ||
             t.nip === editId ||
-            t.legacyId === editId ||
             (hasValidNip && String(t.nip).trim() === cleanNip)
           );
           if (idx !== -1) {
@@ -7335,7 +7332,7 @@ function initMainApplication() {
           showToast("Data Guru Diperbarui", `Informasi dan akun ${name} berhasil disimpan & disinkronkan ke Cloud.`, "success");
         } else {
           // Create new: gunakan NIP sebagai teacherId jika ada
-          const newId = hasValidNip ? cleanNip : `TCH-${String(teachers.length + 1).padStart(2, "0")}`;
+          const newId = hasValidNip ? cleanNip : String(Date.now());
           targetSyncId = newId;
           const newTeacher = {
             id: newId,
@@ -7812,7 +7809,6 @@ function initMainApplication() {
           t.id === activeId || 
           t.teacherId === activeId || 
           t.nip === activeId ||
-          t.legacyId === activeId ||
           t.id === canonicalTeacherId
         );
         if (idx !== -1) {
@@ -8489,7 +8485,7 @@ function initMainApplication() {
         `;
       } else {
         squad.members.forEach((member) => {
-          const teacherInfo = teachersMaster.find(t => t.id === member.teacherId || t.nip === member.teacherId || t.teacherId === member.teacherId || t.legacyId === member.teacherId) || {};
+          const teacherInfo = teachersMaster.find(t => t.id === member.teacherId || t.nip === member.teacherId || t.teacherId === member.teacherId) || {};
           const card = document.createElement("div");
           card.className = "picket-member-card";
 
@@ -9171,8 +9167,7 @@ function initMainApplication() {
           activeTeacher && (
             teacherId === activeTeacher.id ||
             teacherId === activeTeacher.nip ||
-            teacherId === activeTeacher.teacherId ||
-            teacherId === activeTeacher.legacyId
+            teacherId === activeTeacher.teacherId
           )
         );
         if (!isAdmin && !isMyTarget) {
@@ -9216,7 +9211,7 @@ function initMainApplication() {
         const todayDay = getTodayPicketDay();
         const activeTeacherId = StorageService.getActiveTeacherId();
         const teachersMaster = StorageService.getTeachersMaster();
-        const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId || t.nip === activeTeacherId || t.teacherId === activeTeacherId || t.legacyId === activeTeacherId) || StorageService.getActiveTeacher();
+        const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId || t.nip === activeTeacherId || t.teacherId === activeTeacherId) || StorageService.getActiveTeacher();
         const todaySquad = StorageService.getTodayWelcomingPicket(todayDay);
         const memberToday = todaySquad ? todaySquad.members.find(m =>
           StorageService._matchPicketMember
@@ -9337,8 +9332,7 @@ function initMainApplication() {
       const activeTeacher = teachersMaster.find(t =>
         t.id === activeTeacherId ||
         t.nip === activeTeacherId ||
-        t.teacherId === activeTeacherId ||
-        t.legacyId === activeTeacherId
+        t.teacherId === activeTeacherId
       ) || StorageService.getActiveTeacher() || { id: activeTeacherId, name: "Guru", subject: "Guru Mapel" };
       const roster = StorageService.getWelcomingPicketRoster ? StorageService.getWelcomingPicketRoster() : [];
       const todayDay = typeof getTodayPicketDay === "function" ? getTodayPicketDay() : "Jumat";
@@ -9704,7 +9698,7 @@ function initMainApplication() {
       const roster = StorageService.getWelcomingPicketRoster();
       const dayPicket = roster.find(r => r.day === day);
       const teachersMaster = StorageService.getTeachersMaster();
-      const targetTeacherObj = teachersMaster.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.legacyId === teacherId);
+      const targetTeacherObj = teachersMaster.find(t => t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId);
       const member = dayPicket ? dayPicket.members.find(m =>
         StorageService._matchPicketMember
           ? StorageService._matchPicketMember(m, teacherId, targetTeacherObj)
@@ -10153,14 +10147,14 @@ function initMainApplication() {
         ? StorageService.getActiveTeacher()
         : null;
 
-      let targetId = selectedId || (activeTeacher ? activeTeacher.id : "TCH-00");
+      let targetId = selectedId || (activeTeacher ? activeTeacher.id : "9248740641200003");
       if (!teachers.some(t => t.id === targetId) && teachers.length > 0) {
         targetId = teachers[0].id;
       }
 
       teacherSelect.innerHTML = teachers.map(t => {
         const isSelected = t.id === targetId ? "selected" : "";
-        const roleOrPos = t.position || t.classAssigned || (t.id === "TCH-00" ? "Kepala Madrasah" : (t.role || "Pendidik"));
+        const roleOrPos = t.position || t.classAssigned || (t.id === "9248740641200003" ? "Kepala Madrasah" : (t.role || "Pendidik"));
         return `<option value="${t.id}" ${isSelected}>${t.name} (${roleOrPos})</option>`;
       }).join("");
     }
@@ -10348,7 +10342,7 @@ function initMainApplication() {
       }
 
       const nuptkVal = (teacher.nuptk && teacher.nuptk !== "-") ? teacher.nuptk : (teacher.nip || "9248740641200003");
-      const jabatanVal = teacher.position || teacher.classAssigned || (teacher.id === "TCH-00" ? "Kepala Madrasah" : (teacher.role || "Pendidik"));
+      const jabatanVal = teacher.position || teacher.classAssigned || (teacher.id === "9248740641200003" ? "Kepala Madrasah" : (teacher.role || "Pendidik"));
       const printRefNumber = `LAP/${monthPadded}/${year}/${String(nuptkVal).replace(/[^0-9]/g, "").slice(0, 10)}`;
 
       // Statistical Analysis for Page 2
@@ -10787,7 +10781,7 @@ function initMainApplication() {
       const activeTeacher = (typeof StorageService !== "undefined" && StorageService.getActiveTeacher)
         ? StorageService.getActiveTeacher()
         : null;
-      const teacherId = teacherSelect?.value || (activeTeacher ? activeTeacher.id : "TCH-00");
+      const teacherId = teacherSelect?.value || (activeTeacher ? activeTeacher.id : "9248740641200003");
       const report = getMonthlyReportData(yearStr, monthStr, teacherId);
       paperSheet.innerHTML = generateOfficialReportTableHTML(report, false);
 
@@ -11107,7 +11101,7 @@ function initMainApplication() {
       const activeTeacher = (typeof StorageService !== "undefined" && StorageService.getActiveTeacher)
         ? StorageService.getActiveTeacher()
         : null;
-      const targetTeacherId = teacherId || (activeTeacher ? activeTeacher.id : "TCH-00");
+      const targetTeacherId = teacherId || (activeTeacher ? activeTeacher.id : "9248740641200003");
       let period = periodVal || document.getElementById("historyPeriodFilter")?.value || "2026-01";
       if (!period || period === "all" || period === "current") {
         period = "2026-01";
@@ -11123,7 +11117,7 @@ function initMainApplication() {
     if (btnPrint) {
       btnPrint.addEventListener("click", () => {
         const [yearStr, monthStr] = (monthSelect?.value || "2026-01").split("-");
-        const teacherId = teacherSelect?.value || (StorageService.getActiveTeacher()?.id || "TCH-00");
+        const teacherId = teacherSelect?.value || (StorageService.getActiveTeacher()?.id || "9248740641200003");
         printOfficialReportDocument(yearStr, monthStr, teacherId);
       });
     }
@@ -11131,7 +11125,7 @@ function initMainApplication() {
     if (btnExcel) {
       btnExcel.addEventListener("click", () => {
         const [yearStr, monthStr] = (monthSelect?.value || "2026-01").split("-");
-        const teacherId = teacherSelect?.value || (StorageService.getActiveTeacher()?.id || "TCH-00");
+        const teacherId = teacherSelect?.value || (StorageService.getActiveTeacher()?.id || "9248740641200003");
         downloadOfficialReportExcel(yearStr, monthStr, teacherId);
       });
     }
@@ -11139,7 +11133,7 @@ function initMainApplication() {
     if (btnCsv) {
       btnCsv.addEventListener("click", () => {
         const [yearStr, monthStr] = (monthSelect?.value || "2026-01").split("-");
-        const teacherId = teacherSelect?.value || (StorageService.getActiveTeacher()?.id || "TCH-00");
+        const teacherId = teacherSelect?.value || (StorageService.getActiveTeacher()?.id || "9248740641200003");
         downloadOfficialReportCsv(yearStr, monthStr, teacherId);
       });
     }

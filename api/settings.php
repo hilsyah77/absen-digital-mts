@@ -52,6 +52,16 @@ try {
     ");
 } catch (Exception $e) {}
 
+try {
+    $pdo->exec("ALTER TABLE `teachers` DROP COLUMN `legacy_id`");
+} catch (Exception $e) {}
+
+try {
+    $pdo->exec("DELETE FROM `teachers` WHERE `id` LIKE 'TCH-%'");
+    $pdo->exec("DELETE FROM `attendance` WHERE `teacher_id` LIKE 'TCH-%' OR `id` LIKE 'TCH-%'");
+    $pdo->exec("DELETE FROM `picket_schedules` WHERE `teacher_id` LIKE 'TCH-%'");
+} catch (Exception $e) {}
+
 // --------------------------------------------------------
 // GET: Ambil Semua Pengaturan (+ Live Bundle Sinkronisasi Lintas Browser/Perangkat)
 // --------------------------------------------------------
@@ -88,7 +98,7 @@ if ($method === 'GET') {
         } catch (Exception $e) {}
 
         try {
-            $tStmt = $pdo->query("SELECT id, nip, legacy_id, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, avatar_url, gender, status, pin, password, role, position, updated_at FROM teachers ORDER BY name ASC");
+            $tStmt = $pdo->query("SELECT id, nip, name, nuptk, subject, dept, target_jtm, class_assigned, email, phone, avatar_url, gender, status, pin, password, role, position, updated_at FROM teachers ORDER BY name ASC");
             $teachersList = $tStmt->fetchAll();
         } catch (Exception $e) {}
 
