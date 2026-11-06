@@ -200,15 +200,40 @@ const ApiService = {
    * 10. Simpan Jadwal Piket Sambut 5S / Pengaturan Sistem ke MySQL
    */
   async savePicketRoster(rosterData) {
+    return this.saveSetting("welcoming_picket_roster", rosterData);
+  },
+
+  /**
+   * 11. Simpan Pengaturan / State Sistem ke MySQL (app_settings)
+   */
+  async saveSetting(key, value) {
     try {
+      const payload = {};
+      payload[key] = value;
       const res = await fetch(`${this.baseUrl}/settings.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ welcoming_picket_roster: rosterData })
+        body: JSON.stringify(payload)
       });
       return await res.json();
     } catch (error) {
       return { success: false, message: error.message };
+    }
+  },
+
+  /**
+   * 12. Hapus Batch Riwayat Presensi dari MySQL (Admin)
+   */
+  async purgeAttendanceHistory(options = { mode: "all" }) {
+    try {
+      const res = await fetch(`${this.baseUrl}/attendance.php?action=purge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(options || { mode: "all" })
+      });
+      return await res.json();
+    } catch (error) {
+      return { success: false, count: 0, message: error.message };
     }
   },
 
@@ -224,8 +249,8 @@ const ApiService = {
   }
 };
 
-// Auto-run pengecekan health saat skrip dimuat di browser
 if (typeof window !== "undefined") {
+  window.ApiService = ApiService;
   window.addEventListener("DOMContentLoaded", () => {
     ApiService.init().catch(() => {});
   });

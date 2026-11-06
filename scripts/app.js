@@ -2526,9 +2526,6 @@ function initMainApplication() {
       finished: false
     };
     StorageService.saveClassCheckIns(classCheckIns);
-    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-      FirebaseService.recordClassCheckIn(classCheckIns[session.id]).catch(() => {});
-    }
 
     // Update real-time admin monitoring room dataset (26 Rombel Sync)
     const classIdClean = (session.class || "").replace(/[^A-Za-z0-9]/g, '').replace('Kelas', '').trim();
@@ -2696,8 +2693,8 @@ function initMainApplication() {
       teachingLogs = [logEntry, ...teachingLogs];
     }
     StorageService.saveTeachingLogs(teachingLogs);
-    if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-      FirebaseService.recordTeachingLog(logEntry).catch(() => {});
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.recordTeachingSession === "function") {
+      ApiService.recordTeachingSession(logEntry).catch(() => {});
     }
 
     // Update room in admin radar (26 Rombel Sync)
@@ -5653,17 +5650,14 @@ function initMainApplication() {
           // 1. Bersihkan di LocalStorage
           const localRes = StorageService.purgeAttendanceHistory ? StorageService.purgeAttendanceHistory(purgeOptions) : { countDeleted: 0 };
 
-          // 2. Bersihkan di Cloud Firestore (jika aktif)
+          // 2. Bersihkan di Database Server MySQL (jika aktif)
           let cloudDeletedCount = 0;
           if (checkedMode === "all") {
             StorageService.clearAllAdminHistory();
-            if (typeof FirebaseService !== "undefined" && FirebaseService.isReady() && typeof FirebaseService.purgeAllCloudData === "function") {
-              const cloudRes = await FirebaseService.purgeAllCloudData();
-              cloudDeletedCount = cloudRes.count || 0;
-            }
-          } else if (typeof FirebaseService !== "undefined" && FirebaseService.isReady() && typeof FirebaseService.purgeAttendanceHistory === "function") {
-            const cloudRes = await FirebaseService.purgeAttendanceHistory(purgeOptions);
-            cloudDeletedCount = cloudRes.count || 0;
+          }
+          if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.purgeAttendanceHistory === "function") {
+            const cloudRes = await ApiService.purgeAttendanceHistory(purgeOptions);
+            cloudDeletedCount = (cloudRes && cloudRes.data && cloudRes.data.count) || cloudRes?.count || 0;
           }
 
           // 3. Refresh UI & State
@@ -5679,7 +5673,7 @@ function initMainApplication() {
           SoundService.playSuccess();
 
           const totalDel = localRes.countDeleted;
-          const cloudNote = cloudDeletedCount > 0 ? ` serta ${cloudDeletedCount} dokumen di Cloud Firestore` : "";
+          const cloudNote = cloudDeletedCount > 0 ? ` serta ${cloudDeletedCount} catatan di Database MySQL` : "";
           showToast(
             "Riwayat Berhasil Dihapus",
             `Sebanyak ${totalDel} catatan presensi lokal${cloudNote} telah dibersihkan. Memori sistem kini segar kembali!`,
@@ -5961,8 +5955,8 @@ function initMainApplication() {
           teachingLogs = [newJournalEntry, ...teachingLogs];
         }
         StorageService.saveTeachingLogs(teachingLogs);
-        if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-          FirebaseService.recordTeachingLog(newJournalEntry).catch(() => {});
+        if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.recordTeachingSession === "function") {
+          ApiService.recordTeachingSession(newJournalEntry).catch(() => {});
         }
 
         SoundService.playSuccess();
@@ -7115,61 +7109,6 @@ function initMainApplication() {
     }
 
     // Export CSV
-    // Tombol Upload Seluruh Data Localhost ke Cloud & Bersihkan Duplikat
-    const btnUploadCloud = document.getElementById("btnUploadLocalhostToCloud");
-    if (btnUploadCloud) {
-      btnUploadCloud.addEventListener("click", async () => {
-        const confirmSync = confirm(
-          "Upload Seluruh Data Localhost ke Cloud Firebase?\n\n" +
-          "1. Mengunggah 53 akun guru & jadwal KBM dengan ID berbasis NIP.\n" +
-          "2. Membersihkan dokumen duplikat / ID usang (TCH-XX / UID acak).\n" +
-          "3. Memastikan semua perangkat (HP, Android APK, Browser) tersinkronisasi 100%.\n\n" +
-          "Klik OK untuk melanjutkan."
-        );
-        if (!confirmSync) return;
-
-        btnUploadCloud.disabled = true;
-        const origBtnHtml = btnUploadCloud.innerHTML;
-        btnUploadCloud.innerHTML = `<span>â³ Mengupload ke Cloud...</span>`;
-
-        try {
-          if (typeof showToast === "function") {
-            showToast("Cloud Sync", "Mulai mengupload data localhost dan membersihkan database Cloud...", "info");
-          }
-
-          const res = await FirebaseService.uploadLocalhostDataToCloud((statusMsg) => {
-            console.log("[CloudSync]", statusMsg);
-            if (typeof showToast === "function") {
-              showToast("Cloud Sync", statusMsg, "info");
-            }
-          });
-
-          if (res && res.success) {
-            alert(
-              "✅ SINKRONISASI CLOUD BERHASIL!\n\n" +
-              `- ${res.teachersCount} Guru berhasil diupload (Berbasis NIP)\n` +
-              `- ${res.schedulesCount} Sesi Jadwal KBM diupload\n` +
-              `- ${res.deletedUsers || 0} Dokumen users lama dibersihkan\n` +
-              `- ${res.deletedTeachers || 0} Dokumen teachers usang dibersihkan\n\n` +
-              "Database Cloud kini bersih dan sinkron dengan semua perangkat!"
-            );
-            if (typeof showToast === "function") {
-              showToast("Sukses", "Database Cloud berhasil disinkronkan & dibersihkan.", "success");
-            }
-            if (typeof renderTeachersDb === "function") renderTeachersDb();
-          } else {
-            alert("âš ï¸ Gagal sinkronisasi ke Cloud: " + ((res && (res.message || res.error)) || "Koneksi terputus"));
-          }
-        } catch (syncErr) {
-          console.error("Cloud upload error:", syncErr);
-          alert("Terjadi kesalahan saat upload ke Cloud: " + (syncErr.message || syncErr));
-        } finally {
-          btnUploadCloud.disabled = false;
-          btnUploadCloud.innerHTML = origBtnHtml;
-        }
-      });
-    }
-
     if (btnExportAccounts) {
       btnExportAccounts.addEventListener("click", () => {
         const csv = StorageService.exportTeachersToCSV();
@@ -7673,7 +7612,7 @@ function initMainApplication() {
         const reader = new FileReader();
         reader.onload = (evt) => {
           const rawDataUrl = evt.target.result;
-          // Kompres dan resize foto otomatis agar ringan disinkronkan ke Cloud Firestore & Web/APK
+          // Kompres dan resize foto otomatis agar ringan disinkronkan ke Web/APK
           const img = new Image();
           img.onload = () => {
             try {
@@ -9962,17 +9901,6 @@ function initMainApplication() {
           SoundService.playSuccess();
         }
 
-        // Firebase Cloud Session
-        if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-          FirebaseService.loginWithNip(teacher.nip || canonicalId, pin, "teacher", teacher)
-            .then(res => {
-              if (res.success) {
-                console.log("[Firebase] Akun guru terautentikasi:", teacher.name);
-              }
-            })
-            .catch(err => console.warn("[Firebase] Auth warning:", err));
-        }
-
         document.body.classList.remove("mode-login");
         document.body.classList.add("mode-guru");
         document.body.classList.remove("mode-admin");
@@ -10018,17 +9946,6 @@ function initMainApplication() {
         StorageService.setAdminLoggedIn(true, remember);
         if (typeof SoundService !== "undefined" && typeof SoundService.playSuccess === "function") {
           SoundService.playSuccess();
-        }
-
-        // Firebase Admin Auth
-        if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-          FirebaseService.loginWithNip("admin", password, "admin", { id: "admin", name: "Administrator" })
-            .then(res => {
-              if (res.success) {
-                console.log("[Firebase] Administrator terautentikasi (Sesi Tertutup Penuh)");
-              }
-            })
-            .catch(err => console.warn("[Firebase] Admin auth warning:", err));
         }
 
         document.body.classList.remove("mode-login");
@@ -11157,22 +11074,16 @@ function initMainApplication() {
     }
     if (session && session.role === "admin") {
       window.switchAppRole("admin", true);
-      if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-        FirebaseService.ensureAuthenticated().catch(() => {});
-      }
     } else if (session && session.role === "teacher") {
       StorageService.setActiveTeacherId(session.teacherId);
       window.switchAppRole("teacher", true);
-      if (typeof FirebaseService !== "undefined" && FirebaseService.isReady()) {
-        FirebaseService.ensureAuthenticated().catch(() => {});
-      }
     } else {
       // Default: Show Halaman Login
       window.showLoginView("teacher");
     }
   }
 
-  // Real-Time Cloud Sync Callback (Triggered automatically when Firestore updates from APK or Web)
+  // Real-Time Sync Callback
   window.onCloudSyncUpdate = function () {
     try {
       // Reload in-memory variables from updated localStorage

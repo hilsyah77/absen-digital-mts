@@ -1746,8 +1746,8 @@ const StorageService = {
     const nowMs = Date.now();
     data._updatedAtMs = nowMs;
     localStorage.setItem("hadir_guru_school_config", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("school_config", data);
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("school_config", data).catch(() => {});
     }
   },
   saveKbmDayGroupSettings(dayOrGroup, targetDuration, breaks, periods) {
@@ -2216,11 +2216,6 @@ const StorageService = {
           if (canonicalId) cloudOverrides[canonicalId] = ovEntry;
           if (t.id) cloudOverrides[t.id] = ovEntry;
           if (hasValidNip) cloudOverrides[cleanNip] = ovEntry;
-          if (typeof FirebaseService !== "undefined" && FirebaseService._profileOverrides) {
-            if (canonicalId) FirebaseService._profileOverrides[canonicalId] = ovEntry;
-            if (t.id) FirebaseService._profileOverrides[t.id] = ovEntry;
-            if (hasValidNip) FirebaseService._profileOverrides[cleanNip] = ovEntry;
-          }
         });
         localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(cloudOverrides));
       }
@@ -2255,20 +2250,16 @@ const StorageService = {
       localStorage.setItem("hadir_guru_profile", JSON.stringify(syncedProf));
     }
 
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      if (FirebaseService._lastSyncTimestamps) {
-        FirebaseService._lastSyncTimestamps["__sync_teachers_master__"] = nowMs;
-      }
-      if (changedTeacherId && Array.isArray(data)) {
+    if (typeof ApiService !== "undefined" && ApiService.isReady()) {
+      if (changedTeacherId && Array.isArray(data) && typeof ApiService.saveTeacher === "function") {
         const targetT = data.find(t => t.id === changedTeacherId || t.nip === changedTeacherId || t.teacherId === changedTeacherId || t.legacyId === changedTeacherId);
         if (targetT) {
-          FirebaseService.pushTeacherProfile(targetT.nip || changedTeacherId, targetT);
-          if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveTeacher === "function") {
-            ApiService.saveTeacher(targetT).catch(() => {});
-          }
+          ApiService.saveTeacher(targetT).catch(() => {});
         }
       }
-      FirebaseService.pushSyncState("teachers_master", data);
+      if (typeof ApiService.saveSetting === "function") {
+        ApiService.saveSetting("teachers_master", data).catch(() => {});
+      }
     }
   },
 
@@ -2366,12 +2357,6 @@ const StorageService = {
     const nowMs = Date.now();
     localStorage.setItem("hadir_guru_welcoming_picket_v2", JSON.stringify(data));
     localStorage.setItem("hadir_guru_welcoming_picket_updated_ms", String(nowMs));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      if (FirebaseService._lastSyncTimestamps) {
-        FirebaseService._lastSyncTimestamps["__sync_picket__"] = nowMs;
-      }
-      FirebaseService.pushSyncState("picket", data);
-    }
     if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.savePicketRoster === "function") {
       ApiService.savePicketRoster(data).catch(() => {});
     }
@@ -2885,25 +2870,7 @@ const StorageService = {
       if (hasValidNip) cloudOverrides[cleanNip] = ovEntry;
       if (data && data.id) cloudOverrides[data.id] = ovEntry;
       localStorage.setItem("hadir_guru_cloud_profile_overrides", JSON.stringify(cloudOverrides));
-      if (typeof FirebaseService !== "undefined" && FirebaseService._profileOverrides) {
-        if (targetId) FirebaseService._profileOverrides[targetId] = ovEntry;
-        if (payloadToPush.id) FirebaseService._profileOverrides[payloadToPush.id] = ovEntry;
-        if (hasValidNip) FirebaseService._profileOverrides[cleanNip] = ovEntry;
-      }
     } catch (e) {}
-
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      if (FirebaseService._lastSyncTimestamps) {
-        FirebaseService._lastSyncTimestamps["__sync_teachers_master__"] = nowMs;
-      }
-      FirebaseService.pushTeacherProfile(targetId, payloadToPush);
-      if (data && data.id && data.id !== targetId) {
-        FirebaseService.pushTeacherProfile(data.id, payloadToPush);
-      }
-      if (updatedTeacherObj) {
-        FirebaseService.pushSyncState("teachers_master", teachers);
-      }
-    }
 
     if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveTeacher === "function") {
       ApiService.saveTeacher(payloadToPush).catch(() => {});
@@ -2935,8 +2902,8 @@ const StorageService = {
   saveMasterSchedules(data) {
     localStorage.setItem("hadir_guru_master_schedules", JSON.stringify(data));
     this.syncActiveTeachingSchedules();
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("schedules", data);
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("master_schedules", data).catch(() => {});
     }
   },
 
@@ -3174,9 +3141,6 @@ const StorageService = {
   },
   saveAllTeachersAttendance(data) {
     localStorage.setItem("hadir_guru_all_teachers", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("all_teachers_attendance", data);
-    }
   },
 
   getTodayAttendance() {
@@ -3195,22 +3159,6 @@ const StorageService = {
   },
   saveTodayAttendance(data, skipCloud = false) {
     localStorage.setItem("hadir_guru_today", JSON.stringify(data));
-    if (!skipCloud && typeof FirebaseService !== "undefined" && FirebaseService.isReady() && !FirebaseService.isApplyingCloud()) {
-      const activeTeacher = this.getActiveTeacher();
-      if (activeTeacher && data && data.status && data.status !== "Belum Absen") {
-        const canonicalNip = (activeTeacher.nip && activeTeacher.nip.length > 3 && activeTeacher.nip !== "-") 
-          ? String(activeTeacher.nip).trim() 
-          : (activeTeacher.teacherId || activeTeacher.id);
-        const dateStr = data.date || new Date().toISOString().split("T")[0];
-        FirebaseService.recordAttendance({
-          ...data,
-          id: `${canonicalNip}_${dateStr}`,
-          teacherId: canonicalNip,
-          teacherName: activeTeacher.name,
-          nip: canonicalNip
-        }).catch(err => console.warn("[Firebase] Background sync error:", err));
-      }
-    }
     // Sinkronisasi ke MySQL Hosting via ApiService jika terdeteksi aktif
     if (!skipCloud && typeof ApiService !== "undefined" && ApiService.isReady()) {
       const activeTeacher = this.getActiveTeacher();
@@ -3238,9 +3186,6 @@ const StorageService = {
   },
   saveHistory(data) {
     localStorage.setItem("hadir_guru_history", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("attendance_history", data);
-    }
   },
   getLeaveRequests() {
     const stored = localStorage.getItem("hadir_guru_leaves");
@@ -3251,19 +3196,16 @@ const StorageService = {
   },
   saveLeaveRequests(data) {
     localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("leaves", data);
-      if (FirebaseService.isReady()) {
-        const activeTeacher = this.getActiveTeacher();
-        const firstRequest = Array.isArray(data) && data.length > 0 ? data[0] : null;
-        if (firstRequest && firstRequest.id && !firstRequest._synced) {
-          firstRequest._synced = true;
-          localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
-          FirebaseService.submitLeaveRequest({
-            ...firstRequest,
-            teacherId: activeTeacher ? activeTeacher.id : (firstRequest.teacherId || "TCH-01")
-          }).catch(err => console.warn("[Firebase] Leave sync error:", err));
-        }
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.submitLeaveRequest === "function") {
+      const activeTeacher = this.getActiveTeacher();
+      const firstRequest = Array.isArray(data) && data.length > 0 ? data[0] : null;
+      if (firstRequest && firstRequest.id && !firstRequest._synced) {
+        firstRequest._synced = true;
+        localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
+        ApiService.submitLeaveRequest({
+          ...firstRequest,
+          teacherId: activeTeacher ? (activeTeacher.nip || activeTeacher.id) : (firstRequest.teacherId || "TCH-01")
+        }).catch(err => console.warn("[ApiService] Leave sync error:", err));
       }
     }
   },
@@ -3279,9 +3221,6 @@ const StorageService = {
   },
   saveTeachingLogs(data) {
     localStorage.setItem("hadir_guru_teaching_logs", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("teaching_logs", data);
-    }
   },
 
   // Real-time Classroom Check-In & Admin Radar Storage
@@ -3314,9 +3253,6 @@ const StorageService = {
   },
   saveClassCheckIns(data) {
     localStorage.setItem("hadir_guru_class_checkins", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("class_checkins", data);
-    }
   },
 
   // --- Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah ---
@@ -3332,14 +3268,14 @@ const StorageService = {
   },
   saveHolidays(holidays) {
     localStorage.setItem("hadir_guru_holidays", JSON.stringify(holidays));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("holidays", holidays);
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("holidays", holidays).catch(() => {});
     }
   },
   resetHolidaysToKaldik() {
     localStorage.setItem("hadir_guru_holidays", JSON.stringify(KALDIK_JATENG_HOLIDAYS));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("holidays", KALDIK_JATENG_HOLIDAYS);
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("holidays", KALDIK_JATENG_HOLIDAYS).catch(() => {});
     }
     return KALDIK_JATENG_HOLIDAYS;
   },
@@ -3768,18 +3704,11 @@ const StorageService = {
       };
     }
     localStorage.setItem("hadir_guru_rooms_monitoring_state", JSON.stringify(liveState));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("rooms_state", liveState);
-    }
   },
   resetRoomMonitoringState() {
     localStorage.removeItem("hadir_guru_rooms_monitoring");
     localStorage.removeItem("hadir_guru_rooms_monitoring_state");
     localStorage.removeItem("hadir_guru_class_checkins");
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("rooms_state", {});
-      FirebaseService.pushSyncState("class_checkins", {});
-    }
   },
   getAdminActivityFeed() {
     const stored = localStorage.getItem("hadir_guru_admin_feed");
@@ -3793,9 +3722,6 @@ const StorageService = {
   },
   saveAdminActivityFeed(data) {
     localStorage.setItem("hadir_guru_admin_feed", JSON.stringify(data));
-    if (typeof FirebaseService !== "undefined" && !FirebaseService.isApplyingCloud()) {
-      FirebaseService.pushSyncState("admin_feed", data);
-    }
   },
   addAdminActivity(text, type = "info") {
     const feed = this.getAdminActivityFeed();

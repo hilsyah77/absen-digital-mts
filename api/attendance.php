@@ -85,11 +85,34 @@ if ($method === 'GET') {
 }
 
 // --------------------------------------------------------
-// POST: Catat / Perbarui Presensi (Check-in atau Check-out)
+// POST: Catat / Perbarui Presensi (Check-in atau Check-out) / Hapus Riwayat
 // --------------------------------------------------------
 if ($method === 'POST') {
     $input = getJsonInput();
-    
+    $action = isset($_GET['action']) ? trim($_GET['action']) : trim($input['action'] ?? '');
+
+    if ($action === 'purge') {
+        $mode = trim($input['mode'] ?? 'all');
+        $month = trim($input['month'] ?? '');
+        $deletedCount = 0;
+
+        if ($mode === 'all') {
+            $stmt = $pdo->prepare("DELETE FROM attendance");
+            $stmt->execute();
+            $deletedCount = $stmt->rowCount();
+        } elseif ($mode === 'month' && !empty($month)) {
+            $stmt = $pdo->prepare("DELETE FROM attendance WHERE date LIKE ?");
+            $stmt->execute([$month . '%']);
+            $deletedCount = $stmt->rowCount();
+        } elseif ($mode === 'beforeMonth' && !empty($month)) {
+            $stmt = $pdo->prepare("DELETE FROM attendance WHERE date < ?");
+            $stmt->execute([$month . '-01']);
+            $deletedCount = $stmt->rowCount();
+        }
+
+        sendResponse(true, ['count' => $deletedCount], "Berhasil menghapus $deletedCount catatan presensi dari database MySQL");
+    }
+
     $rawTeacherId = trim($input['teacherId'] ?? $input['teacher_id'] ?? $input['nip'] ?? '');
     if (empty($rawTeacherId)) {
         sendResponse(false, null, "teacherId atau NIP wajib disertakan", 400);

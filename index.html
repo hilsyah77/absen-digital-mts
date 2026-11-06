@@ -620,10 +620,6 @@
         </div>
 
         <div class="topbar-right">
-          
-          <!-- Cloud Real-time Sync Status Badge -->
-          <div id="firebaseStatusBadge" class="firebase-status-badge" style="display: none; align-items: center; padding: 0.32rem 0.7rem; border-radius: 999px; font-size: 0.74rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); cursor: pointer; white-space: nowrap;" onclick="if(window.FirebaseService){window.FirebaseService.forceSyncAll().then(()=>typeof showToast==='function'&&showToast('Cloud Sync','Data berhasil disinkronkan antara APK dan Web.','success'));}"></div>
-
           <!-- Active Session Badge (Mode Guru / Mode Admin) -->
           <div class="app-session-badge teacher" id="appSessionBadge" title="Status Sesi Sistem Presensi">
             <span class="session-dot"></span>
@@ -2457,7 +2453,7 @@
                       <span class="badge-tag-pill" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 700; font-size: 0.7rem; padding: 0.2rem 0.55rem;">Zona Administrator</span>
                     </div>
                     <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">
-                      Bersihkan arsip absensi bulan-bulan lalu agar penyimpanan memori HP ringan dan tidak menumpuk data usang di Cloud Firestore.
+                      Bersihkan arsip absensi bulan-bulan lalu agar penyimpanan memori perangkat dan database MySQL tetap ringan.
                     </span>
                   </div>
                 </div>
@@ -2765,14 +2761,6 @@
             </div>
 
             <div class="teachers-db-banner-actions">
-              <button type="button" class="btn-banner-add" id="btnUploadLocalhostToCloud" style="background: linear-gradient(135deg, #059669, #047857); border-color: #047857; color: #fff; box-shadow: 0 3px 10px rgba(5, 150, 105, 0.35);" title="Upload seluruh database localhost ke Cloud Firestore dan bersihkan data duplikat usang">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                <span>Upload & Sinkron Cloud</span>
-              </button>
               <button type="button" class="btn-banner-add" id="btnOpenAddTeacherModal">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -4865,7 +4853,7 @@
         <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1rem;">
           <strong style="color: #dc2626; font-size: 0.88rem; display: block; margin-bottom: 0.25rem;">⚠️ Tindakan Ini Tidak Dapat Dibatalkan!</strong>
           <p id="purgeSummaryText" style="font-size: 0.78rem; color: var(--text-primary); margin: 0;">
-            Data riwayat presensi yang dihapus akan dibersihkan secara permanen dari perangkat lokal dan Cloud Firestore.
+            Data riwayat presensi yang dihapus akan dibersihkan secara permanen dari perangkat lokal dan database MySQL.
           </p>
         </div>
 
@@ -4894,21 +4882,12 @@
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
-  <!-- Firebase SDK (Compat v10 for Vanilla JS & Offline Persistence) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
-
-  <!-- Firebase Config & Service -->
-  <script src="scripts/firebase-config.js?v=4.3"></script>
-  <script src="scripts/firebase-service.js?v=4.3"></script>
   <!-- MySQL Backend REST API Adapter -->
-  <script src="scripts/api-service.js?v=4.3"></script>
+  <script src="scripts/api-service.js?v=4.4"></script>
 
   <!-- Core App Scripts -->
-  <script src="scripts/data.js?v=4.3"></script>
-  <script src="scripts/app.js?v=4.3"></script>
+  <script src="scripts/data.js?v=4.4"></script>
+  <script src="scripts/app.js?v=4.4"></script>
   <script src="scripts/test-runner.js"></script>
 </body>
 </html>
