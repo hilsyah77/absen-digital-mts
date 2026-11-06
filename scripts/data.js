@@ -2357,20 +2357,35 @@ const StorageService = {
     const nowMs = Date.now();
     localStorage.setItem("hadir_guru_welcoming_picket_v2", JSON.stringify(data));
     localStorage.setItem("hadir_guru_welcoming_picket_updated_ms", String(nowMs));
-    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.savePicketRoster === "function") {
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.savePicketRoster === "function") {
       ApiService.savePicketRoster(data).catch(() => {});
     }
   },
 
   _matchPicketMember(m, targetId, teacherObj = null) {
     if (!m || !targetId) return false;
-    if (m.id === targetId || m.teacherId === targetId) return true;
-    if (teacherObj) {
-      return (
-        (teacherObj.id && m.teacherId === teacherObj.id) ||
-        (teacherObj.nip && m.teacherId === teacherObj.nip) ||
-        (teacherObj.teacherId && m.teacherId === teacherObj.teacherId) ||
-        (teacherObj.legacyId && m.teacherId === teacherObj.legacyId)
+    const tIdStr = String(targetId).trim();
+    if (
+      String(m.id || "").trim() === tIdStr ||
+      String(m.teacherId || "").trim() === tIdStr ||
+      (m.nip && String(m.nip).trim() === tIdStr)
+    ) {
+      return true;
+    }
+    const resolvedTeacher = teacherObj || (typeof this.getTeachersMaster === "function" ? this.getTeachersMaster().find(t =>
+      String(t.id || "").trim() === tIdStr ||
+      String(t.nip || "").trim() === tIdStr ||
+      String(t.teacherId || "").trim() === tIdStr ||
+      String(t.legacyId || "").trim() === tIdStr
+    ) : null);
+    if (resolvedTeacher) {
+      const mTid = String(m.teacherId || "").trim();
+      const mNip = String(m.nip || "").trim();
+      return Boolean(
+        (resolvedTeacher.id && mTid === String(resolvedTeacher.id).trim()) ||
+        (resolvedTeacher.nip && (mTid === String(resolvedTeacher.nip).trim() || (mNip && mNip === String(resolvedTeacher.nip).trim()))) ||
+        (resolvedTeacher.teacherId && mTid === String(resolvedTeacher.teacherId).trim()) ||
+        (resolvedTeacher.legacyId && mTid === String(resolvedTeacher.legacyId).trim())
       );
     }
     return false;
@@ -2555,6 +2570,7 @@ const StorageService = {
     const newMember = {
       id: uniqueId,
       teacherId: canonicalTeacherId,
+      nip: teacher.nip || canonicalTeacherId,
       teacherName: teacherName,
       subject: teacher.subject || "-",
       phone: teacher.phone || "",
@@ -3069,12 +3085,15 @@ const StorageService = {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
           parsed.forEach(p => {
-            if (p && p.id) {
+            if (p && (p.id || p.nip || p.teacherId)) {
               // If stored record is from a previous day, ignore its daily check-in status so each day resets cleanly
               if (p.date && p.date !== curDateStr) {
                 return;
               }
-              map[p.id] = p;
+              if (p.id) map[p.id] = p;
+              if (p.nip && p.nip !== "-") map[p.nip] = p;
+              if (p.teacherId) map[p.teacherId] = p;
+              if (p.legacyId) map[p.legacyId] = p;
             }
           });
         }
@@ -3085,18 +3104,21 @@ const StorageService = {
     const leaves = this.getLeaveRequests() || [];
     const activeLeavesMap = {};
     leaves.forEach(lv => {
-      if (lv && lv.status === "Disetujui" && lv.teacherId && lv.startDate && lv.endDate) {
+      if (lv && lv.status === "Disetujui" && (lv.teacherId || lv.nip) && lv.startDate && lv.endDate) {
         if (curDateStr >= lv.startDate && curDateStr <= lv.endDate) {
-          activeLeavesMap[lv.teacherId] = lv;
+          if (lv.teacherId) activeLeavesMap[lv.teacherId] = lv;
+          if (lv.nip && lv.nip !== "-") activeLeavesMap[lv.nip] = lv;
         }
       }
     });
 
     const all = teachers.map((t, idx) => {
-      const approvedLeave = activeLeavesMap[t.id];
-      if (map[t.id]) {
+      const approvedLeave = activeLeavesMap[t.id] || (t.nip ? activeLeavesMap[t.nip] : null) || (t.legacyId ? activeLeavesMap[t.legacyId] : null);
+      const storedRec = map[t.id] || (t.nip ? map[t.nip] : null) || (t.teacherId ? map[t.teacherId] : null) || (t.legacyId ? map[t.legacyId] : null);
+      if (storedRec) {
         const rec = {
-          ...map[t.id],
+          ...storedRec,
+          id: t.id,
           name: t.name,
           nip: t.nip,
           subject: t.subject,
@@ -3285,13 +3307,13 @@ const StorageService = {
   },
   saveHolidays(holidays) {
     localStorage.setItem("hadir_guru_holidays", JSON.stringify(holidays));
-    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveSetting === "function") {
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
       ApiService.saveSetting("holidays", holidays).catch(() => {});
     }
   },
   resetHolidaysToKaldik() {
     localStorage.setItem("hadir_guru_holidays", JSON.stringify(KALDIK_JATENG_HOLIDAYS));
-    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.saveSetting === "function") {
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
       ApiService.saveSetting("holidays", KALDIK_JATENG_HOLIDAYS).catch(() => {});
     }
     return KALDIK_JATENG_HOLIDAYS;

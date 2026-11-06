@@ -1,4 +1,4 @@
-﻿-- ========================================================
+-- ========================================================
 -- DATABASE SCHEMA: HADIR.GURU - ABSENSI DIGITAL MTS
 -- Engine: MySQL 5.7+ / MySQL 8.0+ / MariaDB 10.3+
 -- Karakter Set: utf8mb4 / Kolasi: utf8mb4_unicode_ci
@@ -121,11 +121,40 @@ CREATE TABLE IF NOT EXISTS `leaves` (
 -- 5. Tabel: app_settings (Konfigurasi Radius GPS & Jam Madrasah)
 -- --------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `app_settings` (
-  `setting_key` VARCHAR(50) NOT NULL,
+  `setting_key` VARCHAR(100) NOT NULL,
   `setting_value` LONGTEXT NOT NULL,
   `description` VARCHAR(200) DEFAULT '',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`setting_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- 5b. Tabel: picket_schedules (Jadwal & Presensi Piket Sambut 5S)
+-- --------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `picket_schedules` (
+  `id` VARCHAR(80) NOT NULL,
+  `day` VARCHAR(20) NOT NULL,
+  `squad_name` VARCHAR(100) DEFAULT '',
+  `coordinator` VARCHAR(150) DEFAULT '',
+  `teacher_id` VARCHAR(40) NOT NULL,
+  `nip` VARCHAR(40) DEFAULT '',
+  `teacher_name` VARCHAR(150) NOT NULL,
+  `subject` VARCHAR(100) DEFAULT '',
+  `phone` VARCHAR(40) DEFAULT '',
+  `role` VARCHAR(100) DEFAULT 'Petugas 5S Salam Siswa',
+  `location` VARCHAR(150) DEFAULT 'Gerbang Utama (Gedung A)',
+  `time_range` VARCHAR(50) DEFAULT '06:15 - 07:00 WIB',
+  `status` VARCHAR(50) DEFAULT 'Terjadwal',
+  `standby_status` VARCHAR(30) DEFAULT 'terjadwal',
+  `check_in_time` VARCHAR(30) DEFAULT '-',
+  `check_in_date` VARCHAR(20) DEFAULT '',
+  `punctuality` VARCHAR(50) DEFAULT '-',
+  `is_late` TINYINT(1) DEFAULT 0,
+  `notes` TEXT DEFAULT NULL,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_picket_day` (`day`),
+  KEY `idx_picket_teacher` (`teacher_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------

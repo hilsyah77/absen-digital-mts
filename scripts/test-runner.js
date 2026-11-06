@@ -440,10 +440,37 @@
         const testTeacherId = selTeacher ? selTeacher.value : StorageService.getActiveTeacherId();
         formAddPicket.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
         const sabtuSquad = StorageService.getWelcomingPicketRoster().find(r => r.day === "Sabtu");
-        const hasAdded = sabtuSquad && sabtuSquad.members.some(m => m.teacherId === testTeacherId);
+        const hasAdded = sabtuSquad && sabtuSquad.members.some(m => StorageService._matchPicketMember(m, testTeacherId));
         this.assert("16.3 Simpan Setting Jadwal Piket Berhasil", Boolean(hasAdded), `TeacherId: ${testTeacherId}`);
+
+        // 16.4 Uji Tombol Absen Piket (Check-In Piket dengan pencocokan NIP & ID)
+        const activeTch = StorageService.getActiveTeacher();
+        const checkInRes = StorageService.confirmPicketCheckIn("Sabtu", activeTch ? activeTch.nip : testTeacherId, "06:10:00 WIB", "Uji Otomatis");
+        const checkedMember = checkInRes && checkInRes.members.find(m => StorageService._matchPicketMember(m, testTeacherId));
+        this.assert("16.4 Simpan Absen Piket (Check-In Piket) Berhasil", Boolean(checkedMember && checkedMember.standbyStatus === "standby"), `Status: ${checkedMember ? checkedMember.standbyStatus : 'null'}`);
+
         // Bersihkan kembali data uji piket Sabtu
         StorageService.deletePicketTeacher("Sabtu", testTeacherId);
+      }
+
+      // 16.5 Uji Simpan Absen KBM (Check-In Kelas & Check-Out Kelas -> teachingLogs)
+      const schedules = StorageService.getMasterSchedules();
+      if (Array.isArray(schedules) && schedules.length > 0 && typeof window.confirmClassCheckIn === "function") {
+        const daysIndo = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        const todayDayName = daysIndo[new Date().getDay()];
+        const testSched = schedules.find(s => s.day === todayDayName) || schedules[0];
+        window.confirmClassCheckIn(testSched.id);
+        const checkInsAfterIn = StorageService.getClassCheckIns();
+        const logsAfterIn = StorageService.getTeachingLogs();
+        const hasCheckInLog = logsAfterIn.some(l => l.scheduleId === testSched.id);
+        this.assert("16.5 Simpan Absen KBM Check-In Kelas Berhasil", Boolean(checkInsAfterIn[testSched.id] && hasCheckInLog), `ScheduleId: ${testSched.id}`);
+
+        if (typeof window.openClassCheckOutModal === "function" && typeof window.confirmClassCheckOut === "function") {
+          window.openClassCheckOutModal(testSched.id);
+          window.confirmClassCheckOut(testSched.id);
+          const checkInsAfterOut = StorageService.getClassCheckIns();
+          this.assert("16.6 Simpan Absen KBM Check-Out Kelas Berhasil", Boolean(checkInsAfterOut[testSched.id] && checkInsAfterOut[testSched.id].finished === true), `ScheduleId: ${testSched.id}`);
+        }
       }
 
       // Kembalikan ke tab utama

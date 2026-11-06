@@ -517,10 +517,17 @@ function initMainApplication() {
     try {
       const allTeachers = StorageService.getAllTeachersAttendance();
       const activeTeacher = StorageService.getActiveTeacher();
-      const targetId = teacherId || (activeTeacher ? activeTeacher.id : null);
+      const targetId = teacherId || (activeTeacher ? (activeTeacher.nip || activeTeacher.id) : null);
       const curDateStr = getAppTodayDateString();
       
-      const record = allTeachers.find(t => (targetId && t.id === targetId) || (activeTeacher && t.name === activeTeacher.name));
+      const record = allTeachers.find(t =>
+        (targetId && (t.id === targetId || t.nip === targetId || t.teacherId === targetId || t.legacyId === targetId)) ||
+        (activeTeacher && (
+          t.id === activeTeacher.id ||
+          (activeTeacher.nip && activeTeacher.nip !== "-" && t.nip === activeTeacher.nip) ||
+          t.name === activeTeacher.name
+        ))
+      );
       if (record) {
         record.date = curDateStr;
         if (status) record.status = status;
@@ -546,10 +553,16 @@ function initMainApplication() {
       if (!activeTeacher) return;
 
       const curDateStr = getAppTodayDateString();
+      const storedToday = StorageService.getTodayAttendance();
       todayAttendance.date = curDateStr;
 
       const allTeachers = StorageService.getAllTeachersAttendance();
-      const record = allTeachers.find(t => t.id === activeTeacher.id || t.name === activeTeacher.name);
+      const record = allTeachers.find(t =>
+        t.id === activeTeacher.id ||
+        (activeTeacher.nip && activeTeacher.nip !== "-" && (t.nip === activeTeacher.nip || t.id === activeTeacher.nip)) ||
+        (activeTeacher.legacyId && t.id === activeTeacher.legacyId) ||
+        t.name === activeTeacher.name
+      );
 
       if (record && (record.status === "Izin" || record.status === "Sakit")) {
         todayAttendance.status = record.status;
@@ -558,22 +571,40 @@ function initMainApplication() {
       } else if (record && record.status && record.status !== "Belum Absen" && record.checkIn && record.checkIn !== "-") {
         todayAttendance.status = record.status;
         todayAttendance.checkIn = {
+          ...(storedToday && storedToday.checkIn ? storedToday.checkIn : {}),
           time: record.checkIn,
-          lat: -6.208842,
-          lng: 106.845612,
-          distance: "18 Meter",
+          lat: (storedToday && storedToday.checkIn && storedToday.checkIn.lat) || -6.208842,
+          lng: (storedToday && storedToday.checkIn && storedToday.checkIn.lng) || 106.845612,
+          distance: (storedToday && storedToday.checkIn && storedToday.checkIn.distance) || "18 Meter",
           verified: true,
           isLate: Boolean(record.isLate),
-          photo: null,
-          device: "Perangkat Guru"
+          photo: (storedToday && storedToday.checkIn && storedToday.checkIn.photo) || null,
+          device: (storedToday && storedToday.checkIn && storedToday.checkIn.device) || "Perangkat Guru"
         };
         todayAttendance.checkOut = (record.checkOut && record.checkOut !== "-") ? {
+          ...(storedToday && storedToday.checkOut ? storedToday.checkOut : {}),
           time: record.checkOut,
-          lat: -6.208842,
-          lng: 106.845612,
-          distance: "18 Meter",
+          lat: (storedToday && storedToday.checkOut && storedToday.checkOut.lat) || -6.208842,
+          lng: (storedToday && storedToday.checkOut && storedToday.checkOut.lng) || 106.845612,
+          distance: (storedToday && storedToday.checkOut && storedToday.checkOut.distance) || "18 Meter",
           verified: true
-        } : null;
+        } : (storedToday && storedToday.checkOut && storedToday.checkOut.time && storedToday.checkOut.time !== "-" ? storedToday.checkOut : null);
+      } else if (storedToday && storedToday.date === curDateStr && storedToday.status && storedToday.status !== "Belum Absen" && storedToday.checkIn && storedToday.checkIn.time && storedToday.checkIn.time !== "-") {
+        // Pertahankan presensi hari ini jika sudah tersimpan di hadir_guru_today dan sinkronkan balik ke master
+        todayAttendance.status = storedToday.status;
+        todayAttendance.checkIn = storedToday.checkIn;
+        todayAttendance.checkOut = (storedToday.checkOut && storedToday.checkOut.time && storedToday.checkOut.time !== "-") ? storedToday.checkOut : null;
+        if (record) {
+          record.date = curDateStr;
+          record.status = storedToday.status;
+          record.checkIn = storedToday.checkIn.time;
+          if (todayAttendance.checkOut && todayAttendance.checkOut.time) {
+            record.checkOut = todayAttendance.checkOut.time;
+          }
+          record.isLate = Boolean(storedToday.checkIn.isLate);
+          record.statusDetail = storedToday.statusDetail || (record.isLate ? "Terlambat" : "Hadir Tepat Waktu");
+          StorageService.saveAllTeachersAttendance(allTeachers);
+        }
       } else {
         todayAttendance.status = "Belum Absen";
         todayAttendance.checkIn = null;
@@ -2493,7 +2524,10 @@ function initMainApplication() {
   };
 
   // Confirm Class Check-in Action
-  window.confirmClassCheckIn = function() {
+  window.confirmClassCheckIn = function(scheduleIdOverride = null) {
+    if (scheduleIdOverride && typeof scheduleIdOverride === "string") {
+      activeCheckInScheduleId = scheduleIdOverride;
+    }
     const session = TEACHING_SCHEDULES.find(s => s.id === activeCheckInScheduleId) ||
       (typeof StorageService !== "undefined" && StorageService.getActiveTeacherSchedules && StorageService.getActiveTeacherSchedules().find(s => s.id === activeCheckInScheduleId)) ||
       (typeof StorageService !== "undefined" && StorageService.getMasterSchedules && StorageService.getMasterSchedules().find(s => s.id === activeCheckInScheduleId));
@@ -2508,13 +2542,15 @@ function initMainApplication() {
     const timeStr = `${nowH}:${nowM} WIB`;
 
     const activeTeacherObj = StorageService.getActiveTeacher();
-    const currentTeacherId = session.teacherId || (activeTeacherObj ? activeTeacherObj.id : StorageService.getActiveTeacherId());
+    const currentTeacherId = session.teacherId || (activeTeacherObj ? (activeTeacherObj.nip || activeTeacherObj.id) : StorageService.getActiveTeacherId());
+    const currentTeacherNip = (activeTeacherObj && activeTeacherObj.nip && activeTeacherObj.nip !== "-") ? activeTeacherObj.nip : currentTeacherId;
     const currentTeacherName = session.teacherName || (activeTeacherObj ? activeTeacherObj.name : "Guru");
 
     // Save class check-in record
     classCheckIns[session.id] = {
       scheduleId: session.id,
       teacherId: currentTeacherId,
+      nip: currentTeacherNip,
       teacherName: currentTeacherName,
       date: curDateStr,
       room: session.room,
@@ -2526,6 +2562,47 @@ function initMainApplication() {
       finished: false
     };
     StorageService.saveClassCheckIns(classCheckIns);
+
+    // Catat juga sesi KBM yang sedang berlangsung ke teachingLogs & tabel teaching_logs MySQL
+    const existingLogIdx = teachingLogs.findIndex(l => l.scheduleId === session.id && l.date === curDateStr);
+    const existingLog = existingLogIdx !== -1 ? teachingLogs[existingLogIdx] : null;
+    const kbmLogId = existingLog ? existingLog.id : `KBM-${curDateStr.replace(/-/g, '')}-${currentTeacherNip}-${session.id}`;
+    const checkInLogEntry = {
+      id: kbmLogId,
+      scheduleId: session.id,
+      teacherId: currentTeacherNip,
+      teacherName: currentTeacherName,
+      date: curDateStr,
+      day: session.day || getAppTodayDayName(),
+      subject: session.subject,
+      class: session.class,
+      time: session.time,
+      room: session.room,
+      jtm: session.jtm,
+      topic: existingLog?.topic || "Tatap Muka Pembelajaran Terjadwal (Sedang Berlangsung)",
+      method: existingLog?.method || "Tatap Muka Interaktif",
+      teacherStatus: puncResult.isLate ? `Terlambat ${puncResult.diffMinutes} mnt` : "Hadir Tepat Waktu",
+      status: "Sedang Berlangsung",
+      checkInTime: timeStr,
+      checkOutTime: existingLog?.checkOutTime || "",
+      durationMinutes: existingLog?.durationMinutes || (session.jtm * 45),
+      studentsTotal: existingLog?.studentsTotal || session.totalStudents || 32,
+      studentsPresent: existingLog?.studentsPresent || session.totalStudents || 32,
+      studentsSick: existingLog?.studentsSick || 0,
+      studentsPermit: existingLog?.studentsPermit || 0,
+      studentsAlpha: existingLog?.studentsAlpha || 0,
+      notes: existingLog?.notes || `Presensi Masuk KBM: ${timeStr} (${puncResult.detail}).`,
+      recordedAt: `${curDateStr} ${timeStr}`
+    };
+    if (existingLogIdx !== -1) {
+      teachingLogs[existingLogIdx] = checkInLogEntry;
+    } else {
+      teachingLogs = [checkInLogEntry, ...teachingLogs];
+    }
+    StorageService.saveTeachingLogs(teachingLogs);
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.recordTeachingSession === "function") {
+      ApiService.recordTeachingSession(checkInLogEntry).catch(() => {});
+    }
 
     // Update real-time admin monitoring room dataset (26 Rombel Sync)
     const classIdClean = (session.class || "").replace(/[^A-Za-z0-9]/g, '').replace('Kelas', '').trim();
@@ -2621,10 +2698,13 @@ function initMainApplication() {
   };
 
   // Confirm Class Check-Out (Cukup konfirmasi selesai, langsung tuntas)
-  window.confirmClassCheckOut = function() {
+  window.confirmClassCheckOut = function(scheduleIdOverride = null) {
     if (inClassTimerInterval) {
       clearInterval(inClassTimerInterval);
       inClassTimerInterval = null;
+    }
+    if (scheduleIdOverride && typeof scheduleIdOverride === "string") {
+      activeCheckOutScheduleId = scheduleIdOverride;
     }
 
     const scheduleId = activeCheckOutScheduleId;
@@ -2655,13 +2735,15 @@ function initMainApplication() {
     // Automatically create / update record in teachingLogs
     const todayDateStr = getAppTodayDateString();
     const currentTeacher = StorageService.getActiveTeacher();
-    const teacherId = session.teacherId || (currentTeacher ? currentTeacher.id : StorageService.getActiveTeacherId());
+    const teacherId = (currentTeacher && currentTeacher.nip && currentTeacher.nip !== "-")
+      ? currentTeacher.nip
+      : (session.teacherId || (currentTeacher ? currentTeacher.id : StorageService.getActiveTeacherId()));
     const teacherName = session.teacherName || (currentTeacher ? currentTeacher.name : "Guru Pendidik");
     const existingLogIdx = teachingLogs.findIndex(l => l.scheduleId === session.id && l.date === todayDateStr);
     const existingLog = existingLogIdx !== -1 ? teachingLogs[existingLogIdx] : null;
     const puncText = checkIn?.punctuality?.detail || "Tepat Waktu";
     const logEntry = {
-      id: existingLog ? existingLog.id : `KBM-${todayDateStr.replace(/-/g, '')}-${String(teachingLogs.length + 1).padStart(2, '0')}`,
+      id: existingLog ? existingLog.id : `KBM-${todayDateStr.replace(/-/g, '')}-${teacherId}-${session.id}`,
       scheduleId: session.id,
       teacherId: teacherId,
       teacherName: teacherName,
@@ -2675,6 +2757,7 @@ function initMainApplication() {
       topic: existingLog?.topic || "Tatap Muka Pembelajaran Terjadwal (Check-in Terekam)",
       method: existingLog?.method || "Tatap Muka Interaktif",
       teacherStatus: checkIn?.punctuality?.isLate ? `Terlambat ${checkIn.punctuality.diffMinutes} mnt` : "Hadir Tepat Waktu",
+      status: "Selesai",
       checkInTime: checkIn?.checkInTime || session.startTime,
       checkOutTime: timeOutStr,
       durationMinutes: durationMnt,
@@ -5921,12 +6004,14 @@ function initMainApplication() {
         const curDateStr = getAppTodayDateString();
         const curDayName = session.day || getAppTodayDayName();
         const activeTch = StorageService.getActiveTeacher();
-        const teacherId = session.teacherId || (activeTch ? activeTch.id : StorageService.getActiveTeacherId());
+        const teacherId = (activeTch && activeTch.nip && activeTch.nip !== "-")
+          ? activeTch.nip
+          : (session.teacherId || (activeTch ? activeTch.id : StorageService.getActiveTeacherId()));
         const teacherName = session.teacherName || (activeTch ? activeTch.name : "Guru Pengajar");
         const existingIdx = teachingLogs.findIndex(l => l.scheduleId === session.id && l.date === curDateStr);
 
         const newJournalEntry = {
-          id: existingIdx !== -1 ? teachingLogs[existingIdx].id : `KBM-${curDateStr.replace(/-/g, '')}-${String(teachingLogs.length + 1).padStart(2, '0')}`,
+          id: existingIdx !== -1 ? teachingLogs[existingIdx].id : `KBM-${curDateStr.replace(/-/g, '')}-${teacherId}-${session.id}`,
           scheduleId: session.id,
           teacherId: teacherId,
           teacherName: teacherName,
@@ -5940,6 +6025,7 @@ function initMainApplication() {
           topic: topic || "Tatap Muka Pembelajaran Terjadwal",
           method: method || "Tatap Muka Interaktif",
           teacherStatus: teacherStatus,
+          status: "Selesai",
           checkInTime: checkInRec?.checkInTime || session.startTime,
           checkOutTime: checkInRec?.checkOutTime || session.endTime,
           durationMinutes: checkInRec?.durationMinutes || (session.jtm * 45),
@@ -8107,8 +8193,13 @@ function initMainApplication() {
   // Helper to find which day an active teacher is scheduled for Welcoming Picket
   function getTeacherPicketDutyDay(teacherId) {
     const roster = StorageService.getWelcomingPicketRoster();
+    const activeTeacher = StorageService.getActiveTeacher();
     for (const squad of roster) {
-      if (squad.members && squad.members.some(m => m.teacherId === teacherId)) {
+      if (squad.members && squad.members.some(m =>
+        StorageService._matchPicketMember
+          ? StorageService._matchPicketMember(m, teacherId, activeTeacher)
+          : (m.teacherId === teacherId)
+      )) {
         return squad.day;
       }
     }
@@ -8123,6 +8214,7 @@ function initMainApplication() {
     if (!banner) return;
 
     const activeId = StorageService.getActiveTeacherId();
+    const activeTeacher = StorageService.getActiveTeacher();
     const todayDay = getTodayPicketDay();
     const isDutyToday = StorageService.isTeacherOnWelcomingDuty(todayDay, activeId);
 
@@ -8138,7 +8230,11 @@ function initMainApplication() {
       return;
     }
 
-    const member = todaySquad.members.find(m => m.teacherId === activeId);
+    const member = todaySquad.members.find(m =>
+      StorageService._matchPicketMember
+        ? StorageService._matchPicketMember(m, activeId, activeTeacher)
+        : (m.teacherId === activeId)
+    );
     if (!member) {
       banner.style.display = "none";
       return;
@@ -8393,11 +8489,13 @@ function initMainApplication() {
         `;
       } else {
         squad.members.forEach((member) => {
-          const teacherInfo = teachersMaster.find(t => t.id === member.teacherId) || {};
+          const teacherInfo = teachersMaster.find(t => t.id === member.teacherId || t.nip === member.teacherId || t.teacherId === member.teacherId || t.legacyId === member.teacherId) || {};
           const card = document.createElement("div");
           card.className = "picket-member-card";
 
-        const isCurrentActive = member.teacherId === activeTeacherId;
+        const isCurrentActive = StorageService._matchPicketMember
+          ? StorageService._matchPicketMember(member, activeTeacherId, activeTeacher)
+          : (member.teacherId === activeTeacherId);
         if (isCurrentActive) {
           card.style.borderColor = "var(--emerald-500)";
           card.style.boxShadow = "0 4px 16px rgba(16, 185, 129, 0.15)";
@@ -8470,7 +8568,9 @@ function initMainApplication() {
         }
 
         // Action Buttons Row: Check-in ONLY active according to schedule and respective account
-        const isMyAccount = member.teacherId === activeTeacherId;
+        const isMyAccount = StorageService._matchPicketMember
+          ? StorageService._matchPicketMember(member, activeTeacherId, activeTeacher)
+          : (member.teacherId === activeTeacherId);
         const canCheckIn = isScheduleDay && (isMyAccount || isAdmin);
         const canReset = (isScheduleDay && isMyAccount) || isAdmin;
 
@@ -8567,7 +8667,11 @@ function initMainApplication() {
       const addCard = document.createElement("div");
       addCard.className = "picket-member-card picket-add-card-dashed";
 
-      const isTeacherInSquad = squad.members.some(m => m.teacherId === activeTeacherId);
+      const isTeacherInSquad = squad.members.some(m =>
+        StorageService._matchPicketMember
+          ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+          : (m.teacherId === activeTeacherId)
+      );
       const isSquadFull = squad.members.length >= 4;
 
       if (!isAdmin) {
@@ -9054,6 +9158,7 @@ function initMainApplication() {
         const todayDay = getTodayPicketDay();
         const targetPicketDay = (modal && modal.dataset.picketDay) ? modal.dataset.picketDay : (currentSelectedPicketDay || todayDay);
         const activeTeacherId = StorageService.getActiveTeacherId();
+        const activeTeacher = StorageService.getActiveTeacher();
         const isAdmin = currentActiveRole === "admin" || document.body.classList.contains("mode-admin");
         const teacherId = document.getElementById("selectPicketTeacherCheckIn")?.value || activeTeacherId;
 
@@ -9062,7 +9167,15 @@ function initMainApplication() {
           return;
         }
 
-        if (!isAdmin && teacherId !== activeTeacherId) {
+        const isMyTarget = teacherId === activeTeacherId || (
+          activeTeacher && (
+            teacherId === activeTeacher.id ||
+            teacherId === activeTeacher.nip ||
+            teacherId === activeTeacher.teacherId ||
+            teacherId === activeTeacher.legacyId
+          )
+        );
+        if (!isAdmin && !isMyTarget) {
           showToast("Akses Ditolak", "Anda tidak dapat melakukan check-in untuk akun guru lain.", "warning");
           return;
         }
@@ -9073,7 +9186,11 @@ function initMainApplication() {
 
         const updatedSquad = StorageService.confirmPicketCheckIn(targetPicketDay, teacherId, timeStr, notes);
         if (updatedSquad) {
-          const member = updatedSquad.members.find(m => m.teacherId === teacherId);
+          const member = updatedSquad.members.find(m =>
+            StorageService._matchPicketMember
+              ? StorageService._matchPicketMember(m, teacherId, activeTeacher)
+              : (m.teacherId === teacherId)
+          );
           SoundService.playSuccess();
           window.closeModal("modalPicketCheckIn");
           if (picketClockInterval) clearInterval(picketClockInterval);
@@ -9099,9 +9216,13 @@ function initMainApplication() {
         const todayDay = getTodayPicketDay();
         const activeTeacherId = StorageService.getActiveTeacherId();
         const teachersMaster = StorageService.getTeachersMaster();
-        const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId) || StorageService.getActiveTeacher();
+        const activeTeacher = teachersMaster.find(t => t.id === activeTeacherId || t.nip === activeTeacherId || t.teacherId === activeTeacherId || t.legacyId === activeTeacherId) || StorageService.getActiveTeacher();
         const todaySquad = StorageService.getTodayWelcomingPicket(todayDay);
-        const memberToday = todaySquad ? todaySquad.members.find(m => m.teacherId === activeTeacherId)  : null;
+        const memberToday = todaySquad ? todaySquad.members.find(m =>
+          StorageService._matchPicketMember
+            ? StorageService._matchPicketMember(m, activeTeacherId, activeTeacher)
+            : (m.teacherId === activeTeacherId)
+        ) : null;
 
         if (!memberToday) {
           const dutyDay = getTeacherPicketDutyDay(activeTeacherId);

@@ -20,9 +20,22 @@ const ApiService = {
   _isApplyingServer: false,
   _syncInterval: null,
   _isPulling: false,
+  _pendingWrites: 0,
+  _lastWriteTimeMs: 0,
 
   isApplyingServer() {
     return this._isApplyingServer;
+  },
+
+  _beginWrite() {
+    this._pendingWrites = Math.max(0, this._pendingWrites) + 1;
+    this._lastWriteTimeMs = Date.now();
+  },
+
+  _endWrite(ok = false) {
+    this._pendingWrites = Math.max(0, this._pendingWrites - 1);
+    this._lastWriteTimeMs = Date.now();
+    if (ok) this._apiAvailable = true;
   },
 
   /**
@@ -47,6 +60,9 @@ const ApiService = {
   },
 
   isReady() {
+    if (typeof window !== "undefined" && window.location && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+      return true;
+    }
     return this._apiAvailable;
   },
 
@@ -55,6 +71,7 @@ const ApiService = {
    * @param {Object} attendanceRecord
    */
   async recordAttendance(attendanceRecord) {
+    this._beginWrite();
     try {
       const res = await fetch(`${this.baseUrl}/attendance.php`, {
         method: "POST",
@@ -62,8 +79,10 @@ const ApiService = {
         body: JSON.stringify(attendanceRecord)
       });
       const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
       return data;
     } catch (error) {
+      this._endWrite(false);
       console.warn("[ApiService] Gagal mencatat presensi ke MySQL:", error);
       return { success: false, error };
     }
@@ -141,14 +160,18 @@ const ApiService = {
    * 6. Simpan Jurnal KBM Kelas ke MySQL
    */
   async recordTeachingSession(sessionData) {
+    this._beginWrite();
     try {
       const res = await fetch(`${this.baseUrl}/teaching-logs.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sessionData)
       });
-      return await res.json();
+      const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
+      return data;
     } catch (error) {
+      this._endWrite(false);
       console.warn("[ApiService] Gagal menyimpan jurnal KBM ke MySQL:", error);
       return { success: false, error };
     }
@@ -158,14 +181,18 @@ const ApiService = {
    * 7. Kirim Pengajuan Izin Guru ke MySQL
    */
   async submitLeaveRequest(leaveRecord) {
+    this._beginWrite();
     try {
       const res = await fetch(`${this.baseUrl}/leaves.php`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(leaveRecord)
       });
-      return await res.json();
+      const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
+      return data;
     } catch (error) {
+      this._endWrite(false);
       console.warn("[ApiService] Gagal mengirim pengajuan izin ke MySQL:", error);
       return { success: false, error };
     }
@@ -175,14 +202,18 @@ const ApiService = {
    * 8. Reset Semua Password Guru ke 123456 via MySQL
    */
   async resetAllTeacherPasswords() {
+    this._beginWrite();
     try {
       const res = await fetch(`${this.baseUrl}/teachers.php?action=reset_all_passwords`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({})
       });
-      return await res.json();
+      const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
+      return data;
     } catch (error) {
+      this._endWrite(false);
       return { success: false, message: error.message };
     }
   },
@@ -191,14 +222,18 @@ const ApiService = {
    * 9. Simpan / Update Data Guru atau Profil Guru ke MySQL
    */
   async saveTeacher(teacherData) {
+    this._beginWrite();
     try {
       const res = await fetch(`${this.baseUrl}/teachers.php?action=save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(teacherData || {})
       });
-      return await res.json();
+      const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
+      return data;
     } catch (error) {
+      this._endWrite(false);
       return { success: false, message: error.message };
     }
   },
@@ -214,6 +249,7 @@ const ApiService = {
    * 11. Simpan Pengaturan / State Sistem ke MySQL (app_settings)
    */
   async saveSetting(key, value) {
+    this._beginWrite();
     try {
       const payload = {};
       payload[key] = value;
@@ -222,8 +258,11 @@ const ApiService = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      return await res.json();
+      const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
+      return data;
     } catch (error) {
+      this._endWrite(false);
       return { success: false, message: error.message };
     }
   },
@@ -232,14 +271,18 @@ const ApiService = {
    * 12. Hapus Batch Riwayat Presensi dari MySQL (Admin)
    */
   async purgeAttendanceHistory(options = { mode: "all" }) {
+    this._beginWrite();
     try {
       const res = await fetch(`${this.baseUrl}/attendance.php?action=purge`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(options || { mode: "all" })
       });
-      return await res.json();
+      const data = await res.json();
+      this._endWrite(Boolean(data && data.success));
+      return data;
     } catch (error) {
+      this._endWrite(false);
       return { success: false, count: 0, message: error.message };
     }
   },
@@ -249,6 +292,10 @@ const ApiService = {
    */
   async pullAllFromServer() {
     if (this._isPulling) return false;
+    // Jangan timpa state lokal jika baru saja ada aksi klik/simpan tombol (proteksi race condition)
+    if (this._pendingWrites > 0 || (Date.now() - this._lastWriteTimeMs < 4000)) {
+      return false;
+    }
     this._isPulling = true;
     try {
       const now = new Date();
@@ -264,6 +311,11 @@ const ApiService = {
       }
       const json = await res.json();
       if (!json || !json.success || !json.data) {
+        this._isPulling = false;
+        return false;
+      }
+      // Cek ulang apakah ada aksi simpan saat request GET sedang berjalan di jaringan
+      if (this._pendingWrites > 0 || (Date.now() - this._lastWriteTimeMs < 4000)) {
         this._isPulling = false;
         return false;
       }
@@ -502,9 +554,52 @@ const ApiService = {
             hasChanges = true;
           }
         }
-        if (Array.isArray(settings.teaching_logs)) {
+        if (Array.isArray(settings.teaching_logs) || (Array.isArray(bundle.teaching_logs) && bundle.teaching_logs.length > 0)) {
+          const settingLogs = Array.isArray(settings.teaching_logs) ? settings.teaching_logs : [];
+          const dbLogs = Array.isArray(bundle.teaching_logs) ? bundle.teaching_logs : [];
+          const logsMap = new Map();
+          settingLogs.forEach(l => {
+            if (l && l.id) logsMap.set(l.id, l);
+          });
+          dbLogs.forEach(row => {
+            if (!row || !row.id) return;
+            let parsedAtt = {};
+            if (row.student_attendance) {
+              try {
+                parsedAtt = typeof row.student_attendance === "string" ? (JSON.parse(row.student_attendance) || {}) : row.student_attendance;
+              } catch (e) {}
+            }
+            const prev = logsMap.get(row.id) || {};
+            logsMap.set(row.id, {
+              ...prev,
+              id: row.id,
+              scheduleId: row.schedule_id || prev.scheduleId || "",
+              teacherId: row.teacher_id || prev.teacherId || "",
+              teacherName: row.teacher_name || prev.teacherName || "",
+              date: row.date || prev.date || todayDateStr,
+              day: parsedAtt.day || prev.day || "",
+              subject: row.subject || prev.subject || "",
+              class: row.class_name || prev.class || "",
+              time: row.period_range || prev.time || "",
+              room: parsedAtt.room || prev.room || `R. Kelas ${row.class_name || ""}`,
+              jtm: parsedAtt.jtm || prev.jtm || 2,
+              topic: row.topic_material || prev.topic || "Tatap Muka Pembelajaran Terjadwal",
+              method: row.teaching_media || prev.method || "Tatap Muka Interaktif",
+              teacherStatus: parsedAtt.teacherStatus || row.status || prev.teacherStatus || "Hadir Tepat Waktu",
+              checkInTime: row.check_in_time || prev.checkInTime || "-",
+              checkOutTime: row.check_out_time || prev.checkOutTime || "-",
+              durationMinutes: parsedAtt.durationMinutes || prev.durationMinutes || 90,
+              studentsTotal: parsedAtt.total || prev.studentsTotal || 32,
+              studentsPresent: parsedAtt.present || prev.studentsPresent || 32,
+              studentsSick: parsedAtt.sick !== undefined ? parsedAtt.sick : (prev.studentsSick || 0),
+              studentsPermit: parsedAtt.permit !== undefined ? parsedAtt.permit : (prev.studentsPermit || 0),
+              studentsAlpha: parsedAtt.alpha !== undefined ? parsedAtt.alpha : (prev.studentsAlpha || 0),
+              notes: parsedAtt.notes || prev.notes || ""
+            });
+          });
+          const mergedLogs = Array.from(logsMap.values());
           const curRaw = localStorage.getItem("hadir_guru_teaching_logs");
-          const nextRaw = JSON.stringify(settings.teaching_logs);
+          const nextRaw = JSON.stringify(mergedLogs);
           if (curRaw !== nextRaw) {
             localStorage.setItem("hadir_guru_teaching_logs", nextRaw);
             hasChanges = true;
@@ -558,26 +653,26 @@ const ApiService = {
     if (isUp) {
       console.log("[ApiService] Berhasil terhubung ke Backend MySQL Hosting (" + this.baseUrl + ")");
       await this.pullAllFromServer();
+    }
 
-      // Sinkronisasi berkala setiap 5 detik agar absen dari browser/HP lain langsung terdeteksi di Admin
-      if (!this._syncInterval) {
-        this._syncInterval = setInterval(() => {
-          if (typeof document === "undefined" || document.visibilityState === "visible") {
-            this.pullAllFromServer().catch(() => {});
-          }
-        }, 5000);
-      }
-
-      if (typeof window !== "undefined") {
-        window.addEventListener("focus", () => {
+    // Sinkronisasi berkala setiap 5 detik agar absen dari browser/HP lain langsung terdeteksi di Admin
+    if (!this._syncInterval && this.isReady()) {
+      this._syncInterval = setInterval(() => {
+        if (typeof document === "undefined" || document.visibilityState === "visible") {
           this.pullAllFromServer().catch(() => {});
-        });
-        document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible") {
-            this.pullAllFromServer().catch(() => {});
-          }
-        });
-      }
+        }
+      }, 5000);
+    }
+
+    if (typeof window !== "undefined" && this.isReady()) {
+      window.addEventListener("focus", () => {
+        this.pullAllFromServer().catch(() => {});
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          this.pullAllFromServer().catch(() => {});
+        }
+      });
     }
     return isUp;
   }
