@@ -1618,18 +1618,16 @@ const StorageService = {
       return { success: false, message: "Akun guru tidak ditemukan. Periksa kembali NIP, Username, atau pilih dari daftar." };
     }
 
-    const validPin = String(found.pin || "123456").trim();
-    const validPass = String(found.password || validPin || "123456").trim();
+    const validPin = String(found.pin || "").trim();
+    const validPass = String(found.password || validPin || "").trim();
 
     if (
       (validPin && pinClean === validPin) ||
-      (validPass && pinClean === validPass) ||
-      pinClean === "123456" ||
-      pinClean === "Guru@2026!"
+      (validPass && pinClean === validPass)
     ) {
       return { success: true, teacher: found };
     } else {
-      return { success: false, message: "Password atau PIN akun guru salah. Silakan periksa kembali sandi Anda (Default: 123456)." };
+      return { success: false, message: "Password atau PIN akun guru salah. Silakan periksa kembali sandi Anda." };
     }
   },
   getAuthSession() {
@@ -2094,20 +2092,6 @@ const StorageService = {
           teachers = parsed.filter(t => t && typeof t === "object");
         }
       } catch (e) { console.error(e); }
-    }
-
-    // Auto-reset seluruh password akun guru ke default PIN '123456'
-    if (!localStorage.getItem("hadir_guru_teachers_pass_reset_v2")) {
-      teachers = teachers.map(t => ({
-        ...t,
-        pin: "123456",
-        password: "123456"
-      }));
-      try {
-        localStorage.setItem("hadir_guru_teachers_60", JSON.stringify(teachers));
-        localStorage.setItem("hadir_guru_teachers_pass_reset_v2", "true");
-        localStorage.removeItem("hadir_guru_cloud_profile_overrides");
-      } catch (e) {}
     }
 
     // Gabungkan override profil individual dari Cloud jika ada

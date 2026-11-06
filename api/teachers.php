@@ -70,8 +70,8 @@ if ($method === 'POST') {
         $phone = trim($input['phone'] ?? '');
         $gender = trim($input['gender'] ?? 'Laki-laki');
         $status = trim($input['status'] ?? $input['kepegawaian'] ?? $input['employmentStatus'] ?? 'Aktif');
-        $pin = trim($input['pin'] ?? $input['password'] ?? '123456');
-        $password = trim($input['password'] ?? $input['pin'] ?? '123456');
+        $pin = trim($input['pin'] ?? $input['password'] ?? '');
+        $password = trim($input['password'] ?? $input['pin'] ?? '');
         $role = trim($input['role'] ?? 'Pendidik');
         $position = trim($input['position'] ?? $classAssigned);
 
@@ -109,7 +109,7 @@ if ($method === 'POST') {
             ");
             $stmt->execute([
                 $nip, $nip, $name ?: 'Guru MTs', $nuptk, $subject, $dept, $targetJtm,
-                $classAssigned, $email, $phone, $gender, 'Aktif', $password, $pin, $role, $position
+                $classAssigned, $email, $phone, $gender, 'Aktif', $password ?: '123456', $pin ?: '123456', $role, $position
             ]);
             sendResponse(true, ['id' => $nip, 'nip' => $nip], "Guru baru berhasil ditambahkan ke database");
         }
