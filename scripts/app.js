@@ -5358,6 +5358,10 @@ function initMainApplication() {
       }
 
       if (countEl) countEl.textContent = holidays.length;
+      const showingTextEl = document.getElementById("holidaysShowingCountText");
+      if (showingTextEl) {
+        showingTextEl.textContent = `Menampilkan ${filtered.length} dari ${holidays.length} agenda hari libur Kaldik`;
+      }
 
       tbody.innerHTML = "";
       if (filtered.length === 0) {
@@ -5408,16 +5412,16 @@ function initMainApplication() {
               ${h.name}
             </div>
           </td>
-          <td>${catBadge}</td>
-          <td style="font-size: 0.8rem; color: var(--text-secondary); max-width: 320px; line-height: 1.4;">
+          <td style="text-align: center; white-space: nowrap;">${catBadge}</td>
+          <td style="font-size: 0.8rem; color: var(--text-secondary); min-width: 240px; max-width: 340px; line-height: 1.4;">
             ${h.description || '-'}
           </td>
-          <td style="text-align: center;">
+          <td style="text-align: center; white-space: nowrap;">
             <span class="holiday-status-badge">
               🏖️ Libur KBM
             </span>
           </td>
-          <td style="text-align: center;">
+          <td style="text-align: center; white-space: nowrap;">
             <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
               <button type="button" class="btn-table-action btn-table-action-edit" onclick="openEditHolidayModal('${h.id}')" title="Edit Hari Libur">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>

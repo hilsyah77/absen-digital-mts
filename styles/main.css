@@ -2650,39 +2650,53 @@ body {
 .holiday-badge-madrasah {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   background: rgba(16, 185, 129, 0.15);
   color: var(--emerald-700);
   border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: var(--radius-full);
-  padding: 0.2rem 0.65rem;
+  padding: 0.22rem 0.7rem;
   font-size: 0.73rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .holiday-badge-nasional {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   background: rgba(2, 132, 199, 0.15);
   color: #0369a1;
   border: 1px solid rgba(2, 132, 199, 0.35);
   border-radius: var(--radius-full);
-  padding: 0.2rem 0.65rem;
+  padding: 0.22rem 0.7rem;
   font-size: 0.73rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 /* Specific Holiday Table Styles */
 #tableHolidays {
   font-size: 0.84rem;
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+}
+
+#tableHolidays th,
+#tableHolidays td {
+  vertical-align: middle;
+  padding: 0.75rem 0.85rem;
 }
 
 #tableHolidays th {
   font-family: 'Outfit', sans-serif;
   letter-spacing: 0.04em;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   background: var(--bg-elevated);
+  white-space: nowrap;
 }
 
 #tableHolidays tbody tr:hover td {
