@@ -5686,6 +5686,140 @@ body:not(.mode-login) #appLoginView.login-view-wrapper {
   }
 }
 
+/* ===================================================================
+   TEMA TERANG HALAMAN LOGIN (Putih - Hijau Mint)
+   =================================================================== */
+body.mode-login {
+  background: #d1fae5 !important;
+}
+
+.login-view-wrapper {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%);
+}
+
+.login-glow-1 { background: rgba(16, 185, 129, 0.22); }
+.login-glow-2 { background: rgba(125, 211, 252, 0.35); }
+.login-backdrop-glow { opacity: 0.55; }
+
+.login-logo-ring {
+  background: linear-gradient(135deg, #ffffff, #a7f3d0);
+  box-shadow: 0 10px 25px -5px rgba(0, 106, 78, 0.25), 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+.login-app-title { color: #064e3b; text-shadow: none; }
+.login-school-name { color: #047857; }
+
+.login-clock-badge {
+  background: #ffffff;
+  border: 1px solid rgba(0, 106, 78, 0.25);
+  color: #334155;
+  box-shadow: 0 4px 12px rgba(0, 106, 78, 0.12);
+}
+.login-clock-tz { color: #64748b; border-left-color: rgba(0, 0, 0, 0.12); }
+
+.login-card {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(0, 106, 78, 0.15);
+  box-shadow: 0 20px 50px -15px rgba(0, 106, 78, 0.28), 0 0 0 1px rgba(16, 185, 129, 0.12);
+  color: #0f172a;
+}
+
+.login-tabs-nav {
+  background: #ecfdf5;
+  border: 1px solid rgba(0, 106, 78, 0.2);
+}
+.login-tab-btn { color: #475569; }
+.login-tab-btn:hover { color: #064e3b; background: rgba(0, 106, 78, 0.08); }
+.login-tab-btn.active { color: #ffffff; }
+
+.login-alert-box {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+}
+
+.login-panel-intro h4 { color: #064e3b; }
+.login-panel-intro p { color: #475569; }
+
+.admin-badge-ribbon {
+  background: #ccfbf1;
+  border: 1px solid #5eead4;
+  color: #0f766e;
+}
+
+.login-panel .form-label { color: #1e293b; }
+.login-input-icon-wrap > svg { color: #64748b; }
+
+.login-input-field,
+.login-select-account {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+}
+.login-input-field::placeholder { color: #94a3b8; }
+.login-input-field:focus,
+.login-select-account:focus {
+  background: #ffffff;
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+.login-select-account option { background: #ffffff; color: #0f172a; }
+
+.btn-toggle-eye { color: #64748b; }
+.btn-toggle-eye:hover { color: #059669; }
+.btn-toggle-combobox { color: #047857; }
+.btn-toggle-combobox:hover { color: #059669; background: rgba(16, 185, 129, 0.12); }
+
+.teacher-combobox-dropdown {
+  background: #ffffff;
+  border: 1px solid rgba(0, 106, 78, 0.3);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+}
+.teacher-combobox-dropdown::-webkit-scrollbar-track { background: #f1f5f9; }
+.combobox-item:hover,
+.combobox-item.active { background: #ecfdf5; border-color: rgba(16, 185, 129, 0.35); }
+.combobox-item.selected { background: #d1fae5; border-color: rgba(5, 150, 105, 0.5); }
+.combobox-name { color: #0f172a; }
+.combobox-sub { color: #047857; }
+.combobox-empty { color: #64748b; }
+
+.teacher-login-preview {
+  background: #ecfdf5;
+  border: 1px solid rgba(0, 106, 78, 0.3);
+}
+.preview-name { color: #064e3b; }
+.preview-detail { color: #047857; }
+
+.login-remember-label { color: #334155; }
+
+.login-help-chip,
+.btn-quick-fill-admin {
+  border: 1px dashed #60a5fa;
+  color: #1d4ed8;
+}
+.login-help-chip:hover,
+.btn-quick-fill-admin:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e3a8a;
+}
+
+.quick-demo-accounts-wrap { border-top: 1px solid rgba(0, 0, 0, 0.08); }
+.quick-demo-title { color: #64748b; }
+.demo-chip-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+.demo-chip-btn:hover {
+  background: #d1fae5;
+  border-color: #34d399;
+  color: #064e3b;
+}
+
+.login-footer-info { color: #475569; opacity: 1; }
+.login-footer-links { color: #047857; }
+
 /* KBM Day Groups Tabs & Duration Settings */
 .kbm-day-groups-nav {
   display: flex;
