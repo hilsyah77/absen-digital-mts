@@ -3141,6 +3141,9 @@ const StorageService = {
   },
   saveAllTeachersAttendance(data) {
     localStorage.setItem("hadir_guru_all_teachers", JSON.stringify(data));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("all_teachers_attendance", data).catch(() => {});
+    }
   },
 
   getTodayAttendance() {
@@ -3160,7 +3163,7 @@ const StorageService = {
   saveTodayAttendance(data, skipCloud = false) {
     localStorage.setItem("hadir_guru_today", JSON.stringify(data));
     // Sinkronisasi ke MySQL Hosting via ApiService jika terdeteksi aktif
-    if (!skipCloud && typeof ApiService !== "undefined" && ApiService.isReady()) {
+    if (!skipCloud && typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer()) {
       const activeTeacher = this.getActiveTeacher();
       if (activeTeacher && data && data.status && data.status !== "Belum Absen") {
         const canonicalNip = (activeTeacher.nip && activeTeacher.nip.length > 3 && activeTeacher.nip !== "-") 
@@ -3186,6 +3189,9 @@ const StorageService = {
   },
   saveHistory(data) {
     localStorage.setItem("hadir_guru_history", JSON.stringify(data));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("attendance_history", data).catch(() => {});
+    }
   },
   getLeaveRequests() {
     const stored = localStorage.getItem("hadir_guru_leaves");
@@ -3196,16 +3202,21 @@ const StorageService = {
   },
   saveLeaveRequests(data) {
     localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
-    if (typeof ApiService !== "undefined" && ApiService.isReady() && typeof ApiService.submitLeaveRequest === "function") {
-      const activeTeacher = this.getActiveTeacher();
-      const firstRequest = Array.isArray(data) && data.length > 0 ? data[0] : null;
-      if (firstRequest && firstRequest.id && !firstRequest._synced) {
-        firstRequest._synced = true;
-        localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
-        ApiService.submitLeaveRequest({
-          ...firstRequest,
-          teacherId: activeTeacher ? (activeTeacher.nip || activeTeacher.id) : (firstRequest.teacherId || "TCH-01")
-        }).catch(err => console.warn("[ApiService] Leave sync error:", err));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer()) {
+      if (typeof ApiService.saveSetting === "function") {
+        ApiService.saveSetting("leaves", data).catch(() => {});
+      }
+      if (typeof ApiService.submitLeaveRequest === "function") {
+        const activeTeacher = this.getActiveTeacher();
+        const firstRequest = Array.isArray(data) && data.length > 0 ? data[0] : null;
+        if (firstRequest && firstRequest.id && !firstRequest._synced) {
+          firstRequest._synced = true;
+          localStorage.setItem("hadir_guru_leaves", JSON.stringify(data));
+          ApiService.submitLeaveRequest({
+            ...firstRequest,
+            teacherId: activeTeacher ? (activeTeacher.nip || activeTeacher.id) : (firstRequest.teacherId || "TCH-01")
+          }).catch(err => console.warn("[ApiService] Leave sync error:", err));
+        }
       }
     }
   },
@@ -3221,6 +3232,9 @@ const StorageService = {
   },
   saveTeachingLogs(data) {
     localStorage.setItem("hadir_guru_teaching_logs", JSON.stringify(data));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("teaching_logs", data).catch(() => {});
+    }
   },
 
   // Real-time Classroom Check-In & Admin Radar Storage
@@ -3253,6 +3267,9 @@ const StorageService = {
   },
   saveClassCheckIns(data) {
     localStorage.setItem("hadir_guru_class_checkins", JSON.stringify(data));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("class_checkins", data).catch(() => {});
+    }
   },
 
   // --- Kalender Pendidikan (Kaldik) & Hari Libur Madrasah Jawa Tengah ---
@@ -3704,11 +3721,18 @@ const StorageService = {
       };
     }
     localStorage.setItem("hadir_guru_rooms_monitoring_state", JSON.stringify(liveState));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("rooms_state", liveState).catch(() => {});
+    }
   },
   resetRoomMonitoringState() {
     localStorage.removeItem("hadir_guru_rooms_monitoring");
     localStorage.removeItem("hadir_guru_rooms_monitoring_state");
     localStorage.removeItem("hadir_guru_class_checkins");
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("rooms_state", {}).catch(() => {});
+      ApiService.saveSetting("class_checkins", {}).catch(() => {});
+    }
   },
   getAdminActivityFeed() {
     const stored = localStorage.getItem("hadir_guru_admin_feed");
@@ -3722,6 +3746,9 @@ const StorageService = {
   },
   saveAdminActivityFeed(data) {
     localStorage.setItem("hadir_guru_admin_feed", JSON.stringify(data));
+    if (typeof ApiService !== "undefined" && ApiService.isReady() && !ApiService.isApplyingServer() && typeof ApiService.saveSetting === "function") {
+      ApiService.saveSetting("admin_feed", data).catch(() => {});
+    }
   },
   addAdminActivity(text, type = "info") {
     const feed = this.getAdminActivityFeed();

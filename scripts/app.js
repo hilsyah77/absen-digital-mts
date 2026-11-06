@@ -3567,6 +3567,9 @@ function initMainApplication() {
       try { if (typeof updatePicketBannerQuickCheckIn === "function") updatePicketBannerQuickCheckIn(); } catch (e) { console.warn(e); }
       showToast("Mode Guru Aktif", "Anda berada di dashboard guru untuk presensi harian.", "info");
     }
+    if (typeof ApiService !== "undefined" && typeof ApiService.pullAllFromServer === "function") {
+      ApiService.pullAllFromServer().catch(() => {});
+    }
   };
 
   // Role Switcher Initialization
