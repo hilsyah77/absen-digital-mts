@@ -48,13 +48,16 @@ jobs:
       - name: 📋 Prepare Output APK
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk hadir-guru-mts.apk
-          ls -lh hadir-guru-mts.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk hadir-guru-vps.apk
+          ls -lh hadir-guru-mts.apk hadir-guru-vps.apk
 
       - name: 📤 Upload APK to GitHub Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: HADIR-GURU-MTs-APK
-          path: hadir-guru-mts.apk
+          path: |
+            hadir-guru-mts.apk
+            hadir-guru-vps.apk
           retention-days: 90
 
       - name: 🏷️ Publish APK to GitHub Releases
@@ -63,33 +66,29 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "HADIR.GURU MTs — APK Android Terbaru"
+          name: "HADIR.GURU MTs — APK Android VPS (absen.mtsasyjtb.cloud)"
           body: |
-            ## 📱 Aplikasi Android HADIR.GURU MTs
-            File APK siap pasang untuk smartphone Android guru dan administrator madrasah.
+            ## 📱 Aplikasi Android HADIR.GURU MTs (Server VPS `absen.mtsasyjtb.cloud`)
+            File APK siap pasang untuk smartphone Android guru dan administrator madrasah (Terhubung langsung ke VPS **`absen.mtsasyjtb.cloud`**).
 
             ### ✨ Detail Rilis:
             - **Nama Aplikasi**: HADIR.GURU
+            - **Server Utama**: `http://absen.mtsasyjtb.cloud` (VPS MySQL)
             - **Paket**: `com.hadirguru.mts`
             - **Tipe**: Debug APK (Siap Pasang Langsung Tanpa Perlu Setup Keystore)
-            - **Kompatibilitas**: Android 6.0 Marshmallow hingga Android 14+
-            - **Fitur Utama**:
-              - Validasi Kehadiran & Geofencing GPS
-              - Kamera & Unggah Dokumen Surat Izin/Sakit
-              - Penyimpanan Lokal Mandiri (Offline Ready)
-              - UI Responsif Mobile & Dark/Light Mode
 
             ---
 
-            ### 📥 Panduan Instalasi di HP Android:
-            1. Unduh file **`hadir-guru-mts.apk`** di bawah ini langsung melalui browser HP.
-            2. Buka file yang selesai diunduh.
-            3. Jika muncul notifikasi keamanan *"Izinkan penginstalan aplikasi dari sumber tidak dikenal"*, pilih **Izinkan / Setuju**.
-            4. Klik **Pasang (Install)** lalu buka aplikasi.
-            5. Izinkan akses **Lokasi** dan **Kamera** saat pertama kali presensi atau upload surat.
+            ### 📥 Panduan Instalasi (Penting Jika Sebelumnya Pernah Pasang APK Lama):
+            1. **Hapus (Uninstall)** terlebih dahulu aplikasi **HADIR.GURU** versi lama (Vercel) dari HP Anda.
+            2. Unduh file **`hadir-guru-vps.apk`** di bawah ini.
+            3. Buka file **`hadir-guru-vps.apk`** lalu klik **Pasang (Install)**.
+            4. Izinkan akses **Lokasi** dan **Kamera** saat diminta.
 
             *Build otomatis oleh GitHub Actions (Commit: ${{ github.sha }}).*
-          files: hadir-guru-mts.apk
+          files: |
+            hadir-guru-vps.apk
+            hadir-guru-mts.apk
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

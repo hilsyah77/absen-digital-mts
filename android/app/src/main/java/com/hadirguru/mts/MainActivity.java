@@ -88,7 +88,10 @@ public class MainActivity extends AppCompatActivity {
         // Check and request runtime permissions if needed
         requestAppPermissions();
 
-        // Load the HADIR.GURU app (Online-first live sync from Vercel with automatic local offline fallback)
+        // Bersihkan cache WebView lama (agar tidak pernah memuat cache Vercel lama)
+        mWebView.clearCache(true);
+
+        // Load the HADIR.GURU app langsung dari Server VPS
         mWebView.loadUrl(LIVE_URL);
     }
 
@@ -161,6 +164,11 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 String host = uri.getHost() != null ? uri.getHost().toLowerCase(Locale.ROOT) : "";
+                // Blokir total domain vercel.app lama dan paksa arahkan ke VPS absen.mtsasyjtb.cloud
+                if (host.contains("vercel.app")) {
+                    view.loadUrl(LIVE_URL);
+                    return true;
+                }
                 if (host.contains("mtsasyjtb.cloud") ||
                         host.contains("80.43.0.177") ||
                         host.contains("firebaseapp.com") ||
@@ -168,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
                         host.contains("gstatic.com") ||
                         host.contains("firebasestorage.app") ||
                         host.contains("google.com") ||
-                        host.contains("vercel.app") ||
                         host.contains("appassets.androidplatform.net")) {
                     return false;
                 }
