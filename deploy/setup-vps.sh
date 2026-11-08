@@ -4,7 +4,7 @@
 # HADIR.GURU - SISTEM ABSENSI DIGITAL MADRASAH
 # ==============================================================================
 # Cara Jalankan di Terminal SSH VPS:
-#   curl -fsSL https://raw.githubusercontent.com/hilsyah77/absen-digital-mts/main/deploy/setup-vps.sh | bash -s -- absen.mtsasyjtb.cloud MadrasahHebat2026!
+#   curl -fsSL https://raw.githubusercontent.com/hilsyah77/absen-digital-mts/main/deploy/setup-vps.sh | tr -d '\r' | bash -s -- absen.mtsasyjtb.cloud MadrasahHebat2026!
 # ==============================================================================
 
 set -e
@@ -25,9 +25,9 @@ else
 fi
 
 echo "=================================================================="
-echo " MEMULAI INSTALASI VPS HADIR.GURU - ABSENSI DIGITAL MADRASAH"
+echo " MEMULAI INSTALASI & PERBAIKAN VPS HADIR.GURU"
 echo " Mode Server   : $( [ $IS_AAPANEL -eq 1 ] && echo 'aaPanel / BT-Panel Terdeteksi' || echo 'Ubuntu/Debian LEMP Stack' )"
-echo " Domain / Host : ${DOMAIN_NAME}"
+echo " Domain / Host : ${DOMAIN_NAME} + Akses IP Langsung"
 echo " Direktori Web : ${APP_DIR}"
 echo " Database MySQL: ${DB_NAME} (User: ${DB_USER})"
 echo "=================================================================="
@@ -36,20 +36,30 @@ echo "=================================================================="
 echo "[1/6] Mengatur zona waktu server ke Asia/Jakarta (WIB)..."
 timedatectl set-timezone Asia/Jakarta || true
 
-# 2. Pastikan Git & Paket Pendukung Terpasang
-echo "[2/6] Memeriksa paket sistem (Git, PHP, MySQL, Nginx)..."
-if [ $IS_AAPANEL -eq 0 ]; then
-    export DEBIAN_FRONTEND=noninteractive
+# 2. Pastikan Git, PHP-FPM, PHP-MySQL, & MariaDB Terpasang dan Berjalan
+echo "[2/6] Memastikan layanan PHP-FPM dan MySQL/MariaDB aktif..."
+export DEBIAN_FRONTEND=noninteractive
+if command -v apt-get >/dev/null 2>&1; then
     apt-get update -y
-    apt-get install -y nginx mariadb-server git curl unzip ufw \
-        php-fpm php-mysql php-mbstring php-xml php-curl php-zip php-gd
-    systemctl enable --now nginx
-    systemctl enable --now mariadb
-else
-    if ! command -v git >/dev/null 2>&1; then
-        apt-get update -y && apt-get install -y git curl unzip || yum install -y git curl unzip
-    fi
+    apt-get install -y git curl unzip php-fpm php-mysql php-mbstring php-xml php-curl php-zip php-gd mariadb-server || true
 fi
+
+# Hidupkan MySQL/MariaDB (baik bawaan aaPanel maupun sistem)
+if [ -x "/etc/init.d/mysqld" ]; then
+    /etc/init.d/mysqld start || true
+else
+    systemctl enable --now mariadb 2>/dev/null || systemctl enable --now mysql 2>/dev/null || true
+fi
+
+# Hidupkan semua layanan PHP-FPM yang tersedia
+for init_php in /etc/init.d/php-fpm* /www/server/php/*/sbin/php-fpm; do
+    if [ -x "$init_php" ]; then
+        "$init_php" start 2>/dev/null || "$init_php" restart 2>/dev/null || true
+    fi
+done
+for sys_php in $(systemctl list-unit-files 'php*-fpm.service' --no-legend 2>/dev/null | awk '{print $1}'); do
+    systemctl enable --now "$sys_php" 2>/dev/null || systemctl restart "$sys_php" 2>/dev/null || true
+done
 
 # 3. Clone atau Update Repository dari GitHub
 echo "[3/6] Mengunduh kode aplikasi dari GitHub ke ${APP_DIR}..."
@@ -58,13 +68,11 @@ if [ -d "${APP_DIR}/.git" ]; then
     git config --global --add safe.directory "${APP_DIR}"
     cd "${APP_DIR}" && git fetch origin main && git reset --hard origin/main
 else
-    rm -rf "${APP_DIR}/.user.ini" 2>/dev/null || true
     chattr -i "${APP_DIR}/.user.ini" 2>/dev/null || true
     rm -rf "${APP_DIR}"
     git clone "${REPO_URL}" "${APP_DIR}"
 fi
 
-# Buat juga symlink di /var/www/absen-digital agar konsisten
 if [ "${APP_DIR}" != "/var/www/absen-digital" ]; then
     mkdir -p /var/www
     ln -sfn "${APP_DIR}" /var/www/absen-digital
@@ -79,13 +87,7 @@ fi
 
 MYSQL_CMD="${MYSQL_BIN} -u root"
 if ! $MYSQL_CMD -e "SELECT 1;" >/dev/null 2>&1; then
-    # Coba ambil password root MySQL dari database internal aaPanel jika ada
-    if [ -f "/www/server/panel/data/default.db" ] && command -v sqlite3 >/dev/null 2>&1; then
-        AA_ROOT_PASS=$(sqlite3 /www/server/panel/data/default.db "SELECT mysql_root FROM config WHERE id=1;" 2>/dev/null || true)
-        if [ -n "${AA_ROOT_PASS}" ]; then
-            MYSQL_CMD="${MYSQL_BIN} -u root -p${AA_ROOT_PASS}"
-        fi
-    elif [ -f "/www/server/panel/data/default.db" ] && command -v python3 >/dev/null 2>&1; then
+    if [ -f "/www/server/panel/data/default.db" ] && command -v python3 >/dev/null 2>&1; then
         AA_ROOT_PASS=$(python3 -c "import sqlite3; conn=sqlite3.connect('/www/server/panel/data/default.db'); print(conn.execute('SELECT mysql_root FROM config WHERE id=1').fetchone()[0])" 2>/dev/null || true)
         if [ -n "${AA_ROOT_PASS}" ]; then
             MYSQL_CMD="${MYSQL_BIN} -u root -p${AA_ROOT_PASS}"
@@ -106,8 +108,6 @@ FLUSH PRIVILEGES;
 EOF
     "${MYSQL_BIN}" -u "${DB_USER}" -p"${DB_PASS}" "${DB_NAME}" < "${APP_DIR}/database.sql"
     echo "    -> Database '${DB_NAME}' & 52 akun guru berhasil diimpor!"
-else
-    echo "    -> [INFO] MySQL root memiliki password khusus. Tabel akan diimpor otomatis oleh api/init.php setelah kredensial sesuai."
 fi
 
 # Tulis file konfigurasi database produksi (api/config.local.php)
@@ -115,7 +115,6 @@ cat > "${APP_DIR}/api/config.local.php" <<EOF
 <?php
 /**
  * Konfigurasi Database Produksi VPS (Dibuat otomatis oleh setup-vps.sh)
- * File ini diabaikan oleh Git (.gitignore) sehingga tidak tertimpa saat git pull.
  */
 define('DB_HOST', 'localhost');
 define('DB_NAME', '${DB_NAME}');
@@ -124,7 +123,6 @@ define('DB_PASS', '${DB_PASS}');
 define('DB_CHARSET', 'utf8mb4');
 EOF
 
-# Set permission direktori web (www untuk aaPanel, www-data untuk Ubuntu standar)
 if id "www" >/dev/null 2>&1; then
     chown -R www:www "${APP_DIR}"
 elif id "www-data" >/dev/null 2>&1; then
@@ -132,66 +130,35 @@ elif id "www-data" >/dev/null 2>&1; then
 fi
 chmod -R 755 "${APP_DIR}"
 
-# 5. Konfigurasi Web Server Nginx (aaPanel maupun Ubuntu Standar)
-echo "[5/6] Mengonfigurasi Virtual Host Nginx untuk ${DOMAIN_NAME}..."
+# 5. Cari Socket PHP-FPM yang Benar-Benar Aktif (Mencegah 502 Bad Gateway)
+echo "[5/6] Mencari socket PHP-FPM aktif & mengatur Virtual Host Nginx..."
+LIVE_PHP_SOCK=""
+for sock in /tmp/php-cgi-83.sock /tmp/php-cgi-82.sock /tmp/php-cgi-81.sock /tmp/php-cgi-80.sock /tmp/php-cgi-74.sock /run/php/php8.3-fpm.sock /run/php/php8.2-fpm.sock /run/php/php8.1-fpm.sock /run/php/php8.0-fpm.sock /run/php/php7.4-fpm.sock /run/php/php-fpm.sock; do
+    if [ -S "$sock" ]; then
+        LIVE_PHP_SOCK="$sock"
+        chmod 666 "$sock" || true
+        break
+    fi
+done
+
+if [ -z "${LIVE_PHP_SOCK}" ]; then
+    LIVE_PHP_SOCK=$(find /run/php /tmp -maxdepth 2 -type s \( -name "php*fpm*.sock" -o -name "php-cgi*.sock" \) 2>/dev/null | head -n 1 || true)
+    if [ -n "${LIVE_PHP_SOCK}" ]; then
+        chmod 666 "${LIVE_PHP_SOCK}" || true
+    fi
+fi
+
+echo "    -> Socket PHP-FPM aktif: ${LIVE_PHP_SOCK:-Tidak ditemukan}"
+
 if [ $IS_AAPANEL -eq 1 ]; then
-    # Deteksi versi PHP yang terinstal di aaPanel (misal 83, 82, 81, 80, 74)
-    AA_PHP_VER=""
-    for ver in 83 82 81 80 74; do
-        if [ -S "/tmp/php-cgi-${ver}.sock" ] || [ -f "/www/server/nginx/conf/enable-php-${ver}.conf" ]; then
-            AA_PHP_VER="${ver}"
-            break
-        fi
-    done
-
-    # Jika PHP belum terinstal di aaPanel namun ada php-fpm sistem Ubuntu
-    SYS_PHP_SOCK=$(find /run/php/ -name "php*-fpm.sock" 2>/dev/null | head -n 1 || true)
-
-    PHP_BLOCK=""
-    if [ -n "${AA_PHP_VER}" ] && [ -f "/www/server/nginx/conf/enable-php-${AA_PHP_VER}.conf" ]; then
-        PHP_BLOCK="include enable-php-${AA_PHP_VER}.conf;"
-    elif [ -n "${AA_PHP_VER}" ]; then
-        PHP_BLOCK="location ~ \\.php\$ {
-        fastcgi_pass unix:/tmp/php-cgi-${AA_PHP_VER}.sock;
-        fastcgi_index index.php;
-        include fastcgi.conf;
-    }"
-    elif [ -n "${SYS_PHP_SOCK}" ]; then
-        chmod 666 "${SYS_PHP_SOCK}" || true
-        PHP_BLOCK="location ~ \\.php\$ {
-        fastcgi_pass unix:${SYS_PHP_SOCK};
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }"
-    else
-        # Pasang php-fpm sistem jika di aaPanel belum di-install PHP sama sekali
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update -y && apt-get install -y php-fpm php-mysql php-mbstring php-xml php-curl php-zip php-gd
-        PHP_VER_DOT=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
-        systemctl enable --now "php${PHP_VER_DOT}-fpm" || true
-        SYS_PHP_SOCK="/run/php/php${PHP_VER_DOT}-fpm.sock"
-        chmod 666 "${SYS_PHP_SOCK}" || true
-        PHP_BLOCK="location ~ \\.php\$ {
-        fastcgi_pass unix:${SYS_PHP_SOCK};
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }"
+    FASTCGI_CONF="fastcgi_params"
+    if [ -f "/www/server/nginx/conf/fastcgi.conf" ]; then
+        FASTCGI_CONF="fastcgi.conf"
     fi
 
-    # Nonaktifkan vhost lama yang me-redirect ke "website has been stopped" (html/stop)
-    for conf in /www/server/panel/vhost/nginx/*.conf; do
-        [ -e "$conf" ] || continue
-        if grep -q "${DOMAIN_NAME}" "$conf" 2>/dev/null; then
-            rm -f "$conf"
-        fi
-    done
-
-    cat > "/www/server/panel/vhost/nginx/${DOMAIN_NAME}.conf" <<EOF
-server {
-    listen 80 default_server;
-    server_name ${DOMAIN_NAME} _;
+    VHOST_CONTENT="server {
+    listen 80;
+    server_name ${DOMAIN_NAME} 80.43.0.177 _;
     index index.html index.php;
     root ${APP_DIR};
 
@@ -201,7 +168,12 @@ server {
         try_files \$uri \$uri/ /index.html;
     }
 
-    ${PHP_BLOCK}
+    location ~ \.php\$ {
+        fastcgi_pass unix:${LIVE_PHP_SOCK};
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include ${FASTCGI_CONF};
+    }
 
     location ~ /\.(git|env|htaccess) {
         deny all;
@@ -213,37 +185,24 @@ server {
 
     access_log /www/wwwlogs/${DOMAIN_NAME}.log;
     error_log  /www/wwwlogs/${DOMAIN_NAME}.error.log;
-}
-EOF
+}"
 
-    # Hapus default_server dari 0.default.conf aaPanel agar tidak bentrok
-    if [ -f "/www/server/panel/vhost/nginx/0.default.conf" ]; then
-        sed -i 's/default_server//g' /www/server/panel/vhost/nginx/0.default.conf || true
-    fi
+    echo "${VHOST_CONTENT}" > "/www/server/panel/vhost/nginx/${DOMAIN_NAME}.conf"
+    # Timpa juga 0.default.conf agar akses langsung via IP (http://80.43.0.177) langsung membuka aplikasi HADIR.GURU (bukan "Website not found")
+    echo "${VHOST_CONTENT}" > "/www/server/panel/vhost/nginx/0.default.conf"
 
     /etc/init.d/nginx reload || /www/server/nginx/sbin/nginx -s reload
 else
-    PHP_SOCK=$(find /run/php/ -name "php*-fpm.sock" | head -n 1)
-    if [ -z "${PHP_SOCK}" ]; then
-        PHP_VER=$(php -r "echo PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION;")
-        systemctl enable --now "php${PHP_VER}-fpm" || true
-        PHP_SOCK="/run/php/php${PHP_VER}-fpm.sock"
-    fi
-
     cat > /etc/nginx/sites-available/absen-digital <<EOF
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name ${DOMAIN_NAME} _;
+    server_name ${DOMAIN_NAME} 80.43.0.177 _;
 
     root ${APP_DIR};
     index index.html index.php;
 
     client_max_body_size 25M;
-
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml;
-    gzip_min_length 1024;
 
     location / {
         try_files \$uri \$uri/ /index.html;
@@ -251,7 +210,7 @@ server {
 
     location ~ \.php\$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:${PHP_SOCK};
+        fastcgi_pass unix:${LIVE_PHP_SOCK};
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
         include fastcgi_params;
         fastcgi_read_timeout 120;
@@ -272,9 +231,14 @@ EOF
     nginx -t && systemctl reload nginx
 fi
 
+# 6. Verifikasi Otomatis Endpoint API Lokal
+echo "[6/6] Memverifikasi respons API Database MySQL..."
+sleep 1
+curl -s "http://127.0.0.1/api/init.php" | head -n 20 || true
+echo ""
 echo "=================================================================="
-echo " ✅ DEPLOYMENT SELESAI DAN AKTIF!"
-echo " 🌐 Buka Website   : http://${DOMAIN_NAME}"
-echo " 🗄️ Cek Status API : http://${DOMAIN_NAME}/api/init.php"
-echo " 📁 Lokasi File    : ${APP_DIR}"
+echo " ✅ PERBAIKAN SELESAI!"
+echo " 🌐 Buka via Domain : http://${DOMAIN_NAME}"
+echo " 🌐 Buka via IP     : http://80.43.0.177"
+echo " 🗄️ Cek Database    : http://${DOMAIN_NAME}/api/init.php"
 echo "=================================================================="
