@@ -36,7 +36,39 @@ if (!defined('DB_PASS'))    define('DB_PASS', getenv('DB_PASS') !== false ? gete
 if (!defined('DB_CHARSET')) define('DB_CHARSET', 'utf8mb4');
 
 /**
- * Dapatkan koneksi PDO Database MySQL
+ * Pastikan seluruh tabel dan data awal (database.sql) terinstal otomatis
+ * jika database masih kosong saat pertama kali diakses.
+ */
+function ensureDatabaseSchema(PDO $pdo) {
+    static $checked = false;
+    if ($checked) return;
+    $checked = true;
+
+    try {
+        $stmt = $pdo->query("SHOW TABLES LIKE 'teachers'");
+        $hasTeachersTable = ($stmt && $stmt->rowCount() > 0);
+        $teacherCount = 0;
+        if ($hasTeachersTable) {
+            $cntStmt = $pdo->query("SELECT COUNT(*) FROM `teachers`");
+            $teacherCount = $cntStmt ? (int)$cntStmt->fetchColumn() : 0;
+        }
+
+        if (!$hasTeachersTable || $teacherCount === 0) {
+            $sqlFile = dirname(__DIR__) . '/database.sql';
+            if (file_exists($sqlFile)) {
+                $sql = file_get_contents($sqlFile);
+                if (!empty($sql)) {
+                    $pdo->exec($sql);
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // Abaikan jika gagal auto-import, endpoint masing-masing memiliki fallback CREATE TABLE IF NOT EXISTS
+    }
+}
+
+/**
+ * Dapatkan koneksi PDO Database MySQL (Otomatis buat database & tabel jika belum ada)
  */
 function getDbConnection() {
     static $pdo = null;
@@ -50,9 +82,25 @@ function getDbConnection() {
         try {
             $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            sendResponse(false, null, "Koneksi database gagal: " . $e->getMessage(), 500);
-            exit();
+            // Jika database belum ada (Error 1049: Unknown database), buat otomatis
+            if (strpos($e->getMessage(), '1049') !== false || stripos($e->getMessage(), 'Unknown database') !== false) {
+                try {
+                    $rootDsn = "mysql:host=" . DB_HOST . ";charset=" . DB_CHARSET;
+                    $tempPdo = new PDO($rootDsn, DB_USER, DB_PASS, $options);
+                    $dbNameSafe = str_replace('`', '``', DB_NAME);
+                    $tempPdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbNameSafe}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    $tempPdo = null;
+                    $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+                } catch (PDOException $e2) {
+                    sendResponse(false, null, "Koneksi & pembuatan database otomatis gagal: " . $e2->getMessage(), 500);
+                    exit();
+                }
+            } else {
+                sendResponse(false, null, "Koneksi database gagal: " . $e->getMessage(), 500);
+                exit();
+            }
         }
+        ensureDatabaseSchema($pdo);
     }
     return $pdo;
 }

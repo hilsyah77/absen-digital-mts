@@ -337,7 +337,7 @@ const ApiService = {
           }
         }
 
-        // 2. Sinkronisasi Jadwal Piket Sambut 5S
+        // 2. Sinkronisasi Jadwal Piket Sambut 5S (Auto-seed ke MySQL jika tabel masih baru/kosong)
         if (Array.isArray(settings.welcoming_picket_roster) && settings.welcoming_picket_roster.length > 0) {
           const curRaw = localStorage.getItem("hadir_guru_welcoming_picket_v2");
           const nextRaw = JSON.stringify(settings.welcoming_picket_roster);
@@ -345,9 +345,15 @@ const ApiService = {
             localStorage.setItem("hadir_guru_welcoming_picket_v2", nextRaw);
             hasChanges = true;
           }
+        } else if (typeof StorageService !== "undefined" && typeof StorageService.getWelcomingPicketRoster === "function" && !this._hasSeededPicket) {
+          this._hasSeededPicket = true;
+          const initialPicket = StorageService.getWelcomingPicketRoster();
+          if (Array.isArray(initialPicket) && initialPicket.length > 0) {
+            this.saveSetting("welcoming_picket_roster", initialPicket).catch(() => {});
+          }
         }
 
-        // 3. Sinkronisasi Master Jadwal Mengajar
+        // 3. Sinkronisasi Master Jadwal Mengajar (Auto-seed 649 sesi ke MySQL jika masih baru/kosong)
         if (Array.isArray(settings.master_schedules) && settings.master_schedules.length > 0) {
           const curRaw = localStorage.getItem("hadir_guru_master_schedules");
           const nextRaw = JSON.stringify(settings.master_schedules);
@@ -355,15 +361,27 @@ const ApiService = {
             localStorage.setItem("hadir_guru_master_schedules", nextRaw);
             hasChanges = true;
           }
+        } else if (typeof StorageService !== "undefined" && typeof StorageService.getMasterSchedules === "function" && !this._hasSeededSchedules) {
+          this._hasSeededSchedules = true;
+          const initialSchedules = StorageService.getMasterSchedules();
+          if (Array.isArray(initialSchedules) && initialSchedules.length > 0) {
+            this.saveSetting("master_schedules", initialSchedules).catch(() => {});
+          }
         }
 
-        // 4. Sinkronisasi Hari Libur / Kaldik
+        // 4. Sinkronisasi Hari Libur / Kaldik (Auto-seed Kaldik Jateng ke MySQL jika masih baru/kosong)
         if (Array.isArray(settings.holidays) && settings.holidays.length > 0) {
           const curRaw = localStorage.getItem("hadir_guru_holidays");
           const nextRaw = JSON.stringify(settings.holidays);
           if (curRaw !== nextRaw) {
             localStorage.setItem("hadir_guru_holidays", nextRaw);
             hasChanges = true;
+          }
+        } else if (typeof StorageService !== "undefined" && typeof StorageService.getHolidays === "function" && !this._hasSeededHolidays) {
+          this._hasSeededHolidays = true;
+          const initialHolidays = StorageService.getHolidays();
+          if (Array.isArray(initialHolidays) && initialHolidays.length > 0) {
+            this.saveSetting("holidays", initialHolidays).catch(() => {});
           }
         }
 
