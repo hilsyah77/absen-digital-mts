@@ -10,3 +10,4 @@ define('DB_NAME', 'absen_digital');
 define('DB_USER', 'user_absen');
 define('DB_PASS', 'GantiDenganPasswordDatabaseVpsAnda');
 define('DB_CHARSET', 'utf8mb4');
+
