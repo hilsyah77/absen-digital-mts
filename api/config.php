@@ -4,6 +4,9 @@
  * Engine: PHP 7.4+ / PHP 8.x dengan PDO MySQL
  */
 
+// Set Zona Waktu Standar WIB (Asia/Jakarta)
+date_default_timezone_set('Asia/Jakarta');
+
 // Header CORS agar dapat diakses dari browser, PWA, maupun aplikasi web
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -17,14 +20,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ========================================================
-// PENGATURAN KONEKSI DATABASE MYSQL
-// Sesuaikan dengan data database di cPanel Anda
+// PENGATURAN KONEKSI DATABASE MYSQL (LOKAL / cPanel / VPS)
+// Jika file api/config.local.php tersedia di server VPS,
+// maka kredensial di config.local.php yang akan digunakan
+// sehingga aman dan tidak tertimpa saat menjalankan `git pull`.
 // ========================================================
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'absen_digital'); // Ganti dengan nama database cPanel Anda
-define('DB_USER', 'root');          // Ganti dengan username database cPanel Anda
-define('DB_PASS', '');              // Ganti dengan password database cPanel Anda
-define('DB_CHARSET', 'utf8mb4');
+if (file_exists(__DIR__ . '/config.local.php')) {
+    require_once __DIR__ . '/config.local.php';
+}
+
+if (!defined('DB_HOST'))    define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+if (!defined('DB_NAME'))    define('DB_NAME', getenv('DB_NAME') ?: 'absen_digital');
+if (!defined('DB_USER'))    define('DB_USER', getenv('DB_USER') ?: 'root');
+if (!defined('DB_PASS'))    define('DB_PASS', getenv('DB_PASS') !== false ? getenv('DB_PASS') : '');
+if (!defined('DB_CHARSET')) define('DB_CHARSET', 'utf8mb4');
 
 /**
  * Dapatkan koneksi PDO Database MySQL

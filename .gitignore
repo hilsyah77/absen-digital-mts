@@ -1,29 +1,9 @@
-# Logs and temporary files
-*.log
-test_output.html
+# Kredensial database lokal / produksi VPS (tidak ikut ter-push ke GitHub)
+api/config.local.php
+.env
 
-# Operating System files
-Thumbs.db
-Desktop.ini
+# File sistem / editor
 .DS_Store
-
-# Editor directories
+Thumbs.db
 .vscode/
 .idea/
-
-# Node / Package managers (if added)
-node_modules/
-dist/
-.cache/
-
-# Android build outputs & Gradle cache
-.gradle/
-build/
-android/.gradle/
-android/build/
-android/app/build/
-android/local.properties
-android/app/src/main/assets/www/
-*.apk
-*.aab
-
