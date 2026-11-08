@@ -37,7 +37,7 @@ jobs:
           cp -r scripts android/app/src/main/assets/www/
           cp -r styles android/app/src/main/assets/www/
           cp -r assets android/app/src/main/assets/www/
-          cp -r data android/app/src/main/assets/www/
+          if [ -d data ]; then cp -r data android/app/src/main/assets/www/; fi
           echo "Web assets synced successfully to android assets."
 
       - name: 🚀 Build APK with Gradle

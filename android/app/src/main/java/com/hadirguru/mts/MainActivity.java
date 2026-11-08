@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQ_PERMISSIONS = 1001;
     private static final int FILE_CHOOSER_RESULT_CODE = 2001;
-    private static final String LIVE_URL = "https://absen-digital-mts.vercel.app";
+    private static final String LIVE_URL = "http://absen.mtsasyjtb.cloud";
     private static final String LOCAL_URL = "https://appassets.androidplatform.net/assets/www/index.html";
     private static final String FALLBACK_URL = "file:///android_asset/www/index.html";
 
@@ -161,7 +161,9 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 String host = uri.getHost() != null ? uri.getHost().toLowerCase(Locale.ROOT) : "";
-                if (host.contains("firebaseapp.com") ||
+                if (host.contains("mtsasyjtb.cloud") ||
+                        host.contains("80.43.0.177") ||
+                        host.contains("firebaseapp.com") ||
                         host.contains("googleapis.com") ||
                         host.contains("gstatic.com") ||
                         host.contains("firebasestorage.app") ||
@@ -301,8 +303,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleLoadError(String failingUrl) {
-        if (failingUrl != null && failingUrl.contains("vercel.app")) {
-            Toast.makeText(MainActivity.this, "Mode Offline: Memuat data madrasah lokal.", Toast.LENGTH_SHORT).show();
+        if (failingUrl != null && (failingUrl.contains("mtsasyjtb.cloud") || failingUrl.contains("80.43.0.177") || failingUrl.contains("vercel.app"))) {
+            Toast.makeText(MainActivity.this, "Memuat antarmuka aplikasi dari penyimpanan internal...", Toast.LENGTH_SHORT).show();
             mWebView.loadUrl(LOCAL_URL);
         } else if (failingUrl != null && failingUrl.startsWith("https://appassets.androidplatform.net")) {
             mWebView.loadUrl(FALLBACK_URL);

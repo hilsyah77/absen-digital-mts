@@ -4,15 +4,24 @@
  */
 
 const ApiService = {
-  // Base URL relatif terhadap direktori aplikasi di hosting (misal: /api atau ./api)
+  // Base URL otomatis: jika dibuka di APK Android / Vercel, arahkan langsung ke Server VPS (absen.mtsasyjtb.cloud)
   baseUrl: (function() {
     if (typeof window !== "undefined" && window.location) {
-      // Jika di-hosting di subfolder atau root domain
+      const host = (window.location.hostname || "").toLowerCase();
+      const proto = window.location.protocol || "";
+      if (
+        proto === "file:" ||
+        host === "appassets.androidplatform.net" ||
+        host.endsWith(".vercel.app") ||
+        host.endsWith(".github.io")
+      ) {
+        return "http://absen.mtsasyjtb.cloud/api";
+      }
       const path = window.location.pathname;
       const dir = path.substring(0, path.lastIndexOf('/'));
       return dir ? `${dir}/api` : './api';
     }
-    return './api';
+    return 'http://absen.mtsasyjtb.cloud/api';
   })(),
 
   _isOnline: true,
