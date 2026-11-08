@@ -453,19 +453,31 @@
         StorageService.deletePicketTeacher("Sabtu", testTeacherId);
       }
 
-      // 16.5 Uji Simpan Absen KBM (Check-In Kelas & Check-Out Kelas -> teachingLogs)
+      // 16.5 Uji Simpan Absen KBM (Check-In Kelas, Perpindahan Jam Otomatis, & Check-Out Kelas -> teachingLogs)
       const schedules = StorageService.getMasterSchedules();
       if (Array.isArray(schedules) && schedules.length > 0 && typeof window.confirmClassCheckIn === "function") {
         const daysIndo = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
         const todayDayName = daysIndo[new Date().getDay()];
-        const testSched = schedules.find(s => s.day === todayDayName) || schedules[0];
+        const todayScheds = schedules.filter(s => s.day === todayDayName);
+        const testSched = todayScheds[0] || schedules[0];
+        const secondSched = todayScheds[1] || schedules.find(s => s.id !== testSched.id);
+
         window.confirmClassCheckIn(testSched.id);
         const checkInsAfterIn = StorageService.getClassCheckIns();
         const logsAfterIn = StorageService.getTeachingLogs();
         const hasCheckInLog = logsAfterIn.some(l => l.scheduleId === testSched.id);
-        this.assert("16.5 Simpan Absen KBM Check-In Kelas Berhasil", Boolean(checkInsAfterIn[testSched.id] && hasCheckInLog), `ScheduleId: ${testSched.id}`);
+        this.assert("16.5 Simpan Absen KBM Check-In Kelas Berhasil", Boolean(checkInsAfterIn[testSched.id] && !checkInsAfterIn[testSched.id].finished && hasCheckInLog), `ScheduleId: ${testSched.id}`);
 
-        if (typeof window.openClassCheckOutModal === "function" && typeof window.confirmClassCheckOut === "function") {
+        if (secondSched && typeof window.quickCheckInClass === "function" && typeof window.confirmClassCheckOut === "function") {
+          // Uji perpindahan jam saat sesi pertama masih aktif: otomatis menyelesaikan sesi pertama
+          window.confirmClassCheckIn(secondSched.id);
+          const checkInsAfterTransition = StorageService.getClassCheckIns();
+          const prevAutoFinished = Boolean(checkInsAfterTransition[testSched.id] && checkInsAfterTransition[testSched.id].finished === true);
+          const nextNowActive = Boolean(checkInsAfterTransition[secondSched.id] && checkInsAfterTransition[secondSched.id].finished === false);
+          window.confirmClassCheckOut(secondSched.id);
+          const checkInsAfterOut = StorageService.getClassCheckIns();
+          this.assert("16.6 Perpindahan Jam KBM & Check-Out Selesai KBM Berhasil", Boolean(prevAutoFinished && nextNowActive && checkInsAfterOut[secondSched.id] && checkInsAfterOut[secondSched.id].finished === true), `Prev: ${testSched.id} -> Next: ${secondSched.id}`);
+        } else if (typeof window.openClassCheckOutModal === "function" && typeof window.confirmClassCheckOut === "function") {
           window.openClassCheckOutModal(testSched.id);
           window.confirmClassCheckOut(testSched.id);
           const checkInsAfterOut = StorageService.getClassCheckIns();

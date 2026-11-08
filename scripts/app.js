@@ -1753,18 +1753,20 @@ function initMainApplication() {
         `;
       } else {
         todayLessons.forEach(lesson => {
-          const isDone = teachingLogs.some(log => log.scheduleId === lesson.id && log.date === curRealDateStr);
-          const checkInRec = classCheckIns[lesson.id];
-          const isCurrentlyInClass = checkInRec && !checkInRec.finished && !isDone;
+          const rawCheckInRec = classCheckIns[lesson.id];
+          const checkInRec = (rawCheckInRec && (!rawCheckInRec.date || rawCheckInRec.date === curRealDateStr)) ? rawCheckInRec : null;
+          const logForLesson = teachingLogs.find(log => log.scheduleId === lesson.id && log.date === curRealDateStr);
+          const isCurrentlyInClass = Boolean(checkInRec && !checkInRec.finished);
+          const isDone = !isCurrentlyInClass && Boolean((checkInRec && checkInRec.finished) || (logForLesson && logForLesson.status === "Selesai"));
           const timeStatus = getScheduleTimeStatus(lesson);
 
           const item = document.createElement("div");
           item.className = "today-schedule-item";
           item.style.padding = "0.85rem";
           item.style.borderRadius = "var(--radius-md)";
-          item.style.background = isDone ? "var(--bg-elevated)"  : "var(--bg-surface)";
+          item.style.background = isDone ? "var(--bg-elevated)" : "var(--bg-surface)";
           item.style.border = "1px solid var(--border-light)";
-          item.style.borderLeft = isDone ? "4px solid var(--blue-500)"  : (timeStatus.state === "active" ? "4px solid var(--emerald-500)" : (timeStatus.state === "upcoming" ? "4px solid #94a3b8" : "4px solid #f59e0b"));
+          item.style.borderLeft = isDone ? "4px solid var(--blue-500)" : (isCurrentlyInClass || timeStatus.state === "active" ? "4px solid var(--emerald-500)" : (timeStatus.state === "upcoming" ? "4px solid #94a3b8" : "4px solid #f59e0b"));
           item.style.display = "flex";
           item.style.justifyContent = "space-between";
           item.style.alignItems = "center";
@@ -1778,26 +1780,27 @@ function initMainApplication() {
               </div>
             `;
           } else if (isCurrentlyInClass) {
+            const isOverTime = timeStatus.state === "passed";
             actionBtn = `
-              <div class="today-schedule-action">
-                <span class="badge-pill-status badge-kbm-ongoing">🟢 Sedang di Kelas</span>
-                <button class="btn-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; background: #0284c7;" onclick="openClassCheckOutModal('${lesson.id}')">
-                  Check-Out
+              <div class="today-schedule-action" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end;">
+                <span class="badge-pill-status ${isOverTime ? 'badge-late' : 'badge-kbm-ongoing'}">${isOverTime ? '⏰ Waktu Habis' : '🟢 Sedang di Kelas'}</span>
+                <button class="btn-emerald" style="padding: 0.38rem 0.8rem; font-size: 0.75rem; background: linear-gradient(135deg, #0284c7, #0369a1);" onclick="openClassCheckOutModal('${lesson.id}')">
+                  🏁 Selesai (Check-Out)
                 </button>
               </div>
             `;
           } else if (timeStatus.state === "upcoming") {
             actionBtn = `
-              <div class="today-schedule-action">
-                <span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; font-size: 0.72rem;">Sesi Selanjutnya</span>
-                <button class="btn-secondary" disabled style="padding: 0.35rem 0.75rem; font-size: 0.75rem; opacity: 0.65; cursor: not-allowed;" title="Check-in aktif otomatis menyesuaikan jam realtime jadwal (${timeStatus.openTimeStr} WIB)">
-                  🔒 pk ${timeStatus.openTimeStr}
+              <div class="today-schedule-action" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end;">
+                <span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; font-size: 0.72rem;">Mulai ${lesson.startTime}</span>
+                <button class="btn-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="openClassCheckInModal('${lesson.id}')" title="Check-in atau pindah jam mengajar ke sesi ini">
+                  Check-in Masuk
                 </button>
               </div>
             `;
           } else if (timeStatus.state === "active") {
             actionBtn = `
-              <div class="today-schedule-action">
+              <div class="today-schedule-action" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end;">
                 <span class="badge-pill-status badge-kbm-ongoing">🔔 Waktunya Masuk</span>
                 <button class="btn-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="openClassCheckInModal('${lesson.id}')">
                   Check-in Masuk
@@ -1806,10 +1809,13 @@ function initMainApplication() {
             `;
           } else {
             actionBtn = `
-              <div class="today-schedule-action">
-                <span class="badge-pill-status badge-late">Lewat Jam</span>
-                <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #d97706;" onclick="openClassCheckInModal('${lesson.id}')">
-                  Check-in Terlambat
+              <div class="today-schedule-action" style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; justify-content: flex-end;">
+                <span class="badge-pill-status badge-late">Waktu Habis</span>
+                <button class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.74rem; color: #d97706; border-color: #f59e0b;" onclick="openClassCheckInModal('${lesson.id}')">
+                  Check-in
+                </button>
+                <button class="btn-emerald" style="padding: 0.35rem 0.7rem; font-size: 0.74rem; background: #0284c7;" onclick="openClassCheckOutModal('${lesson.id}')">
+                  🏁 Selesai
                 </button>
               </div>
             `;
@@ -2042,22 +2048,21 @@ function initMainApplication() {
         const rec = classCheckIns[s.id];
         if (!rec || rec.finished) return false;
         if (rec.date && rec.date !== curRealDateStr) return false;
-        if (rec.teacherId && activeTeacherId && rec.teacherId !== activeTeacherId) return false;
-        const done = teachingLogs.some(log => log.scheduleId === s.id && log.date === curRealDateStr);
-        return !done;
+        if (rec.teacherId && activeTeacherId && rec.teacherId !== activeTeacherId && (!activeTeacherObj || rec.teacherId !== activeTeacherObj.nip)) return false;
+        return true;
       }) : null;
 
       displayedLessons.forEach((session, idx) => {
         const completedLog = isShowingToday ? teachingLogs.find(log => log.scheduleId === session.id && log.date === curRealDateStr) : null;
-        const isDone = !!completedLog;
         const rawCheckInRec = isShowingToday ? classCheckIns[session.id] : null;
         const checkInRec = (rawCheckInRec && (!rawCheckInRec.date || rawCheckInRec.date === curRealDateStr)) ? rawCheckInRec : null;
-        const isCurrentlyInClass = checkInRec && !checkInRec.finished && !isDone;
+        const isCurrentlyInClass = Boolean(checkInRec && !checkInRec.finished);
+        const isDone = !isCurrentlyInClass && Boolean((checkInRec && checkInRec.finished) || (completedLog && completedLog.status === "Selesai"));
 
         if (!isDone) remainingSessions++;
 
         const timeStatus = getScheduleTimeStatus(session);
-        const isBlockedByOtherClass = currentlyTeachingSession && currentlyTeachingSession.id !== session.id;
+        const hasOtherActiveClass = Boolean(currentlyTeachingSession && currentlyTeachingSession.id !== session.id);
 
         let cardClass = "waiting-session";
         let statusBadge = "";
@@ -2077,10 +2082,10 @@ function initMainApplication() {
               </button>
             </div>
           `;
-          const timeInStr = checkInRec && checkInRec.checkInTime ? checkInRec.checkInTime : (completedLog.checkInTime || session.startTime);
-          const timeOutStr = checkInRec && checkInRec.checkOutTime ? checkInRec.checkOutTime : (completedLog.checkOutTime || session.endTime);
-          const puncText = (checkInRec && checkInRec.punctuality && checkInRec.punctuality.detail) ? checkInRec.punctuality.detail : (completedLog.teacherStatus || 'Tepat Waktu');
-          const durText = checkInRec && checkInRec.durationMinutes ? `${checkInRec.durationMinutes} mnt` : `${completedLog.durationMinutes || (session.jtm * 45)} mnt`;
+          const timeInStr = checkInRec && checkInRec.checkInTime ? checkInRec.checkInTime : ((completedLog && completedLog.checkInTime) || session.startTime);
+          const timeOutStr = checkInRec && checkInRec.checkOutTime ? checkInRec.checkOutTime : ((completedLog && completedLog.checkOutTime) || session.endTime);
+          const puncText = (checkInRec && checkInRec.punctuality && checkInRec.punctuality.detail) ? checkInRec.punctuality.detail : ((completedLog && completedLog.teacherStatus) || 'Tepat Waktu');
+          const durText = checkInRec && checkInRec.durationMinutes ? `${checkInRec.durationMinutes} mnt` : `${(completedLog && completedLog.durationMinutes) || (session.jtm * 45)} mnt`;
           checkInDetailsHtml = `
             <div class="kbm-attendance-details-grid">
               <div class="kbm-detail-chip in-chip">
@@ -2103,12 +2108,20 @@ function initMainApplication() {
           `;
         } else if (isCurrentlyInClass) {
           cardClass = "active-session";
-          statusBadge = `<span class="badge-pill-status badge-kbm-ongoing" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-600); border: 1px solid rgba(16, 185, 129, 0.3);"><span class="status-dot-pulse"></span> SEDANG MENGAJAR DI KELAS</span>`;
+          const isOverTime = timeStatus.state === "passed";
+          if (isOverTime) {
+            statusBadge = `<span class="badge-pill-status badge-late" style="background: rgba(245, 158, 11, 0.16); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.35);"><span class="status-dot-pulse"></span> ⏰ WAKTU KBM HABIS (${session.endTime} WIB) — KLIK SELESAI</span>`;
+          } else {
+            statusBadge = `<span class="badge-pill-status badge-kbm-ongoing" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-600); border: 1px solid rgba(16, 185, 129, 0.3);"><span class="status-dot-pulse"></span> SEDANG MENGAJAR DI KELAS</span>`;
+          }
           actionButton = `
             <div class="kbm-action-stack">
               <button class="btn-emerald" style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);" onclick="openClassCheckOutModal('${session.id}')">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 <span>🏁 Selesai Mengajar (Check-Out)</span>
+              </button>
+              <button type="button" class="btn-secondary" style="font-size: 0.72rem; padding: 0.26rem 0.65rem; border-color: #0284c7; color: #0284c7;" onclick="confirmClassCheckOut('${session.id}')" title="Selesaikan presensi KBM langsung 1 klik">
+                ⚡ Langsung Selesai KBM
               </button>
               <button type="button" class="btn-secondary" style="font-size: 0.73rem; padding: 0.28rem 0.68rem;" onclick="openTeachingJournalModal('${session.id}')" title="Catat materi pokok & absen siswa">
                 📝 Isi Jurnal & Absen Siswa
@@ -2147,47 +2160,35 @@ function initMainApplication() {
               Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Ruang ${session.room} • Alokasi ${session.jtm} JTM (${session.time}).
             </div>
           `;
-        } else if (isBlockedByOtherClass) {
-          cardClass = "waiting-session kbm-upcoming-session";
-          statusBadge = `<span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3);">⏳ Menunggu Sesi ${currentlyTeachingSession.class} Selesai</span>`;
-          actionButton = `
-            <div class="kbm-action-stack">
-              <button class="btn-secondary" disabled style="opacity: 0.65; cursor: not-allowed; background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.4); color: #64748b; font-size: 0.76rem; padding: 0.45rem 0.8rem; display: flex; align-items: center; gap: 0.45rem;" title="Selesaikan sesi ${currentlyTeachingSession.class} terlebih dahulu">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <span>🔒 Selesaikan ${currentlyTeachingSession.class}</span>
-              </button>
-              <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #94a3b8;">Sedang mengajar di ${currentlyTeachingSession.class}</span>
-            </div>
-          `;
-          checkInDetailsHtml = `
-            <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Selesaikan check-out di ${currentlyTeachingSession.class} sebelum memulai sesi ini.
-            </div>
-          `;
         } else if (timeStatus.state === "upcoming") {
-          // SESI SELANJUTNYA: Jam KBM belum tiba, tombol check-in terkunci otomatis
+          // SESI SELANJUTNYA / PERPINDAHAN JAM HARI INI: Tetap fungsional (tidak dikunci mati) untuk mendukung perpindahan jam
           cardClass = "waiting-session kbm-upcoming-session";
-          statusBadge = `<span class="badge-pill-status" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3);">⏳ Sesi Selanjutnya (Mulai ${session.startTime} WIB)</span>`;
+          const transitionHint = hasOtherActiveClass
+            ? `🔄 Perpindahan Jam dari ${currentlyTeachingSession.class} (Mulai ${session.startTime} WIB)`
+            : `⏳ Sesi Selanjutnya (Mulai ${session.startTime} WIB)`;
+          statusBadge = `<span class="badge-pill-status" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.28);">${transitionHint}</span>`;
           actionButton = `
             <div class="kbm-action-stack">
-              <button class="btn-secondary btn-kbm-locked" disabled style="opacity: 0.6; cursor: not-allowed; background: rgba(148, 163, 184, 0.12); border: 1px dashed rgba(148, 163, 184, 0.4); color: #64748b; font-size: 0.76rem; padding: 0.45rem 0.85rem; display: flex; align-items: center; gap: 0.45rem;" title="Tombol check-in otomatis aktif menyesuaikan jam realtime jadwal (dibuka pukul ${timeStatus.openTimeStr} WIB)">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <span>🔒 Dibuka pk ${timeStatus.openTimeStr} WIB</span>
+              <button class="btn-emerald" onclick="openClassCheckInModal('${session.id}')">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>${hasOtherActiveClass ? '🔄 Pindah Jam & Check-in' : 'Check-in Masuk Kelas'}</span>
               </button>
-              <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #94a3b8;">Aktif otomatis saat jam jadwal tiba</span>
+              <button class="btn-secondary" style="font-size: 0.72rem; padding: 0.25rem 0.65rem;" onclick="quickCheckInClass('${session.id}')" title="Check-in cepat / pindah jam langsung">
+                ⚡ ${hasOtherActiveClass ? 'Pindah Jam Cepat' : 'Presensi Masuk Cepat'}
+              </button>
             </div>
           `;
           checkInDetailsHtml = `
             <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • ⏱️ Check-in aktif otomatis pada ${timeStatus.openTimeStr} WIB (10 menit sebelum bel).
+              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • ${hasOtherActiveClass ? `Check-in di sesi ini otomatis menyelesaikan sesi ${currentlyTeachingSession.class}.` : `Jadwal mulai pukul ${session.startTime} WIB.`}
             </div>
           `;
         } else if (timeStatus.state === "active") {
-          // SESI SEDANG AKTIF: Waktunya masuk kelas
+          // SESI SEDANG AKTIF: Waktunya masuk kelas / perpindahan jam
           cardClass = "waiting-session kbm-now-open";
-          let activeBadgeLabel = "🔔 Waktunya Masuk Kelas";
+          let activeBadgeLabel = hasOtherActiveClass ? `🔄 Waktunya Pindah Jam (${session.class})` : "🔔 Waktunya Masuk Kelas";
           let activeBadgeStyle = "background: rgba(16, 185, 129, 0.15); color: var(--emerald-600); border: 1px solid rgba(16, 185, 129, 0.3);";
-          if (timeStatus.isEarly) {
+          if (timeStatus.isEarly && !hasOtherActiveClass) {
             activeBadgeLabel = "🟢 Persiapan Masuk Kelas";
           } else if (timeStatus.isLate) {
             activeBadgeLabel = "⚠️ Belum Check-in (Terlambat)";
@@ -2198,34 +2199,38 @@ function initMainApplication() {
             <div class="kbm-action-stack">
               <button class="btn-emerald" onclick="openClassCheckInModal('${session.id}')">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                <span>Check-in Masuk Kelas</span>
+                <span>${hasOtherActiveClass ? '🔄 Pindah Jam & Check-in' : 'Check-in Masuk Kelas'}</span>
               </button>
               <button class="btn-secondary" style="font-size: 0.72rem; padding: 0.25rem 0.65rem;" onclick="quickCheckInClass('${session.id}')" title="Check-in cepat langsung jika QR tidak dapat discan">
-                ⚡ Presensi Masuk Cepat
+                ⚡ ${hasOtherActiveClass ? 'Pindah Jam Cepat' : 'Presensi Masuk Cepat'}
               </button>
             </div>
           `;
           checkInDetailsHtml = `
             <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Toleransi masuk: 5 menit setelah bel.
+              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • ${hasOtherActiveClass ? `Check-in di sesi ini otomatis menyelesaikan sesi ${currentlyTeachingSession.class}.` : 'Toleransi masuk: 5 menit setelah bel.'}
             </div>
           `;
         } else {
-          // SESI TELAH LEWAT: Jam KBM telah berakhir
+          // SESI TELAH LEWAT: Jam KBM telah berakhir (tetap sediakan tombol Check-in & Tombol Selesai KBM)
           cardClass = "waiting-session passed-session";
-          statusBadge = `<span class="badge-pill-status badge-late" style="background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25);">⚠️ Lewat Jam KBM (${session.endTime} WIB)</span>`;
+          statusBadge = `<span class="badge-pill-status badge-late" style="background: rgba(239, 68, 68, 0.12); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.25);">⏰ Waktu KBM Habis (${session.endTime} WIB)</span>`;
           actionButton = `
             <div class="kbm-action-stack">
-              <button class="btn-secondary" style="border: 1px solid #f59e0b; color: #d97706; background: rgba(245, 158, 11, 0.08); font-size: 0.75rem; padding: 0.35rem 0.75rem; display: flex; align-items: center; gap: 0.35rem;" onclick="openClassCheckInModal('${session.id}')" title="Sesi telah melewati jadwal, presensi akan dicatat terlambat">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                <span>⚠️ Check-in Terlambat</span>
+              <button class="btn-emerald" style="background: linear-gradient(135deg, #0284c7, #0369a1); font-size: 0.76rem; padding: 0.42rem 0.85rem;" onclick="openClassCheckOutModal('${session.id}')" title="Selesaikan presensi KBM untuk sesi yang waktunya telah habis">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>🏁 Selesai Mengajar (Check-Out)</span>
+              </button>
+              <button class="btn-secondary" style="border: 1px solid #f59e0b; color: #d97706; background: rgba(245, 158, 11, 0.08); font-size: 0.73rem; padding: 0.3rem 0.7rem; display: flex; align-items: center; gap: 0.35rem;" onclick="openClassCheckInModal('${session.id}')" title="Sesi telah melewati jadwal, presensi masuk akan dicatat terlambat">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>⚠️ Check-in Masuk (Susulan)</span>
               </button>
               <span class="kbm-action-subtext" style="font-size: 0.7rem; color: #ef4444;">Jadwal berakhir ${session.endTime} WIB</span>
             </div>
           `;
           checkInDetailsHtml = `
             <div class="kbm-door-code-note" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
-              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Sesi kelas telah berakhir pada pukul ${session.endTime} WIB.
+              Kode Pintu: <code>KLS-${session.class.replace(/[^A-Z0-9]/gi, '')}-${session.subject.substring(0, 3).toUpperCase()}</code> • Sesi kelas telah berakhir pukul ${session.endTime} WIB. Klik <strong>Selesai Mengajar</strong> untuk menuntaskan KBM.
             </div>
           `;
         }
@@ -2392,40 +2397,19 @@ function initMainApplication() {
       }
       return;
     }
-    if (timeStatus.state === "upcoming") {
-      showToast(
-        "Sesi Belum Dimulai",
-        `Tombol check-in untuk ${session.subject} (${session.class}) baru aktif pukul ${timeStatus.openTimeStr} WIB menyesuaikan jam jadwal (${session.startTime} WIB).`,
-        "warning"
-      );
-      if (typeof SoundService !== "undefined" && typeof SoundService.playBeep === "function") {
-        SoundService.playBeep();
-      }
-      return;
-    }
 
-    // Cek apakah guru yang bersangkutan sedang aktif mengajar di kelas lain hari ini
+    // Cek apakah guru sedang aktif di sesi sebelumnya (mendukung perpindahan jam otomatis)
     const currentClassIns = StorageService.getClassCheckIns();
     const curDateStr = getAppTodayDateString();
-    const activeTchId = session.teacherId || StorageService.getActiveTeacherId();
+    const activeTchObj = StorageService.getActiveTeacher();
+    const activeTchId = session.teacherId || (activeTchObj ? (activeTchObj.nip || activeTchObj.id) : StorageService.getActiveTeacherId());
     const otherActive = Object.values(currentClassIns).find(rec =>
       rec &&
       !rec.finished &&
       rec.scheduleId !== session.id &&
       (!rec.date || rec.date === curDateStr) &&
-      (!rec.teacherId || !activeTchId || rec.teacherId === activeTchId)
+      (!rec.teacherId || !activeTchId || rec.teacherId === activeTchId || (activeTchObj && (rec.teacherId === activeTchObj.id || rec.teacherId === activeTchObj.nip)))
     );
-    if (otherActive) {
-      showToast(
-        "Sesi Lain Sedang Berlangsung",
-        `Anda sedang aktif mengajar di ${otherActive.room || otherActive.class} (${otherActive.subject}). Silakan selesaikan check-out terlebih dahulu sebelum masuk ke sesi kelas berikutnya.`,
-        "warning"
-      );
-      if (typeof SoundService !== "undefined" && typeof SoundService.playBeep === "function") {
-        SoundService.playBeep();
-      }
-      return;
-    }
 
     activeCheckInScheduleId = scheduleId;
 
@@ -2452,18 +2436,20 @@ function initMainApplication() {
 
     if (modalTimestamp) modalTimestamp.textContent = timeStr;
     if (modalBadge) {
-      modalBadge.className = `room-badge ${puncResult.statusClass === 'status-on-time' ? 'badge-on-time'  : 'badge-late'}`;
-      modalBadge.textContent = puncResult.statusLabel;
+      modalBadge.className = `room-badge ${puncResult.statusClass === 'status-on-time' ? 'badge-on-time' : 'badge-late'}`;
+      modalBadge.textContent = otherActive ? `🔄 Pindah Jam (${puncResult.statusLabel})` : puncResult.statusLabel;
     }
     if (modalPunctualityText) {
-      modalPunctualityText.textContent = puncResult.detail;
-      modalPunctualityText.style.color = puncResult.isLate ? "#d97706"  : "var(--emerald-600)";
+      modalPunctualityText.textContent = otherActive
+        ? `${puncResult.detail} • Sesi sebelumnya (${otherActive.class} - ${otherActive.subject}) otomatis diselesaikan.`
+        : puncResult.detail;
+      modalPunctualityText.style.color = puncResult.isLate ? "#d97706" : "var(--emerald-600)";
     }
 
     openModal("modalClassCheckIn");
   };
 
-  // Quick Check-In direct bypass
+  // Quick Check-In direct bypass (mendukung perpindahan jam langsung)
   window.quickCheckInClass = function(scheduleId) {
     const session = TEACHING_SCHEDULES.find(s => s.id === scheduleId) ||
       (typeof StorageService !== "undefined" && StorageService.getActiveTeacherSchedules && StorageService.getActiveTeacherSchedules().find(s => s.id === scheduleId)) ||
@@ -2483,43 +2469,9 @@ function initMainApplication() {
       }
       return;
     }
-    if (timeStatus.state === "upcoming") {
-      showToast(
-        "Sesi Belum Dimulai",
-        `Presensi masuk untuk ${session.subject} (${session.class}) baru aktif pukul ${timeStatus.openTimeStr} WIB (${session.startTime} WIB).`,
-        "warning"
-      );
-      if (typeof SoundService !== "undefined" && typeof SoundService.playBeep === "function") {
-        SoundService.playBeep();
-      }
-      return;
-    }
-
-    // Cek apakah guru yang bersangkutan sedang aktif mengajar di kelas lain hari ini
-    const currentClassIns = StorageService.getClassCheckIns();
-    const curDateStr = getAppTodayDateString();
-    const activeTchId = session.teacherId || StorageService.getActiveTeacherId();
-    const otherActive = Object.values(currentClassIns).find(rec =>
-      rec &&
-      !rec.finished &&
-      rec.scheduleId !== session.id &&
-      (!rec.date || rec.date === curDateStr) &&
-      (!rec.teacherId || !activeTchId || rec.teacherId === activeTchId)
-    );
-    if (otherActive) {
-      showToast(
-        "Sesi Lain Sedang Berlangsung",
-        `Anda sedang aktif mengajar di ${otherActive.room || otherActive.class} (${otherActive.subject}). Silakan selesaikan check-out terlebih dahulu sebelum masuk ke sesi kelas berikutnya.`,
-        "warning"
-      );
-      if (typeof SoundService !== "undefined" && typeof SoundService.playBeep === "function") {
-        SoundService.playBeep();
-      }
-      return;
-    }
 
     activeCheckInScheduleId = scheduleId;
-    confirmClassCheckIn();
+    confirmClassCheckIn(scheduleId);
   };
 
   // Confirm Class Check-in Action
@@ -2534,16 +2486,35 @@ function initMainApplication() {
 
     const simulatedDate = new Date();
     const curDateStr = getAppTodayDateString();
+    const activeTeacherObj = StorageService.getActiveTeacher();
+    const currentTeacherId = session.teacherId || (activeTeacherObj ? (activeTeacherObj.nip || activeTeacherObj.id) : StorageService.getActiveTeacherId());
+    const currentTeacherNip = (activeTeacherObj && activeTeacherObj.nip && activeTeacherObj.nip !== "-") ? activeTeacherObj.nip : currentTeacherId;
+    const currentTeacherName = session.teacherName || (activeTeacherObj ? activeTeacherObj.name : "Guru");
+
+    // PERPINDAHAN JAM OTOMATIS: Jika masih ada sesi KBM sebelumnya yang aktif (!finished) hari ini, selesaikan otomatis terlebih dahulu
+    classCheckIns = StorageService.getClassCheckIns();
+    const activePreviousSessions = Object.values(classCheckIns).filter(rec =>
+      rec &&
+      !rec.finished &&
+      rec.scheduleId &&
+      rec.scheduleId !== session.id &&
+      (!rec.date || rec.date === curDateStr) &&
+      (!rec.teacherId || !currentTeacherId || rec.teacherId === currentTeacherId || rec.teacherId === currentTeacherNip || (activeTeacherObj && rec.teacherId === activeTeacherObj.id))
+    );
+    let autoFinishedPrevLabel = "";
+    if (activePreviousSessions.length > 0) {
+      activePreviousSessions.forEach(prevRec => {
+        autoFinishedPrevLabel = `${prevRec.class || prevRec.room || "Sesi Sebelumnya"}`;
+        window.confirmClassCheckOut(prevRec.scheduleId, true);
+      });
+      classCheckIns = StorageService.getClassCheckIns();
+    }
+
     const puncResult = StorageService.evaluateClassPunctuality(session.startTime, simulatedDate);
 
     const nowH = String(simulatedDate.getHours()).padStart(2, '0');
     const nowM = String(simulatedDate.getMinutes()).padStart(2, '0');
     const timeStr = `${nowH}:${nowM} WIB`;
-
-    const activeTeacherObj = StorageService.getActiveTeacher();
-    const currentTeacherId = session.teacherId || (activeTeacherObj ? (activeTeacherObj.nip || activeTeacherObj.id) : StorageService.getActiveTeacherId());
-    const currentTeacherNip = (activeTeacherObj && activeTeacherObj.nip && activeTeacherObj.nip !== "-") ? activeTeacherObj.nip : currentTeacherId;
-    const currentTeacherName = session.teacherName || (activeTeacherObj ? activeTeacherObj.name : "Guru");
 
     // Save class check-in record
     classCheckIns[session.id] = {
@@ -2583,7 +2554,7 @@ function initMainApplication() {
       teacherStatus: puncResult.isLate ? `Terlambat ${puncResult.diffMinutes} mnt` : "Hadir Tepat Waktu",
       status: "Sedang Berlangsung",
       checkInTime: timeStr,
-      checkOutTime: existingLog?.checkOutTime || "",
+      checkOutTime: "",
       durationMinutes: existingLog?.durationMinutes || (session.jtm * 45),
       studentsTotal: existingLog?.studentsTotal || session.totalStudents || 32,
       studentsPresent: existingLog?.studentsPresent || session.totalStudents || 32,
@@ -2646,16 +2617,19 @@ function initMainApplication() {
     SoundService.playSuccess();
     closeModal("modalClassCheckIn");
 
-    // Refresh UI
-    renderKbmTimelineAndLogs();
+    // Refresh UI (Dashboard + KBM Tab + Radar)
+    renderTeachingSchedules();
     renderClassroomRadar();
     renderAdminActivityFeed();
     updateRadarKpis();
 
+    const transitionNote = autoFinishedPrevLabel
+      ? ` Sesi sebelumnya (${autoFinishedPrevLabel}) telah diselesaikan otomatis.`
+      : "";
     showToast(
-      "Presensi Masuk Berhasil!",
-      `Anda telah check-in di ${session.room} (${puncResult.detail}). Status Anda kini terpantau live oleh Admin/Piket.`,
-      puncResult.isLate ? "warning"  : "success"
+      autoFinishedPrevLabel ? "Perpindahan Jam & Presensi Berhasil!" : "Presensi Masuk Berhasil!",
+      `Anda telah check-in di ${session.room} (${puncResult.detail}).${transitionNote}`,
+      puncResult.isLate ? "warning" : "success"
     );
   };
 
@@ -2675,8 +2649,10 @@ function initMainApplication() {
     const timeOutM = String(now.getMinutes()).padStart(2, '0');
     const timeOutStr = `${timeOutH}:${timeOutM} WIB`;
 
-    let timeInStr = checkIn ? `${checkIn.checkInTime} (${checkIn.punctuality.statusLabel})`  : `${session.startTime} WIB (Tepat Waktu)`;
-    let durationMnt = 90;
+    let timeInStr = checkIn && checkIn.checkInTime
+      ? `${checkIn.checkInTime} (${(checkIn.punctuality && checkIn.punctuality.statusLabel) || "Tepat Waktu"})`
+      : `${session.startTime} WIB (Sesuai Jadwal)`;
+    let durationMnt = (Number(session.jtm) || 2) * 45;
     if (checkIn && checkIn.timestamp) {
       durationMnt = Math.max(1, Math.round((Date.now() - checkIn.timestamp) / 60000));
     }
@@ -2696,9 +2672,9 @@ function initMainApplication() {
     openModal("modalClassCheckOut");
   };
 
-  // Confirm Class Check-Out (Cukup konfirmasi selesai, langsung tuntas)
-  window.confirmClassCheckOut = function(scheduleIdOverride = null) {
-    if (inClassTimerInterval) {
+  // Confirm Class Check-Out (Cukup konfirmasi selesai, langsung tuntas; mendukung mode silent saat perpindahan jam)
+  window.confirmClassCheckOut = function(scheduleIdOverride = null, silent = false) {
+    if (inClassTimerInterval && !silent) {
       clearInterval(inClassTimerInterval);
       inClassTimerInterval = null;
     }
@@ -2706,11 +2682,20 @@ function initMainApplication() {
       activeCheckOutScheduleId = scheduleIdOverride;
     }
 
-    const scheduleId = activeCheckOutScheduleId;
+    const scheduleId = (scheduleIdOverride && typeof scheduleIdOverride === "string")
+      ? scheduleIdOverride
+      : activeCheckOutScheduleId;
     const session = TEACHING_SCHEDULES.find(s => s.id === scheduleId) ||
       StorageService.getActiveTeacherSchedules().find(s => s.id === scheduleId) ||
       StorageService.getMasterSchedules().find(s => s.id === scheduleId);
     if (!session) return;
+
+    const todayDateStr = getAppTodayDateString();
+    const currentTeacher = StorageService.getActiveTeacher();
+    const teacherId = (currentTeacher && currentTeacher.nip && currentTeacher.nip !== "-")
+      ? currentTeacher.nip
+      : (session.teacherId || (currentTeacher ? currentTeacher.id : StorageService.getActiveTeacherId()));
+    const teacherName = session.teacherName || (currentTeacher ? currentTeacher.name : "Guru Pendidik");
 
     const checkIn = classCheckIns[scheduleId];
     const now = new Date();
@@ -2718,26 +2703,38 @@ function initMainApplication() {
     const timeOutM = String(now.getMinutes()).padStart(2, '0');
     const timeOutStr = `${timeOutH}:${timeOutM} WIB`;
 
-    let durationMnt = 90;
+    let durationMnt = (Number(session.jtm) || 2) * 45;
     if (checkIn && checkIn.timestamp) {
       durationMnt = Math.max(1, Math.round((Date.now() - checkIn.timestamp) / 60000));
     }
 
-    // Update check-in record to finished
+    // Update or create check-in record to finished = true
     if (classCheckIns[scheduleId]) {
       classCheckIns[scheduleId].finished = true;
       classCheckIns[scheduleId].checkOutTime = timeOutStr;
       classCheckIns[scheduleId].durationMinutes = durationMnt;
-      StorageService.saveClassCheckIns(classCheckIns);
+      if (!classCheckIns[scheduleId].date) classCheckIns[scheduleId].date = todayDateStr;
+    } else {
+      classCheckIns[scheduleId] = {
+        scheduleId: session.id,
+        teacherId: teacherId,
+        nip: teacherId,
+        teacherName: teacherName,
+        date: todayDateStr,
+        room: session.room,
+        class: session.class,
+        subject: session.subject,
+        checkInTime: `${session.startTime} WIB`,
+        checkOutTime: timeOutStr,
+        durationMinutes: durationMnt,
+        timestamp: Date.now(),
+        punctuality: { isLate: false, diffMinutes: 0, statusLabel: "Tepat Waktu", statusClass: "status-on-time", detail: "Tepat Waktu" },
+        finished: true
+      };
     }
+    StorageService.saveClassCheckIns(classCheckIns);
 
     // Automatically create / update record in teachingLogs
-    const todayDateStr = getAppTodayDateString();
-    const currentTeacher = StorageService.getActiveTeacher();
-    const teacherId = (currentTeacher && currentTeacher.nip && currentTeacher.nip !== "-")
-      ? currentTeacher.nip
-      : (session.teacherId || (currentTeacher ? currentTeacher.id : StorageService.getActiveTeacherId()));
-    const teacherName = session.teacherName || (currentTeacher ? currentTeacher.name : "Guru Pendidik");
     const existingLogIdx = teachingLogs.findIndex(l => l.scheduleId === session.id && l.date === todayDateStr);
     const existingLog = existingLogIdx !== -1 ? teachingLogs[existingLogIdx] : null;
     const puncText = checkIn?.punctuality?.detail || "Tepat Waktu";
@@ -2753,11 +2750,13 @@ function initMainApplication() {
       time: session.time,
       room: session.room,
       jtm: session.jtm,
-      topic: existingLog?.topic || "Tatap Muka Pembelajaran Terjadwal (Check-in Terekam)",
+      topic: (existingLog && existingLog.topic && !existingLog.topic.includes("Sedang Berlangsung"))
+        ? existingLog.topic
+        : "Tatap Muka Pembelajaran Terjadwal (Tuntas)",
       method: existingLog?.method || "Tatap Muka Interaktif",
       teacherStatus: checkIn?.punctuality?.isLate ? `Terlambat ${checkIn.punctuality.diffMinutes} mnt` : "Hadir Tepat Waktu",
       status: "Selesai",
-      checkInTime: checkIn?.checkInTime || session.startTime,
+      checkInTime: checkIn?.checkInTime || existingLog?.checkInTime || `${session.startTime} WIB`,
       checkOutTime: timeOutStr,
       durationMinutes: durationMnt,
       studentsTotal: existingLog?.studentsTotal || session.totalStudents || 32,
@@ -2765,7 +2764,7 @@ function initMainApplication() {
       studentsSick: existingLog?.studentsSick || 0,
       studentsPermit: existingLog?.studentsPermit || 0,
       studentsAlpha: existingLog?.studentsAlpha || 0,
-      notes: existingLog?.notes || `Presensi Masuk: ${checkIn?.checkInTime || session.startTime} (${puncText}). Presensi Selesai: ${timeOutStr}.`,
+      notes: `Presensi Masuk: ${checkIn?.checkInTime || session.startTime} (${puncText}). Presensi Selesai: ${timeOutStr}.`,
       recordedAt: `${todayDateStr} ${timeOutStr}`
     };
 
@@ -2816,19 +2815,21 @@ function initMainApplication() {
       "info"
     );
 
-    SoundService.playSuccess();
-    closeModal("modalClassCheckOut");
+    if (!silent) {
+      SoundService.playSuccess();
+      closeModal("modalClassCheckOut");
 
-    renderKbmTimelineAndLogs();
-    renderClassroomRadar();
-    renderAdminActivityFeed();
-    updateRadarKpis();
+      renderTeachingSchedules();
+      renderClassroomRadar();
+      renderAdminActivityFeed();
+      updateRadarKpis();
 
-    showToast(
-      "KBM Selesai!",
-      `Presensi keluar terekam (${timeOutStr}). Total durasi: ${durationMnt} menit (+${session.jtm} JTM).`,
-      "success"
-    );
+      showToast(
+        "KBM Selesai!",
+        `Presensi keluar terekam (${timeOutStr}). Total durasi: ${durationMnt} menit (+${session.jtm} JTM).`,
+        "success"
+      );
+    }
   };
 
   // State filter Papan Radar KBM (Tersinkron 26 Rombel & Master Jadwal Real-Time)
@@ -2944,6 +2945,21 @@ function initMainApplication() {
         ? `<strong>${room.invalTeacher}</strong> <span style="font-size:0.7rem; color:var(--text-muted);">(Asli: ${room.teacherName})</span>`
         : `<strong>${room.teacherName}</strong>`;
 
+      const roomTeacherObj = (StorageService.getTeachersMaster() || []).find(t =>
+        t.id === room.teacherId || t.nip === room.teacherId || t.name === room.teacherName
+      ) || {};
+      const rawRoomPhone = String(room.phone || roomTeacherObj.phone || "").replace(/[^0-9]/g, "");
+      const cleanRoomPhone = rawRoomPhone.startsWith("0")
+        ? "62" + rawRoomPhone.slice(1)
+        : rawRoomPhone.startsWith("8")
+          ? "62" + rawRoomPhone
+          : rawRoomPhone;
+      const roomWaMsg = `Assalamu'alaikum Wr. Wb. Bapak/Ibu ${room.teacherName || "Guru"}, mengingatkan jadwal KBM di ${room.roomName} (${room.subject || "Mata Pelajaran"}) pukul ${room.startTime || ""}-${room.endTime || ""} WIB.`;
+      const roomWaUrl = cleanRoomPhone
+        ? `https://api.whatsapp.com/send?phone=${cleanRoomPhone}&text=${encodeURIComponent(roomWaMsg)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(roomWaMsg)}`;
+      const waSvgIcon = `<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>`;
+
       let actionButtons = "";
       if (room.status === "istirahat") {
         actionButtons = `
@@ -2978,8 +2994,8 @@ function initMainApplication() {
           <button class="btn-emerald" style="background: linear-gradient(135deg, #dc2626, #b91c1c); flex: 1; font-size: 0.78rem; padding: 0.4rem;" onclick="openAssignInvalModal('${room.id}')">
             🚨 Tugaskan Inval Piket
           </button>
-          <a class="btn-secondary" style="font-size: 0.78rem; padding: 0.4rem;" href="https://wa.me/?text=Peringatan%20Piket:%20Ruang%20${encodeURIComponent(room.roomName)}%20belum%20ada%20guru%20masuk" target="_blank" title="Hubungi Guru via WhatsApp">
-            💬 WA Guru
+          <a class="btn-member-action btn-wa" style="font-size: 0.76rem; padding: 0.38rem 0.68rem;" href="${roomWaUrl}" target="_blank" rel="noopener noreferrer" title="Hubungi Guru via WhatsApp">
+            ${waSvgIcon} <span>WA Guru</span>
           </a>
         `;
       } else if (room.status === "menunggu_guru") {
@@ -2987,8 +3003,8 @@ function initMainApplication() {
           <button class="btn-secondary" style="flex: 1; font-size: 0.78rem; padding: 0.4rem;" onclick="openClassCheckInModal('${room.scheduleId || ''}')">
             📝 Check-In Masuk Kelas
           </button>
-          <a class="btn-secondary" style="font-size: 0.78rem; padding: 0.4rem;" href="https://wa.me/" target="_blank" title="Ingatkan Guru via WhatsApp">
-            💬 WA
+          <a class="btn-member-action btn-wa" style="font-size: 0.76rem; padding: 0.38rem 0.68rem;" href="${roomWaUrl}" target="_blank" rel="noopener noreferrer" title="Ingatkan Guru via WhatsApp">
+            ${waSvgIcon} <span>WhatsApp</span>
           </a>
         `;
       } else {
@@ -2997,8 +3013,8 @@ function initMainApplication() {
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
             Ruang Terkendali & Aktif
           </span>
-          <a class="btn-secondary" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; margin-left: auto;" href="https://wa.me/" target="_blank">
-            Hubungi
+          <a class="btn-member-action btn-wa" style="font-size: 0.72rem; padding: 0.3rem 0.62rem; margin-left: auto;" href="${roomWaUrl}" target="_blank" rel="noopener noreferrer" title="Hubungi Guru via WhatsApp">
+            ${waSvgIcon} <span>Hubungi</span>
           </a>
         `;
       }
@@ -6028,9 +6044,9 @@ function initMainApplication() {
           topic: topic || "Tatap Muka Pembelajaran Terjadwal",
           method: method || "Tatap Muka Interaktif",
           teacherStatus: teacherStatus,
-          status: "Selesai",
+          status: (checkInRec && !checkInRec.finished) ? "Sedang Berlangsung" : "Selesai",
           checkInTime: checkInRec?.checkInTime || session.startTime,
-          checkOutTime: checkInRec?.checkOutTime || session.endTime,
+          checkOutTime: checkInRec?.checkOutTime || ((checkInRec && !checkInRec.finished) ? "" : session.endTime),
           durationMinutes: checkInRec?.durationMinutes || (session.jtm * 45),
           studentsTotal: (present + sick + permit + alpha) || session.totalStudents || 32,
           studentsPresent: present || session.totalStudents || 32,
@@ -8516,8 +8532,17 @@ function initMainApplication() {
           ? `<span class="picket-role-badge role-coord">👑 Koordinator Regu</span>`
           : `<span class="picket-role-badge role-member">🛡️ Petugas Sambut 5S</span>`;
 
-        const phoneClean = (member.phone || teacherInfo.phone || "").replace(/[^0-9]/g, "");
-        const waLink = phoneClean ? `https://wa.me/${phoneClean}?text=Assalamu%27alaikum%20${encodeURIComponent(member.teacherName || teacherInfo.name)}%2C%20mengenai%20jadwal%20piket%20sambut%20siswa%20MTs%20Asy-Syafi%27iyyah%20Jatibarang...` : "#";
+        const rawPhone = String(member.phone || teacherInfo.phone || "").replace(/[^0-9]/g, "");
+        const phoneClean = rawPhone.startsWith("0")
+          ? "62" + rawPhone.slice(1)
+          : rawPhone.startsWith("8")
+            ? "62" + rawPhone
+            : rawPhone;
+        const memberDisplayName = member.teacherName || teacherInfo.name || "Bapak/Ibu Guru";
+        const waMsgText = `Assalamu'alaikum Wr. Wb. Bapak/Ibu ${memberDisplayName}, mengingatkan jadwal Piket Penyambutan Siswa 5S MTs Asy-Syafi'iyyah Jatibarang hari ${squad.day} pukul ${squad.timeSpan || "06:15 - 07:00 WIB"} di ${member.location || "Gerbang Utama"} (${member.roleInPicket || member.role || "Petugas Sambut 5S"}). Terima kasih.`;
+        const waLink = phoneClean
+          ? `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodeURIComponent(waMsgText)}`
+          : `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsgText)}`;
 
         let invalNotice = "";
         if (member.isSubstituted) {
@@ -8654,8 +8679,11 @@ function initMainApplication() {
                 </button>
               ` : ''}
             </div>
-            <a href="${waLink}" target="_blank" class="btn-member-action btn-wa" title="Hubungi Petugas via WhatsApp">
-              <span>💬 WA</span>
+            <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="btn-member-action btn-wa" onclick="window.handlePicketWaClick(event, '${squad.day}', '${member.teacherId}')" title="${phoneClean ? 'Hubungi ' + memberDisplayName + ' via WhatsApp (' + phoneClean + ')' : 'Hubungi ' + memberDisplayName + ' via WhatsApp (Klik untuk isi No. WA / pilih kontak)'}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true" style="flex-shrink: 0;">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
+              </svg>
+              <span>WhatsApp</span>
             </a>
           </div>
         `;
@@ -8856,6 +8884,75 @@ function initMainApplication() {
       tbody.appendChild(tr);
     });
   }
+
+  window.handlePicketWaClick = function(e, day, teacherId) {
+    const roster = StorageService.getWelcomingPicketRoster();
+    const squad = roster.find(r => r.day === day) || roster[0];
+    const teachersMaster = StorageService.getTeachersMaster();
+    const member = squad && squad.members ? squad.members.find(m => m.teacherId === teacherId) : null;
+    const teacherInfo = teachersMaster.find(t =>
+      t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId ||
+      (member && t.name === member.teacherName)
+    ) || {};
+
+    const normalizeWa = (val) => {
+      const digits = String(val || "").replace(/[^0-9]/g, "");
+      if (!digits) return "";
+      if (digits.startsWith("0")) return "62" + digits.slice(1);
+      if (digits.startsWith("8")) return "62" + digits;
+      return digits;
+    };
+
+    const memberDisplayName = (member && member.teacherName) || teacherInfo.name || "Bapak/Ibu Guru";
+    const waMsgText = `Assalamu'alaikum Wr. Wb. Bapak/Ibu ${memberDisplayName}, mengingatkan jadwal Piket Penyambutan Siswa 5S MTs Asy-Syafi'iyyah Jatibarang hari ${day || "ini"} pukul ${(squad && squad.timeSpan) || "06:15 - 07:00 WIB"} di ${(member && member.location) || "Gerbang Utama"} (${(member && (member.roleInPicket || member.role)) || "Petugas Sambut 5S"}). Terima kasih.`;
+
+    let phoneClean = normalizeWa((member && member.phone) || teacherInfo.phone || "");
+
+    if (!phoneClean) {
+      if (e) e.preventDefault();
+      const inputPhone = window.prompt(
+        `Nomor WhatsApp untuk ${memberDisplayName} belum terdaftar.\n\nMasukkan Nomor WhatsApp (contoh: 081234567890) untuk menyimpan & langsung menghubungi, atau kosongkan lalu klik OK untuk memilih kontak langsung di WhatsApp:`,
+        ""
+      );
+      if (inputPhone === null) {
+        return false;
+      }
+      phoneClean = normalizeWa(inputPhone);
+      if (phoneClean.length >= 9) {
+        // Simpan ke Master Guru dan Roster Piket agar ke depannya langsung terhubung
+        const updatedTeachers = teachersMaster.map(t => {
+          if (t.id === teacherId || t.nip === teacherId || t.teacherId === teacherId || t.name === memberDisplayName) {
+            return { ...t, phone: inputPhone.trim() };
+          }
+          return t;
+        });
+        StorageService.saveTeachersMaster(updatedTeachers);
+
+        if (squad && squad.members) {
+          squad.members.forEach(m => {
+            if (m.teacherId === teacherId || m.teacherName === memberDisplayName) {
+              m.phone = inputPhone.trim();
+            }
+          });
+          StorageService.saveWelcomingPicketRoster(roster);
+        }
+        renderPicketRoster(day);
+        showToast("Nomor WA Tersimpan", `Nomor WhatsApp ${memberDisplayName} berhasil disimpan.`, "success");
+      }
+
+      const targetUrl = phoneClean
+        ? `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodeURIComponent(waMsgText)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(waMsgText)}`;
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      return false;
+    }
+
+    // Jika nomor sudah ada, pastikan href mengarah ke api.whatsapp.com dengan nomor yang sudah dinormalisasi
+    if (e && e.currentTarget) {
+      e.currentTarget.href = `https://api.whatsapp.com/send?phone=${phoneClean}&text=${encodeURIComponent(waMsgText)}`;
+    }
+    return true;
+  };
 
   window.openPicketCheckInModal = function(day = null, teacherId = "") {
     const modal = document.getElementById("modalPicketCheckIn");

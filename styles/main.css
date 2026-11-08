@@ -4174,13 +4174,155 @@ body.mode-admin .squad-icon-badge {
   font-size: 0.78rem;
 }
 
-.picket-actions-row {
+.picket-actions-row,
+.member-actions-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  justify-content: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
   border-top: 1px dashed var(--border-light);
   padding-top: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.member-top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.member-name {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.member-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.picket-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-full, 999px);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.picket-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.73rem;
+  font-weight: 700;
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.picket-role-badge.role-coord {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.member-loc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.58rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.73rem;
+  font-weight: 600;
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-light);
+}
+
+.picket-inval-badge {
+  margin-top: 0.65rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  color: #b45309;
+  font-size: 0.74rem;
+}
+
+.btn-member-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid var(--border-light);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: none !important;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-member-action:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: var(--text-primary);
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.btn-member-action.btn-swap {
+  background: rgba(14, 165, 233, 0.1);
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.32);
+}
+
+.btn-member-action.btn-swap:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
+}
+
+.btn-member-action.btn-wa,
+a.btn-member-action.btn-wa,
+a.btn-member-action.btn-wa:visited {
+  background: rgba(37, 211, 102, 0.12);
+  color: #15803d !important;
+  border: 1px solid rgba(37, 211, 102, 0.45);
+  text-decoration: none !important;
+  font-weight: 700;
+}
+
+.btn-member-action.btn-wa:hover,
+a.btn-member-action.btn-wa:hover {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  border-color: #16a34a !important;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.28);
+  text-decoration: none !important;
+  transform: translateY(-1px);
 }
 
 .badge-standby {
