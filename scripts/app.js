@@ -10653,7 +10653,7 @@ function initMainApplication() {
 
       const verifyUrl = `https://absen.mtsasyjtb.cloud/verify?doc=${encodeURIComponent(report.printRefNumber || "MTs-2026")}&guru=${encodeURIComponent(report.teacherName || "")}`;
       const compactQrSvg = buildQrCodeSvg(verifyUrl, 30);
-      const tteQrSvg = buildQrCodeSvg(verifyUrl, 56);
+      const tteQrSvg = buildQrCodeSvg(verifyUrl, 62);
 
       const kamadTtdSrc = (typeof KAMAD_TTD_DATA_URL !== "undefined" && KAMAD_TTD_DATA_URL)
         ? KAMAD_TTD_DATA_URL
@@ -10996,15 +10996,9 @@ function initMainApplication() {
                     </div>
                   </div>
                 ` : `
-                  <!-- MODEL A: TTD ASLI H. ROSIDI BERSIH + SEBELAH KANAN HANYA BARCODE SAJA (TANPA LIST BIRU & TANPA TEKS TTE) -->
-                  <div style="height: 70px; margin: 2px auto; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 320px;">
-                    <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) -->
-                    <div style="width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                      <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="width: 130px; height: 68px; object-fit: contain;" />
-                    </div>
-
-                    <!-- Sebelah kanan TTD: hanya barcode saja -->
-                    <div style="width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <!-- MODEL A: BARCODE CENTER DI ATAS NAMA KAMAD (TTE RESMI TANPA TTD FISIK) -->
+                  <div style="height: 70px; margin: 2px auto; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 62px; height: 62px; display: flex; align-items: center; justify-content: center;">
                       ${tteQrSvg}
                     </div>
                   </div>
