@@ -10686,7 +10686,7 @@ Tanggal : ${report.signDate}
 Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
 
       const compactQrSvg = buildQrCodeElement(`No Cetak: ${report.printRefNumber} | ${report.schoolName} | TTE Valid`, 34, 'L');
-      const tteQrSvg = buildQrCodeElement(verifyText, 102, 'L');
+      const tteQrSvg = buildQrCodeElement(verifyText, 108, 'L');
 
       const kamadTtdSrc = (typeof KAMAD_TTD_DATA_URL !== "undefined" && KAMAD_TTD_DATA_URL)
         ? KAMAD_TTD_DATA_URL
@@ -10998,9 +10998,9 @@ Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
               <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 20px;">
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">Mengetahui / Mengesahkan,</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Guru yang Bersangkutan</div>
-                <!-- Area TTD Guru: tinggi sejajar dengan blok Kamad (106px) -->
-                <div style="min-height: 106px; display: flex; align-items: center; justify-content: center;">
-                  <div style="border-bottom: 1px dotted #cbd5e1; width: 140px; margin-top: 68px;"></div>
+                <!-- Area TTD Guru: tinggi sejajar dengan blok Kamad (112px) -->
+                <div style="min-height: 112px; display: flex; align-items: center; justify-content: center;">
+                  <div style="border-bottom: 1px dotted #cbd5e1; width: 140px; margin-top: 74px;"></div>
                 </div>
                 <div style="font-size: 9.2pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.teacherName}</div>
                 <div style="font-size: 8pt; font-family: Arial, sans-serif; margin-top: 2px;">NUPTK. ${report.teacherNuptk}</div>
@@ -11011,10 +11011,10 @@ Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">${report.signCity}, ${report.signDate}</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Kepala ${report.schoolName}</div>
                 ${forExcel ? `
-                  <div style="height: 106px; line-height: 106px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Pengesahan Resmi Kepala Madrasah ]</div>
+                  <div style="height: 112px; line-height: 112px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Pengesahan Resmi Kepala Madrasah ]</div>
                 ` : (String(signModel).toUpperCase() === "B" ? `
                   <!-- MODEL B: TTD ASLI + OVERLAP STEMPEL MADRASAH + SEBELAH KANAN HANYA BARCODE SAJA -->
-                  <div style="min-height: 106px; margin: 1px auto; display: flex; align-items: center; justify-content: center; gap: 12px; max-width: 320px;">
+                  <div style="min-height: 112px; margin: 1px auto; display: flex; align-items: center; justify-content: center; gap: 12px; max-width: 320px;">
                     <!-- Area TTD Asli Kamad + Overlap Stempel Madrasah -->
                     <div style="position: relative; width: 140px; height: 80px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                       <!-- Stempel Madrasah (Posisi alami tumpang tindih dengan TTD, miring -4 derajat) -->
@@ -11030,7 +11030,7 @@ Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
                   </div>
                 ` : `
                   <!-- MODEL A: BARCODE CENTER DI ATAS NAMA KAMAD (TTE RESMI BERISI TEKS VERIFIKASI RESMI DENGAN QUIET ZONE) -->
-                  <div style="min-height: 106px; margin: 2px auto; display: flex; align-items: center; justify-content: center; background: transparent;">
+                  <div style="min-height: 112px; margin: 2px auto; display: flex; align-items: center; justify-content: center; background: transparent;">
                     <div style="display: inline-flex; align-items: center; justify-content: center; background: #ffffff; padding: 2px;" title="Scan Barcode TTE untuk Verifikasi Keaslian Dokumen">
                       ${tteQrSvg}
                     </div>

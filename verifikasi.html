@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verifikasi Keaslian Dokumen Resmi - MTs Asy-Syafi'iyyah Jatibarang</title>
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <style>
+    :root {
+      --primary: #047857;
+      --primary-dark: #065f46;
+      --primary-light: #ecfdf5;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --card-bg: #ffffff;
+      --bg: #f8fafc;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .cert-card {
+      background: var(--card-bg);
+      width: 100%;
+      max-width: 580px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .cert-header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      color: white;
+      padding: 1.75rem 1.5rem;
+      text-align: center;
+      position: relative;
+    }
+    .cert-header img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+      margin-bottom: 0.75rem;
+      background: #ffffff;
+      padding: 4px;
+      border-radius: 50%;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .cert-header h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 0.25rem;
+    }
+    .cert-header p {
+      font-size: 0.85rem;
+      opacity: 0.9;
+    }
+    .badge-valid {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #10b981;
+      color: #ffffff;
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-top: 1rem;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+    }
+    .badge-valid svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 3;
+    }
+    .cert-body {
+      padding: 1.75rem 1.5rem;
+    }
+    .info-intro {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.5;
+      text-align: center;
+      background: #f1f5f9;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary);
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+    }
+    .info-table tr {
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .info-table td {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.88rem;
+      vertical-align: top;
+    }
+    .info-table td.label {
+      color: var(--text-muted);
+      width: 38%;
+      font-weight: 500;
+    }
+    .info-table td.value {
+      color: var(--text-main);
+      font-weight: 600;
+      width: 62%;
+    }
+    .status-highlight {
+      color: #047857;
+      background: #d1fae5;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      display: inline-block;
+      font-weight: 700;
+    }
+    .cert-footer {
+      background: #f8fafc;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .cert-footer strong {
+      color: var(--text-main);
+    }
+    .btn-print {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: #ffffff;
+      color: var(--text-main);
+      border: 1px solid #cbd5e1;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-print:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cert-card">
+    <div class="cert-header">
+      <img src="assets/logo.png" alt="Logo Madrasah" onerror="this.style.display='none'">
+      <h1>Verifikasi Keaslian Dokumen Resmi</h1>
+      <p>Sistem Tanda Tangan Elektronik (TTE) &bull; MTs Asy-Syafi'iyyah Jatibarang</p>
+      
+      <div class="badge-valid">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>SAH &amp; TERVERIFIKASI SISTEM</span>
+      </div>
+    </div>
+
+    <div class="cert-body">
+      <div class="info-intro">
+        Dokumen Laporan Absensi Bulanan telah diverifikasi, disahkan, dan ditandatangani secara elektronik (TTE) sesuai standar dokumen digital madrasah.
+      </div>
+
+      <table class="info-table">
+        <tr>
+          <td class="label">Jenis Dokumen</td>
+          <td class="value">Laporan Rekapitulasi Presensi &amp; Kinerja Bulanan</td>
+        </tr>
+        <tr>
+          <td class="label">Instansi Penerbit</td>
+          <td class="value" id="valInstansi">MTs Asy-Syafi'iyyah Jatibarang</td>
+        </tr>
+        <tr>
+          <td class="label">Nomor Registrasi Cetak</td>
+          <td class="value" id="valNoCetak">LAP/11/2026/001</td>
+        </tr>
+        <tr>
+          <td class="label">Pendidik / Guru Ybs</td>
+          <td class="value" id="valGuru">Guru MTs Asy-Syafi'iyyah</td>
+        </tr>
+        <tr>
+          <td class="label">Penandatangan (Kamad)</td>
+          <td class="value" id="valKamad">Drs. H. Akhmad Rosidi</td>
+        </tr>
+        <tr>
+          <td class="label">NIP / NUPTK Kamad</td>
+          <td class="value" id="valNip">91000062102452</td>
+        </tr>
+        <tr>
+          <td class="label">Tanggal Pengesahan</td>
+          <td class="value" id="valTanggal">30 November 2026</td>
+        </tr>
+        <tr>
+          <td class="label">Status Keaslian</td>
+          <td class="value"><span class="status-highlight">ASLI &bull; SAH &bull; TERVERIFIKASI</span></td>
+        </tr>
+      </table>
+
+      <div style="text-align: center;">
+        <button class="btn-print" onclick="window.print()">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span>Cetak Bukti Verifikasi</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="cert-footer">
+      <div>Keaslian dokumen ini dijamin oleh basis data terpusat Sistem Absensi Digital MTs Asy-Syafi'iyyah Jatibarang.</div>
+      <div style="margin-top: 4px; font-size: 0.72rem; color: #94a3b8;">
+        ID Verifikasi: <strong id="valHash">VER-2026-TTE-VALID</strong> &bull; Server WIB
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("doc") || params.get("no")) {
+        document.getElementById("valNoCetak").textContent = params.get("doc") || params.get("no");
+      }
+      if (params.get("guru")) {
+        document.getElementById("valGuru").textContent = params.get("guru");
+      }
+      if (params.get("kamad")) {
+        document.getElementById("valKamad").textContent = params.get("kamad");
+      }
+      if (params.get("nip")) {
+        document.getElementById("valNip").textContent = params.get("nip");
+      }
+      if (params.get("tgl")) {
+        document.getElementById("valTanggal").textContent = params.get("tgl");
+      }
+      if (params.get("sekolah")) {
+        document.getElementById("valInstansi").textContent = params.get("sekolah");
+      }
+      const docCode = params.get("doc") || params.get("no") || "2026";
+      document.getElementById("valHash").textContent = "TTE-" + btoa(docCode).replace(/=/g, "").substring(0, 16);
+    })();
+  </script>
+</body>
+</html>
