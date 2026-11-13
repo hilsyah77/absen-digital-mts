@@ -10637,9 +10637,13 @@ function initMainApplication() {
           const qr = qrcode(0, ecLevel);
           qr.addData(text);
           qr.make();
-          const svgRaw = qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
-          const styledSvg = svgRaw.replace('<svg ', '<svg style="width:100%;height:100%;display:block;" ');
-          return `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${styledSvg}</div>`;
+          // margin: 8 with cellSize: 2 creates a standard 4-module quiet zone (mandatory for scanner detection)
+          const svgRaw = qr.createSvgTag({ cellSize: 2, margin: 8, scalable: true });
+          let styledSvg = svgRaw.replace('<svg ', '<svg style="width:100%;height:100%;display:block;background:#ffffff;shape-rendering:crispEdges;" ');
+          if (!styledSvg.includes('<rect')) {
+            styledSvg = styledSvg.replace('>', '><rect width="100%" height="100%" fill="#ffffff"/>');
+          }
+          return `<div style="width:${size}px;height:${size}px;background:#ffffff;padding:2px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,0.08);">${styledSvg}</div>`;
         }
       } catch (err) {
         console.warn("QR Code SVG warning:", err);
@@ -10661,7 +10665,7 @@ Tanggal : ${report.signDate}
 Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
 
       const compactQrSvg = buildQrCodeSvg(verifyText, 32, 'L');
-      const tteQrSvg = buildQrCodeSvg(verifyText, 66, 'L');
+      const tteQrSvg = buildQrCodeSvg(verifyText, 76, 'L');
 
       const kamadTtdSrc = (typeof KAMAD_TTD_DATA_URL !== "undefined" && KAMAD_TTD_DATA_URL)
         ? KAMAD_TTD_DATA_URL
@@ -10973,9 +10977,9 @@ Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
               <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 20px;">
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">Mengetahui / Mengesahkan,</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Guru yang Bersangkutan</div>
-                <!-- Area TTD Guru: tinggi sejajar dengan blok Kamad Model B (70px) -->
-                <div style="height: 70px; display: flex; align-items: center; justify-content: center;">
-                  <div style="border-bottom: 1px dotted #cbd5e1; width: 140px; margin-top: 36px;"></div>
+                <!-- Area TTD Guru: tinggi sejajar dengan blok Kamad Model A (82px) -->
+                <div style="height: 82px; display: flex; align-items: center; justify-content: center;">
+                  <div style="border-bottom: 1px dotted #cbd5e1; width: 140px; margin-top: 48px;"></div>
                 </div>
                 <div style="font-size: 9.2pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.teacherName}</div>
                 <div style="font-size: 8pt; font-family: Arial, sans-serif; margin-top: 2px;">NUPTK. ${report.teacherNuptk}</div>
@@ -10986,29 +10990,27 @@ Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">${report.signCity}, ${report.signDate}</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Kepala ${report.schoolName}</div>
                 ${forExcel ? `
-                  <div style="height: 70px; line-height: 70px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Pengesahan Resmi Kepala Madrasah ]</div>
+                  <div style="height: 82px; line-height: 82px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Pengesahan Resmi Kepala Madrasah ]</div>
                 ` : (String(signModel).toUpperCase() === "B" ? `
                   <!-- MODEL B: TTD ASLI + OVERLAP STEMPEL MADRASAH + SEBELAH KANAN HANYA BARCODE SAJA -->
-                  <div style="height: 70px; margin: 2px auto; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 320px;">
+                  <div style="height: 82px; margin: 1px auto; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 320px;">
                     <!-- Area TTD Asli Kamad + Overlap Stempel Madrasah -->
-                    <div style="position: relative; width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <div style="position: relative; width: 140px; height: 75px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                       <!-- Stempel Madrasah (Posisi alami tumpang tindih dengan TTD, miring -4 derajat) -->
-                      <img src="${madrasahStempelSrc}" alt="Stempel Madrasah" style="position: absolute; left: 2px; top: 0px; width: 70px; height: 70px; object-fit: contain; opacity: 0.88; transform: rotate(-4deg); pointer-events: none; z-index: 1;" />
+                      <img src="${madrasahStempelSrc}" alt="Stempel Madrasah" style="position: absolute; left: 2px; top: 0px; width: 72px; height: 72px; object-fit: contain; opacity: 0.88; transform: rotate(-4deg); pointer-events: none; z-index: 1;" />
                       <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) -->
                       <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="position: relative; width: 110px; height: 66px; object-fit: contain; z-index: 2; margin-left: 18px;" />
                     </div>
 
                     <!-- Sebelah kanan TTD: hanya barcode saja (tanpa list biru, tanpa teks TTE) -->
-                    <div style="width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                      ${tteQrSvg}
+                    <div style="display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      ${buildQrCodeSvg(verifyText, 62, 'L')}
                     </div>
                   </div>
                 ` : `
-                  <!-- MODEL A: BARCODE CENTER DI ATAS NAMA KAMAD (TTE RESMI BERISI TEKS VERIFIKASI RESMI) -->
-                  <div style="height: 70px; margin: 1px auto; display: flex; align-items: center; justify-content: center;">
-                    <div style="width: 66px; height: 66px; display: flex; align-items: center; justify-content: center;">
-                      ${tteQrSvg}
-                    </div>
+                  <!-- MODEL A: BARCODE CENTER DI ATAS NAMA KAMAD (TTE RESMI BERISI TEKS VERIFIKASI RESMI DENGAN QUIET ZONE) -->
+                  <div style="height: 82px; margin: 1px auto; display: flex; align-items: center; justify-content: center;">
+                    ${tteQrSvg}
                   </div>
                 `)}
                 <div style="font-size: 9.2pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.principalName}</div>
