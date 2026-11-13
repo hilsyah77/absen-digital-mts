@@ -10630,9 +10630,37 @@ function initMainApplication() {
       };
     }
 
+    function buildQrCodeSvg(text, size = 52) {
+      try {
+        if (typeof qrcode === "function") {
+          const qr = qrcode(0, 'M');
+          qr.addData(text);
+          qr.make();
+          const svgRaw = qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
+          const styledSvg = svgRaw.replace('<svg ', '<svg style="width:100%;height:100%;display:block;" ');
+          return `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;overflow:hidden;">${styledSvg}</div>`;
+        }
+      } catch (err) {
+        console.warn("QR Code SVG warning:", err);
+      }
+      return "";
+    }
+
     function generateOfficialReportTableHTML(report, forExcel = false) {
       const borderAttr = forExcel ? 'border="1"' : 'style="border: 1px solid #000;"';
       const cellBorder = 'border: 1px solid #000;';
+
+      const verifyUrl = `https://absen.mtsasyjtb.cloud/verify?doc=${encodeURIComponent(report.printRefNumber || "MTs-2026")}&guru=${encodeURIComponent(report.teacherName || "")}`;
+      const compactQrSvg = buildQrCodeSvg(verifyUrl, 30);
+      const tteQrSvg = buildQrCodeSvg(verifyUrl, 52);
+
+      const kamadTtdSrc = (typeof KAMAD_TTD_DATA_URL !== "undefined" && KAMAD_TTD_DATA_URL)
+        ? KAMAD_TTD_DATA_URL
+        : "assets/ttd_kamad.png";
+
+      const madrasahStempelSrc = (typeof MADRASAH_STEMPEL_DATA_URL !== "undefined" && MADRASAH_STEMPEL_DATA_URL)
+        ? MADRASAH_STEMPEL_DATA_URL
+        : "assets/stempel_madrasah.png";
 
       const rowsHtml = report.days.map(d => {
         const isHolidayDate = d.liburRutin || d.liburUmum || (d.dayOfWeek === 0) || d.isHoliday;
@@ -10806,11 +10834,17 @@ function initMainApplication() {
           <!-- FOOTER SHEET 1 -->
           <table style="width: 100%; font-family: Arial, sans-serif; font-size: 7.2pt; border-collapse: collapse; margin-top: 4px; color: #000; line-height: 1.2;">
             <tr>
-              <td style="text-align: left; vertical-align: top; width: 60%; padding: 0;">
-                ${holidayNotes ? `<div style="font-size: 6.8pt; margin-bottom: 1px; color: #333;">${holidayNotes}</div>` : ''}
-                <div><strong>No Cetak :</strong> <span style="font-family: Arial, sans-serif; font-size: 7.2pt;">${report.printRefNumber}</span></div>
+              <td style="text-align: left; vertical-align: middle; width: 62%; padding: 0;">
+                ${holidayNotes ? `<div style="font-size: 6.8pt; margin-bottom: 2px; color: #333;">${holidayNotes}</div>` : ''}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  ${(!forExcel && compactQrSvg) ? `<div style="flex-shrink: 0; background: #fff; border: 1px solid #cbd5e1; border-radius: 3px; padding: 1px; display: inline-flex;">${compactQrSvg}</div>` : ''}
+                  <div>
+                    <div><strong>No Cetak :</strong> <span style="font-family: Arial, sans-serif; font-size: 7.2pt;">${report.printRefNumber}</span></div>
+                    <div style="font-size: 6.2pt; color: #475569;">Verifikasi TTE Digital &bull; Absensi Sah MTs Asy-Syukriyyah</div>
+                  </div>
+                </div>
               </td>
-              <td style="text-align: right; vertical-align: bottom; width: 40%; font-weight: bold; font-style: italic; padding: 0;">
+              <td style="text-align: right; vertical-align: bottom; width: 38%; font-weight: bold; font-style: italic; padding: 0;">
                 Admin : ${report.adminSignature} &bull; Lembar 1/2
               </td>
             </tr>
@@ -10923,37 +10957,55 @@ function initMainApplication() {
             </tr>
           </table>
 
-          <!-- BAGIAN III: LEMBAR PENGESAHAN & PENANDATANGANAN RESMI (2 KOLOM PEJABAT PENANDATANGANAN) -->
-          <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; margin-top: 10px; color: #000; line-height: 1.3;">
+          <!-- BAGIAN III: LEMBAR PENGESAHAN & PENANDATANGANAN RESMI (MODEL B: TTE BARCODE + TTD KAMAD + STEMPEL MADRASAH) -->
+          <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; margin-top: 8px; color: #000; line-height: 1.25;">
             <tr>
               <!-- SISI KIRI: GURU YBS -->
-              <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 25px;">
+              <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 20px;">
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">Mengetahui / Mengesahkan,</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Guru yang Bersangkutan</div>
-                <div style="height: 44px;"></div> <!-- Area TTD Guru -->
-                <div style="font-size: 9.5pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.teacherName}</div>
-                <div style="font-size: 8.2pt; font-family: Arial, sans-serif; margin-top: 2px;">NUPTK. ${report.teacherNuptk}</div>
+                <!-- Area TTD Guru: tinggi sejajar dengan blok Kamad Model B (70px) -->
+                <div style="height: 70px; display: flex; align-items: center; justify-content: center;">
+                  <div style="border-bottom: 1px dotted #cbd5e1; width: 140px; margin-top: 36px;"></div>
+                </div>
+                <div style="font-size: 9.2pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.teacherName}</div>
+                <div style="font-size: 8pt; font-family: Arial, sans-serif; margin-top: 2px;">NUPTK. ${report.teacherNuptk}</div>
               </td>
 
-              <!-- SISI KANAN: KEPALA MADRASAH DENGAN STEMPEL -->
-              <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 25px;">
+              <!-- SISI KANAN: KEPALA MADRASAH DENGAN MODEL B (TTE QR BARCODE + TTD ASLI + STEMPEL BASAH) -->
+              <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 20px;">
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">${report.signCity}, ${report.signDate}</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Kepala ${report.schoolName}</div>
-                <div style="height: 44px; display: flex; align-items: center; justify-content: center;">
-                  <div style="border: 1.5px dashed #0284c7; color: #0284c7; padding: 3px 10px; font-size: 7.2pt; font-weight: bold; border-radius: 4px; transform: rotate(-3deg);">
-                    [ STEMPEL DIGITAL RESMI MADRASAH ]
+                ${forExcel ? `
+                  <div style="height: 70px; line-height: 70px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Stempel Resmi Kepala Madrasah ]</div>
+                ` : `
+                  <!-- CONTAINER MODEL B -->
+                  <div style="height: 70px; margin: 3px auto; display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 320px;">
+                    <!-- Kotak QR Barcode Validasi TTE Kemenag -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 4px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); flex-shrink: 0;">
+                      ${tteQrSvg}
+                      <div style="font-size: 5.2pt; font-weight: 800; color: #0369a1; letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px;">TTE KEMENAG</div>
+                    </div>
+
+                    <!-- Area TTD Asli Kamad + Overlap Stempel Madrasah -->
+                    <div style="position: relative; width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <!-- Stempel Madrasah (Posisi alami tumpang tindih dengan TTD, miring -4 derajat) -->
+                      <img src="${madrasahStempelSrc}" alt="Stempel Madrasah" style="position: absolute; left: 2px; top: 0px; width: 70px; height: 70px; object-fit: contain; opacity: 0.88; transform: rotate(-4deg); pointer-events: none; z-index: 1;" />
+                      <!-- Tanda Tangan Asli Kepala Madrasah -->
+                      <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="position: relative; width: 110px; height: 66px; object-fit: contain; z-index: 2; margin-left: 18px;" />
+                    </div>
                   </div>
-                </div>
-                <div style="font-size: 9.5pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.principalName}</div>
-                <div style="font-size: 8.2pt; font-family: Arial, sans-serif; margin-top: 2px;">NIP / NUPTK. ${report.principalNip}</div>
+                `}
+                <div style="font-size: 9.2pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.principalName}</div>
+                <div style="font-size: 8pt; font-family: Arial, sans-serif; margin-top: 2px;">NIP / NUPTK. ${report.principalNip}</div>
               </td>
             </tr>
           </table>
 
           <!-- FOOTER LEMBAR 2 -->
-          <div style="border-top: 1px solid #94a3b8; margin-top: 8px; padding-top: 2.5px; font-size: 6.8pt; color: #475569; display: flex; justify-content: space-between; font-family: Arial, sans-serif;">
+          <div style="border-top: 1px solid #94a3b8; margin-top: 6px; padding-top: 2px; font-size: 6.8pt; color: #475569; display: flex; justify-content: space-between; font-family: Arial, sans-serif;">
             <div>Dokumen Resmi Sistem Absensi Digital ${report.schoolName} &bull; No: ${report.printRefNumber}</div>
-            <div>Lembar 2/2 &bull; Diverifikasi Operator Madrasah (${report.adminSignature})</div>
+            <div>Lembar 2/2 &bull; Diverifikasi Operator Madrasah (${report.adminSignature}) &bull; TTE Valid</div>
           </div>
         </div>
       `;
