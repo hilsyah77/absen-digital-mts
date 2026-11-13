@@ -10653,7 +10653,7 @@ function initMainApplication() {
 
       const verifyUrl = `https://absen.mtsasyjtb.cloud/verify?doc=${encodeURIComponent(report.printRefNumber || "MTs-2026")}&guru=${encodeURIComponent(report.teacherName || "")}`;
       const compactQrSvg = buildQrCodeSvg(verifyUrl, 30);
-      const tteQrSvg = buildQrCodeSvg(verifyUrl, 52);
+      const tteQrSvg = buildQrCodeSvg(verifyUrl, 56);
 
       const kamadTtdSrc = (typeof KAMAD_TTD_DATA_URL !== "undefined" && KAMAD_TTD_DATA_URL)
         ? KAMAD_TTD_DATA_URL
@@ -10980,14 +10980,8 @@ function initMainApplication() {
                 ${forExcel ? `
                   <div style="height: 70px; line-height: 70px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Pengesahan Resmi Kepala Madrasah ]</div>
                 ` : (String(signModel).toUpperCase() === "B" ? `
-                  <!-- MODEL B: KOMBINASI TTE QR BARCODE + TTD ASLI + STEMPEL BASAH UNGU -->
-                  <div style="height: 70px; margin: 3px auto; display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 320px;">
-                    <!-- Kotak QR Barcode Validasi TTE Kemenag -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 4px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); flex-shrink: 0;">
-                      ${tteQrSvg}
-                      <div style="font-size: 5.2pt; font-weight: 800; color: #0369a1; letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px;">TTE KEMENAG</div>
-                    </div>
-
+                  <!-- MODEL B: TTD ASLI + OVERLAP STEMPEL MADRASAH + SEBELAH KANAN HANYA BARCODE SAJA -->
+                  <div style="height: 70px; margin: 2px auto; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 320px;">
                     <!-- Area TTD Asli Kamad + Overlap Stempel Madrasah -->
                     <div style="position: relative; width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                       <!-- Stempel Madrasah (Posisi alami tumpang tindih dengan TTD, miring -4 derajat) -->
@@ -10995,19 +10989,23 @@ function initMainApplication() {
                       <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) -->
                       <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="position: relative; width: 110px; height: 66px; object-fit: contain; z-index: 2; margin-left: 18px;" />
                     </div>
+
+                    <!-- Sebelah kanan TTD: hanya barcode saja (tanpa list biru, tanpa teks TTE) -->
+                    <div style="width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      ${tteQrSvg}
+                    </div>
                   </div>
                 ` : `
-                  <!-- MODEL A: TTE MODERN RESMI (BARCODE QR CODE VALIDASI KEMENAG + TTD ASLI H. ROSIDI BERSIH TANPA STEMPEL BASAH) -->
-                  <div style="height: 70px; margin: 3px auto; display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 320px;">
-                    <!-- Kotak QR Barcode Validasi TTE Kemenag -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1.5px solid #0284c7; border-radius: 4px; padding: 2px 5px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.06); flex-shrink: 0;">
-                      ${tteQrSvg}
-                      <div style="font-size: 5.2pt; font-weight: 800; color: #0369a1; letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px;">TTE KEMENAG</div>
+                  <!-- MODEL A: TTD ASLI H. ROSIDI BERSIH + SEBELAH KANAN HANYA BARCODE SAJA (TANPA LIST BIRU & TANPA TEKS TTE) -->
+                  <div style="height: 70px; margin: 2px auto; display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 320px;">
+                    <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) -->
+                    <div style="width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="width: 130px; height: 68px; object-fit: contain;" />
                     </div>
 
-                    <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) - Bersih & Rapi Tanpa Stempel -->
-                    <div style="width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                      <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="width: 125px; height: 68px; object-fit: contain;" />
+                    <!-- Sebelah kanan TTD: hanya barcode saja -->
+                    <div style="width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      ${tteQrSvg}
                     </div>
                   </div>
                 `)}
