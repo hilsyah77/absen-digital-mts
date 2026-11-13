@@ -10253,6 +10253,7 @@ function initMainApplication() {
     const modalReport = document.getElementById("modalOfficialAttendanceReport");
     const monthSelect = document.getElementById("selectOfficialReportMonth");
     const teacherSelect = document.getElementById("selectOfficialReportTeacher");
+    const signModelSelect = document.getElementById("selectOfficialReportSignModel");
     const paperSheet = document.getElementById("officialReportPaperSheet");
     const btnPrint = document.getElementById("btnTriggerOfficialPrint");
     const btnExcel = document.getElementById("btnTriggerOfficialExcel");
@@ -10646,7 +10647,7 @@ function initMainApplication() {
       return "";
     }
 
-    function generateOfficialReportTableHTML(report, forExcel = false) {
+    function generateOfficialReportTableHTML(report, forExcel = false, signModel = "A") {
       const borderAttr = forExcel ? 'border="1"' : 'style="border: 1px solid #000;"';
       const cellBorder = 'border: 1px solid #000;';
 
@@ -10972,14 +10973,14 @@ function initMainApplication() {
                 <div style="font-size: 8pt; font-family: Arial, sans-serif; margin-top: 2px;">NUPTK. ${report.teacherNuptk}</div>
               </td>
 
-              <!-- SISI KANAN: KEPALA MADRASAH DENGAN MODEL B (TTE QR BARCODE + TTD ASLI + STEMPEL BASAH) -->
+              <!-- SISI KANAN: KEPALA MADRASAH (MODEL A: TTE MODERN TANPA STEMPEL / MODEL B: DENGAN STEMPEL BASAH) -->
               <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 20px;">
                 <div style="font-size: 8.2pt; font-family: Arial, sans-serif;">${report.signCity}, ${report.signDate}</div>
                 <div style="font-size: 8.5pt; font-weight: bold; font-family: Arial, sans-serif; margin-top: 2px;">Kepala ${report.schoolName}</div>
                 ${forExcel ? `
-                  <div style="height: 70px; line-height: 70px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Stempel Resmi Kepala Madrasah ]</div>
-                ` : `
-                  <!-- CONTAINER MODEL B -->
+                  <div style="height: 70px; line-height: 70px; font-size: 7.8pt; font-style: italic; color: #475569;">[ Tanda Tangan & Pengesahan Resmi Kepala Madrasah ]</div>
+                ` : (String(signModel).toUpperCase() === "B" ? `
+                  <!-- MODEL B: KOMBINASI TTE QR BARCODE + TTD ASLI + STEMPEL BASAH UNGU -->
                   <div style="height: 70px; margin: 3px auto; display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 320px;">
                     <!-- Kotak QR Barcode Validasi TTE Kemenag -->
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px 4px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); flex-shrink: 0;">
@@ -10991,11 +10992,25 @@ function initMainApplication() {
                     <div style="position: relative; width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                       <!-- Stempel Madrasah (Posisi alami tumpang tindih dengan TTD, miring -4 derajat) -->
                       <img src="${madrasahStempelSrc}" alt="Stempel Madrasah" style="position: absolute; left: 2px; top: 0px; width: 70px; height: 70px; object-fit: contain; opacity: 0.88; transform: rotate(-4deg); pointer-events: none; z-index: 1;" />
-                      <!-- Tanda Tangan Asli Kepala Madrasah -->
+                      <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) -->
                       <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="position: relative; width: 110px; height: 66px; object-fit: contain; z-index: 2; margin-left: 18px;" />
                     </div>
                   </div>
-                `}
+                ` : `
+                  <!-- MODEL A: TTE MODERN RESMI (BARCODE QR CODE VALIDASI KEMENAG + TTD ASLI H. ROSIDI BERSIH TANPA STEMPEL BASAH) -->
+                  <div style="height: 70px; margin: 3px auto; display: flex; align-items: center; justify-content: center; gap: 14px; max-width: 320px;">
+                    <!-- Kotak QR Barcode Validasi TTE Kemenag -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1.5px solid #0284c7; border-radius: 4px; padding: 2px 5px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.06); flex-shrink: 0;">
+                      ${tteQrSvg}
+                      <div style="font-size: 5.2pt; font-weight: 800; color: #0369a1; letter-spacing: 0.3px; text-transform: uppercase; margin-top: 1px;">TTE KEMENAG</div>
+                    </div>
+
+                    <!-- Tanda Tangan Asli Kepala Madrasah (Drs. H. Akhmad Rosidi) - Bersih & Rapi Tanpa Stempel -->
+                    <div style="width: 140px; height: 70px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <img src="${kamadTtdSrc}" alt="TTD Kepala Madrasah" style="width: 125px; height: 68px; object-fit: contain;" />
+                    </div>
+                  </div>
+                `)}
                 <div style="font-size: 9.2pt; font-weight: bold; text-decoration: underline; letter-spacing: 0.3px; font-family: Arial, sans-serif;">${report.principalName}</div>
                 <div style="font-size: 8pt; font-family: Arial, sans-serif; margin-top: 2px;">NIP / NUPTK. ${report.principalNip}</div>
               </td>
@@ -11039,8 +11054,9 @@ function initMainApplication() {
         ? StorageService.getActiveTeacher()
         : null;
       const teacherId = teacherSelect?.value || (activeTeacher ? activeTeacher.id : "9248740641200003");
+      const signModel = signModelSelect ? signModelSelect.value : "A";
       const report = getMonthlyReportData(yearStr, monthStr, teacherId);
-      paperSheet.innerHTML = generateOfficialReportTableHTML(report, false);
+      paperSheet.innerHTML = generateOfficialReportTableHTML(report, false, signModel);
 
       const topKpiBar = document.getElementById("officialReportTopKpiBar");
       if (topKpiBar) {
@@ -11079,7 +11095,8 @@ function initMainApplication() {
 
     function printOfficialReportDocument(yearStr, monthStr, teacherId) {
       const report = getMonthlyReportData(yearStr, monthStr, teacherId);
-      const htmlBody = generateOfficialReportTableHTML(report, false);
+      const signModel = signModelSelect ? signModelSelect.value : "A";
+      const htmlBody = generateOfficialReportTableHTML(report, false, signModel);
 
       // Clean up previous print iframe if any
       const existingIframe = document.getElementById("officialReportPrintIframe");
@@ -11237,7 +11254,8 @@ function initMainApplication() {
 
     function downloadOfficialReportExcel(yearStr, monthStr, teacherId) {
       const report = getMonthlyReportData(yearStr, monthStr, teacherId);
-      const htmlBody = generateOfficialReportTableHTML(report, true);
+      const signModel = signModelSelect ? signModelSelect.value : "A";
+      const htmlBody = generateOfficialReportTableHTML(report, true, signModel);
 
       const excelTemplate = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -11376,6 +11394,7 @@ function initMainApplication() {
     // Event Listeners
     if (monthSelect) monthSelect.addEventListener("change", updateReportPreview);
     if (teacherSelect) teacherSelect.addEventListener("change", updateReportPreview);
+    if (signModelSelect) signModelSelect.addEventListener("change", updateReportPreview);
 
     if (btnPrint) {
       btnPrint.addEventListener("click", () => {
