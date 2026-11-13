@@ -545,6 +545,12 @@ const ApiService = {
             const isLateBool = Boolean(Number(row.is_late));
             const k = `${row.nip || row.teacher_id}_${row.date}`;
             const prev = histMap.get(k) || {};
+            let itemStatus = row.status || prev.status || "Hadir";
+            if (itemStatus === "Pulang") {
+              const inClean = (row.check_in_time || prev.checkIn || "").replace(/[^0-9:]/g, "").slice(0, 5);
+              const lateDetected = isLateBool || (row.status_detail && row.status_detail.includes("Terlambat")) || (prev.statusDetail && prev.statusDetail.includes("Terlambat")) || (inClean && inClean > "07:00");
+              itemStatus = lateDetected ? "Terlambat" : "Hadir";
+            }
             histMap.set(k, {
               ...prev,
               id: row.id || prev.id || k,
@@ -556,7 +562,7 @@ const ApiService = {
               checkIn: row.check_in_time || prev.checkIn || "-",
               checkOut: row.check_out_time || prev.checkOut || "-",
               distance: row.check_in_distance || prev.distance || "18 Meter",
-              status: row.status || prev.status || "Hadir",
+              status: itemStatus,
               statusDetail: row.status_detail || prev.statusDetail || (isLateBool ? "Terlambat" : "Hadir Tepat Waktu"),
               isLate: isLateBool,
               verified: true

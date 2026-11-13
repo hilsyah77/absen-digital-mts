@@ -2,6 +2,12 @@
 api/config.local.php
 .env
 
+# Android build cache & artifacts
+android/.gradle/
+android/build/
+android/app/build/
+.gradle/
+
 # File sistem / editor
 .DS_Store
 Thumbs.db

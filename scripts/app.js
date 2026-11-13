@@ -7,6 +7,26 @@ function initMainApplication() {
   // Application State
   let todayAttendance = StorageService.getTodayAttendance();
   let attendanceHistory = StorageService.getHistory();
+  if (Array.isArray(attendanceHistory)) {
+    let histModified = false;
+    attendanceHistory = attendanceHistory.map(item => {
+      if (!item) return item;
+      if (item.status === "Pulang") {
+        const inClean = (item.checkIn || "").replace(/[^0-9:]/g, "").slice(0, 5);
+        const isLateItem = Boolean(
+          item.isLate ||
+          (item.statusDetail && item.statusDetail.toLowerCase().includes("terlambat")) ||
+          (inClean && inClean > "07:00")
+        );
+        item.status = isLateItem ? "Terlambat" : "Hadir";
+        histModified = true;
+      }
+      return item;
+    });
+    if (histModified) {
+      StorageService.saveHistory(attendanceHistory);
+    }
+  }
   let leaveRequests = StorageService.getLeaveRequests();
   let teachingLogs = StorageService.getTeachingLogs();
   if (!Array.isArray(teachingLogs)) teachingLogs = INITIAL_TEACHING_LOGS || [];
@@ -1150,12 +1170,14 @@ function initMainApplication() {
           `Selesai (${todayAttendance.checkIn ? todayAttendance.checkIn.time : ''} - ${timeFormatted})`
         );
 
-        // Update history item for active teacher
+        // Update history item for active teacher (pertahankan status kehadiran hakiki Terlambat / Hadir)
         attendanceHistory = attendanceHistory.map(item => {
           if (item.date === curDateStr && (!item.teacherId || item.teacherId === activeTchId || (activeTch && (item.teacherId === activeTch.id || item.nip === activeTch.nip)))) {
+            const preservedStatus = wasLate ? "Terlambat" : (item.status === "Terlambat" ? "Terlambat" : "Hadir");
             return {
               ...item,
-              checkOut: timeFormatted
+              checkOut: timeFormatted,
+              status: preservedStatus
             };
           }
           return item;
@@ -1451,7 +1473,10 @@ function initMainApplication() {
   const btnPrintSlip = document.getElementById("btnPrintSlip");
   if (btnPrintSlip) {
     btnPrintSlip.addEventListener("click", () => {
-      const periodVal = document.getElementById("historyPeriodFilter")?.value || "2026-01";
+      const rawFilter = document.getElementById("historyPeriodFilter")?.value;
+      const nowApp = getAppCurrentDate();
+      const curYm = `${nowApp.getFullYear()}-${String(nowApp.getMonth() + 1).padStart(2, "0")}`;
+      const periodVal = (rawFilter && /^\d{4}-\d{2}$/.test(rawFilter)) ? rawFilter : curYm;
       if (typeof window.openOfficialAttendanceReportModal === "function") {
         window.openOfficialAttendanceReportModal(periodVal);
       } else {
@@ -10280,12 +10305,45 @@ function initMainApplication() {
         : {};
       const schoolName = schoolConfig.name || "MTs Asy-Syafi'iyyah Jatibarang";
 
-      const allHistory = (typeof StorageService !== "undefined" && StorageService.getHistory)
+      const allHistoryRaw = (typeof StorageService !== "undefined" && StorageService.getHistory)
         ? StorageService.getHistory()
         : [];
-      const allLeaves = (typeof StorageService !== "undefined" && StorageService.getLeaveRequests)
+      const allLeavesRaw = (typeof StorageService !== "undefined" && StorageService.getLeaveRequests)
         ? StorageService.getLeaveRequests()
         : [];
+
+      // Filter presensi & izin khusus untuk guru yang dipilih
+      const targetTeacherNip = String(teacher.nip || teacher.id || "").trim();
+      const targetTeacherId = String(teacher.id || "").trim();
+      const targetTeacherName = String(teacher.name || "").trim().toLowerCase();
+
+      const teacherHistory = allHistoryRaw.filter(h => {
+        if (!h) return false;
+        const hTeacherId = String(h.teacherId || "").trim();
+        const hNip = String(h.nip || "").trim();
+        const hName = String(h.teacherName || h.name || "").trim().toLowerCase();
+        return (
+          (!hTeacherId && !hNip) ||
+          hTeacherId === targetTeacherId ||
+          hTeacherId === targetTeacherNip ||
+          hNip === targetTeacherNip ||
+          hNip === targetTeacherId ||
+          (targetTeacherName && hName === targetTeacherName)
+        );
+      });
+
+      const teacherLeaves = allLeavesRaw.filter(l => {
+        if (!l) return false;
+        const lTeacherId = String(l.teacherId || "").trim();
+        const lNip = String(l.nip || "").trim();
+        return (
+          (!lTeacherId && !lNip) ||
+          lTeacherId === targetTeacherId ||
+          lTeacherId === targetTeacherNip ||
+          lNip === targetTeacherNip ||
+          lNip === targetTeacherId
+        );
+      });
 
       const monthPadded = String(month).padStart(2, "0");
       const periodStartStr = `01-${monthPadded}-${year}`;
@@ -10340,12 +10398,19 @@ function initMainApplication() {
         }
 
         // Teacher Attendance Record Check
-        const attRecord = allHistory.find(h => {
-          return (h.date === isoDate || h.rawDate === isoDate || (h.date && h.date.startsWith(`${dayPadded}/${monthPadded}`)));
+        const attRecord = teacherHistory.find(h => {
+          if (!h) return false;
+          const hDate = String(h.date || h.rawDate || "").trim();
+          return (
+            hDate === isoDate ||
+            hDate.startsWith(`${year}-${monthPadded}-${dayPadded}`) ||
+            hDate.startsWith(`${dayPadded}/${monthPadded}/${year}`) ||
+            hDate.startsWith(`${dayPadded}/${monthPadded}`)
+          );
         });
 
         // Approved Leave Record Check
-        const leaveRecord = allLeaves.find(l => {
+        const leaveRecord = teacherLeaves.find(l => {
           const s = (l.startDate || "").substring(0, 10);
           const e = (l.endDate || l.startDate || "").substring(0, 10);
           return isoDate >= s && isoDate <= e && (l.status === "Approved" || l.status === "Disetujui");
@@ -10362,6 +10427,9 @@ function initMainApplication() {
         let liburRutin = false;
         let isHoliday = false;
         let keterangan = "";
+        let isLate = false;
+        let isEarlyLeave = false;
+        let isPresent = false;
 
         // Standard Schedule by Day
         if (dayOfWeek === 5) {
@@ -10411,14 +10479,43 @@ function initMainApplication() {
 
         // Actual Attendance Scans (only if active work day, not holiday)
         if (attRecord && !isHoliday) {
-          if (attRecord.checkIn && attRecord.checkIn !== "--:--") {
+          if (attRecord.checkIn && attRecord.checkIn !== "--:--" && attRecord.checkIn !== "-") {
             scanMasuk = attRecord.checkIn;
+            isPresent = true;
           }
-          if (attRecord.checkOut && attRecord.checkOut !== "--:--") {
+          if (attRecord.checkOut && attRecord.checkOut !== "--:--" && attRecord.checkOut !== "-") {
             scanPulang = attRecord.checkOut;
           }
-          if (attRecord.status && attRecord.status !== "Hadir") {
+
+          // Sinkronisasi status kehadiran dengan Riwayat Absen:
+          const inTimeClean = (scanMasuk || "").replace(/[^0-9:]/g, "").slice(0, 5);
+          const stdInClean = (jamMasuk || "07:00").replace(/[^0-9:]/g, "").slice(0, 5);
+          
+          isLate = Boolean(
+            attRecord.isLate === true ||
+            attRecord.status === "Terlambat" ||
+            (attRecord.statusDetail && attRecord.statusDetail.toLowerCase().includes("terlambat")) ||
+            (inTimeClean && stdInClean && inTimeClean > stdInClean)
+          );
+
+          const outTimeClean = (scanPulang || "").replace(/[^0-9:]/g, "").slice(0, 5);
+          const stdOutClean = (jamPulang || "14:30").replace(/[^0-9:]/g, "").slice(0, 5);
+          isEarlyLeave = Boolean(
+            outTimeClean && stdOutClean && outTimeClean < stdOutClean
+          );
+
+          if (isLate && isEarlyLeave) {
+            keterangan = "Terlambat & Pulang Cepat";
+          } else if (isLate) {
+            keterangan = "Terlambat";
+          } else if (isEarlyLeave) {
+            keterangan = "Pulang Cepat";
+          } else if (attRecord.correction) {
+            keterangan = "Koreksi Hadir";
+          } else if (attRecord.status && attRecord.status !== "Hadir" && attRecord.status !== "Pulang") {
             keterangan = attRecord.status;
+          } else {
+            keterangan = "";
           }
         }
 
@@ -10438,7 +10535,10 @@ function initMainApplication() {
           liburUmum,
           liburRutin,
           isHoliday,
-          keterangan
+          keterangan,
+          isLate,
+          isEarlyLeave,
+          isPresent
         });
       }
 
@@ -10452,12 +10552,13 @@ function initMainApplication() {
       const publicHolidayCount = days.filter(d => d.liburUmum).length;
       const effectiveWorkDays = totalDays - (routineHolidayCount + publicHolidayCount);
 
-      let presentCount = 0;
-      let lateCount = 0;
-      let earlyLeaveCount = 0;
-      let leaveCount = 0;
-      let sickCount = 0;
-      let permitCount = 0;
+      let presentCount = 0;   // Total hari hadir (tepat waktu + terlambat)
+      let onTimeCount = 0;    // Hadir tepat waktu
+      let lateCount = 0;      // Terlambat
+      let earlyLeaveCount = 0;// Pulang cepat
+      let leaveCount = 0;     // Izin / cuti
+      let sickCount = 0;      // Sakit
+      let permitCount = 0;    // Izin
 
       days.forEach(d => {
         if (!d.liburRutin && !d.liburUmum) {
@@ -10465,12 +10566,14 @@ function initMainApplication() {
             leaveCount++;
             if (d.namaTugas === "Sakit") sickCount++;
             else permitCount++;
-          } else {
+          } else if (d.isPresent || d.scanMasuk) {
             presentCount++;
-            if (d.scanMasuk && d.scanMasuk > "07:15") {
+            if (d.isLate) {
               lateCount++;
+            } else {
+              onTimeCount++;
             }
-            if (d.scanPulang && d.jamPulang && d.scanPulang < d.jamPulang) {
+            if (d.isEarlyLeave) {
               earlyLeaveCount++;
             }
           }
@@ -10511,6 +10614,7 @@ function initMainApplication() {
         publicHolidayCount,
         effectiveWorkDays,
         presentCount,
+        onTimeCount,
         lateCount,
         earlyLeaveCount,
         leaveCount,
@@ -10792,9 +10896,9 @@ function initMainApplication() {
             <tr>
               <td style="${cellBorder} padding: 4px 8px; font-size: 8.2pt; font-family: Arial, sans-serif; font-weight: 500; text-align: left; vertical-align: middle;">Ketepatan Masuk (Scan Masuk &le; 07:15)</td>
               <td style="${cellBorder} padding: 4px 5px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: center; vertical-align: middle;">07:00 WIB</td>
-              <td style="${cellBorder} padding: 4px 5px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: center; vertical-align: middle; font-weight: bold;">${report.presentCount} Hari Tepat Waktu</td>
-              <td style="${cellBorder} padding: 4px 5px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: center; vertical-align: middle; color: #16a34a; font-weight: bold;">MEMENUHI</td>
-              <td style="${cellBorder} padding: 4px 8px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: left; vertical-align: middle;">Tingkat kedisiplinan hadir sangat tinggi</td>
+              <td style="${cellBorder} padding: 4px 5px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: center; vertical-align: middle; font-weight: bold;">${report.onTimeCount || report.presentCount} Hari Tepat Waktu${report.lateCount > 0 ? ` (${report.lateCount} Terlambat)` : ''}</td>
+              <td style="${cellBorder} padding: 4px 5px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: center; vertical-align: middle; color: #16a34a; font-weight: bold;">${report.lateCount === 0 ? 'MEMENUHI' : 'TERCATAT'}</td>
+              <td style="${cellBorder} padding: 4px 8px; font-size: 8.2pt; font-family: Arial, sans-serif; text-align: left; vertical-align: middle;">${report.lateCount > 0 ? `${report.lateCount} hari tercatat keterlambatan toleransi` : 'Tingkat kedisiplinan hadir sangat tinggi'}</td>
             </tr>
             <tr>
               <td style="${cellBorder} padding: 4px 8px; font-size: 8.2pt; font-family: Arial, sans-serif; font-weight: 500; text-align: left; vertical-align: middle;">Kepatuhan Pulang (Scan Pulang Standar)</td>
@@ -11187,10 +11291,14 @@ function initMainApplication() {
     // Window Exposure for global trigger
     window.openOfficialAttendanceReportModal = function(preferredPeriod = null, preferredTeacherId = null) {
       if (monthSelect) {
-        if (preferredPeriod && preferredPeriod !== "all" && preferredPeriod !== "current") {
+        if (preferredPeriod && preferredPeriod !== "all" && preferredPeriod !== "current" && /^\d{4}-\d{2}$/.test(preferredPeriod)) {
           monthSelect.value = preferredPeriod;
-        } else if (!monthSelect.value) {
-          monthSelect.value = "2026-01";
+        } else {
+          const nowApp = getAppCurrentDate();
+          const curYm = `${nowApp.getFullYear()}-${String(nowApp.getMonth() + 1).padStart(2, "0")}`;
+          if (Array.from(monthSelect.options).some(o => o.value === curYm)) {
+            monthSelect.value = curYm;
+          }
         }
       }
       populateTeacherDropdown(preferredTeacherId);
@@ -11203,9 +11311,11 @@ function initMainApplication() {
         ? StorageService.getActiveTeacher()
         : null;
       const targetTeacherId = teacherId || (activeTeacher ? activeTeacher.id : "9248740641200003");
-      let period = periodVal || document.getElementById("historyPeriodFilter")?.value || "2026-01";
-      if (!period || period === "all" || period === "current") {
-        period = "2026-01";
+      const nowApp = getAppCurrentDate();
+      const curYm = `${nowApp.getFullYear()}-${String(nowApp.getMonth() + 1).padStart(2, "0")}`;
+      let period = periodVal || document.getElementById("historyPeriodFilter")?.value || curYm;
+      if (!period || period === "all" || period === "current" || !/^\d{4}-\d{2}$/.test(period)) {
+        period = curYm;
       }
       const [yearStr, monthStr] = period.split("-");
       downloadOfficialReportExcel(yearStr, monthStr, targetTeacherId);
@@ -11240,6 +11350,13 @@ function initMainApplication() {
     }
 
     // Initial population and preview render
+    if (monthSelect) {
+      const nowApp = getAppCurrentDate();
+      const curYm = `${nowApp.getFullYear()}-${String(nowApp.getMonth() + 1).padStart(2, "0")}`;
+      if (Array.from(monthSelect.options).some(o => o.value === curYm)) {
+        monthSelect.value = curYm;
+      }
+    }
     populateTeacherDropdown();
     updateReportPreview();
   }

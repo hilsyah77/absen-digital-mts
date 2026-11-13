@@ -3162,8 +3162,16 @@ const StorageService = {
           ? String(activeTeacher.nip).trim() 
           : (activeTeacher.teacherId || activeTeacher.id);
         const dateStr = data.date || new Date().toISOString().split("T")[0];
+        const isLateAtt = Boolean(
+          (data.checkIn && data.checkIn.isLate) ||
+          data.isLate ||
+          (data.statusDetail && data.statusDetail.toLowerCase().includes("terlambat")) ||
+          (data.checkIn && data.checkIn.time && data.checkIn.time.replace(/[^0-9:]/g, "").slice(0, 5) > "07:00")
+        );
+        const safeStatus = (data.status === "Pulang") ? (isLateAtt ? "Terlambat" : "Hadir") : data.status;
         ApiService.recordAttendance({
           ...data,
+          status: safeStatus,
           id: `${canonicalNip}_${dateStr}`,
           teacherId: canonicalNip,
           teacherName: activeTeacher.name,
@@ -3175,7 +3183,29 @@ const StorageService = {
   getHistory() {
     const stored = localStorage.getItem("hadir_guru_history");
     if (stored) {
-      try { return JSON.parse(stored); } catch (e) { console.error(e); }
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          let modified = false;
+          const sanitized = parsed.map(item => {
+            if (item && item.status === "Pulang") {
+              const inClean = (item.checkIn || "").replace(/[^0-9:]/g, "").slice(0, 5);
+              const isLate = Boolean(
+                item.isLate ||
+                (item.statusDetail && item.statusDetail.toLowerCase().includes("terlambat")) ||
+                (inClean && inClean > "07:00")
+              );
+              item.status = isLate ? "Terlambat" : "Hadir";
+              modified = true;
+            }
+            return item;
+          });
+          if (modified) {
+            localStorage.setItem("hadir_guru_history", JSON.stringify(sanitized));
+          }
+          return sanitized;
+        }
+      } catch (e) { console.error(e); }
     }
     return INITIAL_ATTENDANCE_HISTORY;
   },

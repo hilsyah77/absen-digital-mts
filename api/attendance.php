@@ -139,6 +139,13 @@ if ($method === 'POST') {
     $checkInDevice = $input['checkIn']['device'] ?? $input['check_in_device'] ?? ($existing ? $existing['check_in_device'] : '');
     $isLate = isset($input['checkIn']['isLate']) ? ($input['checkIn']['isLate'] ? 1 : 0) : (isset($input['is_late']) ? ($input['is_late'] ? 1 : 0) : ($existing ? $existing['is_late'] : 0));
 
+    // Jika status yang dikirim adalah 'Pulang', pulihkan ke status presensi kehadiran hakiki (Terlambat atau Hadir)
+    if ($status === 'Pulang') {
+        $cleanInTime = ($checkInTime != '-') ? preg_replace('/[^0-9:]/', '', $checkInTime) : '';
+        $isLateDetected = $isLate || ($existing && $existing['status'] === 'Terlambat') || (!empty($cleanInTime) && substr($cleanInTime, 0, 5) > '07:00');
+        $status = $isLateDetected ? 'Terlambat' : 'Hadir';
+    }
+
     // Check-out
     $checkOutTime = $input['checkOut']['time'] ?? $input['check_out_time'] ?? ($existing ? $existing['check_out_time'] : '-');
     $checkOutLat = $input['checkOut']['lat'] ?? $input['check_out_lat'] ?? ($existing ? $existing['check_out_lat'] : null);
