@@ -10631,10 +10631,10 @@ function initMainApplication() {
       };
     }
 
-    function buildQrCodeSvg(text, size = 52) {
+    function buildQrCodeSvg(text, size = 52, ecLevel = 'L') {
       try {
         if (typeof qrcode === "function") {
-          const qr = qrcode(0, 'M');
+          const qr = qrcode(0, ecLevel);
           qr.addData(text);
           qr.make();
           const svgRaw = qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
@@ -10651,9 +10651,17 @@ function initMainApplication() {
       const borderAttr = forExcel ? 'border="1"' : 'style="border: 1px solid #000;"';
       const cellBorder = 'border: 1px solid #000;';
 
-      const verifyUrl = `https://absen.mtsasyjtb.cloud/verify?doc=${encodeURIComponent(report.printRefNumber || "MTs-2026")}&guru=${encodeURIComponent(report.teacherName || "")}`;
-      const compactQrSvg = buildQrCodeSvg(verifyUrl, 30);
-      const tteQrSvg = buildQrCodeSvg(verifyUrl, 62);
+      const verifyText = `VERIFIKASI KEASLIAN DOKUMEN RESMI
+Dokumen Laporan Absensi Bulanan telah disahkan & ditandatangani secara elektronik oleh:
+Nama    : ${report.principalName}
+Jabatan : Kepala ${report.schoolName}
+NIP     : ${report.principalNip}
+No. Cetak: ${report.printRefNumber}
+Tanggal : ${report.signDate}
+Status  : SAH & TERVERIFIKASI SISTEM ABSENSI DIGITAL`;
+
+      const compactQrSvg = buildQrCodeSvg(verifyText, 32, 'L');
+      const tteQrSvg = buildQrCodeSvg(verifyText, 66, 'L');
 
       const kamadTtdSrc = (typeof KAMAD_TTD_DATA_URL !== "undefined" && KAMAD_TTD_DATA_URL)
         ? KAMAD_TTD_DATA_URL
@@ -10996,9 +11004,9 @@ function initMainApplication() {
                     </div>
                   </div>
                 ` : `
-                  <!-- MODEL A: BARCODE CENTER DI ATAS NAMA KAMAD (TTE RESMI TANPA TTD FISIK) -->
-                  <div style="height: 70px; margin: 2px auto; display: flex; align-items: center; justify-content: center;">
-                    <div style="width: 62px; height: 62px; display: flex; align-items: center; justify-content: center;">
+                  <!-- MODEL A: BARCODE CENTER DI ATAS NAMA KAMAD (TTE RESMI BERISI TEKS VERIFIKASI RESMI) -->
+                  <div style="height: 70px; margin: 1px auto; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 66px; height: 66px; display: flex; align-items: center; justify-content: center;">
                       ${tteQrSvg}
                     </div>
                   </div>
